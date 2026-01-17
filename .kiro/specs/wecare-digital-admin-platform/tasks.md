@@ -6,7 +6,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
 
 ## Tasks
 
-- [-] 1. Set up AWS Amplify Gen 2 infrastructure
+- [x] 1. Set up AWS Amplify Gen 2 infrastructure
   - Define 11 DynamoDB tables in amplify/backend.ts with PAY_PER_REQUEST billing
   - Configure TTL on Messages (30 days), DLQMessages (7 days), AuditLogs (180 days), RateLimitTrackers (24 hours)
   - Define 4 SQS queues: inbound-dlq, bulk-queue, bulk-dlq, outbound-dlq (optional)
@@ -17,8 +17,8 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
   - Configure branch-specific deployments (main=LIVE, feature/*=DRY_RUN, release/*=DRY_RUN)
   - _Requirements: 10.1, 10.2, 10.3, 10.5, 10.6, 11.1, 11.2, 11.3, 11.6, 18.1, 18.2, 18.4, 18.5_
 
-- [ ] 2. Implement core utility modules
-  - [ ] 2.1 Create MessageValidator class with validation methods
+- [-] 2. Implement core utility modules
+  - [x] 2.1 Create MessageValidator class with validation methods
     - Implement validate_whatsapp() with opt-in and allowlist checks
     - Implement validate_sms() with opt-in check
     - Implement validate_email() with opt-in check
@@ -42,7 +42,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 12: Email Opt-In Validation**
     - **Validates: Requirements 3.4**
   
-  - [ ] 2.6 Create RateLimiter class with token bucket algorithm
+  - [x] 2.6 Create RateLimiter class with token bucket algorithm
     - Implement check_and_consume() using DynamoDB atomic counters
     - Implement get_current_usage() for rolling 24-hour window tracking
     - Support channel-specific limits: WhatsApp (80/sec per phone), SMS (5/sec), Email (10/sec)
@@ -53,19 +53,19 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 26: WhatsApp Phone Number Rate Limit**
     - **Validates: Requirements 5.9**
   
-  - [ ] 2.8 Create logging utility with structured CloudWatch logging
+  - [x] 2.8 Create logging utility with structured CloudWatch logging
     - Implement log_validation_failure() with contactId, channel, reason
     - Implement log_api_error() with request ID, error type, stack trace
     - Implement log_authentication_attempt() with userId, timestamp, result
     - Use JSON format for all logs
     - _Requirements: 3.6, 14.1, 14.2, 14.3_
   
-  - [ ] 2.9 Create metrics utility for CloudWatch metrics
+  - [x] 2.9 Create metrics utility for CloudWatch metrics
     - Implement emit_message_delivery_metric() for success/failure rates per channel
     - Implement emit_bulk_job_metric() for duration and throughput
     - _Requirements: 14.4, 14.5_
   
-  - [ ] 2.10 Create error handling utilities
+  - [x] 2.10 Create error handling utilities
     - Implement retry_with_exponential_backoff() with max 3 retries
     - Implement send_to_dlq() for failed message handling
     - Implement CircuitBreaker class for external API calls
