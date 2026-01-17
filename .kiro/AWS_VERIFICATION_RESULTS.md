@@ -40,15 +40,19 @@
 - **Status**: ACTIVE
 - **Message Type**: TRANSACTIONAL
 
-### 7. Bedrock Knowledge Base (Optional)
+### 7. Bedrock Knowledge Base (Required)
 - **KB ID**: `FZBPKGTOYE`
 - **Name**: base-wecare-digital-bedrock-kb
 - **Status**: ACTIVE ✓
 
-### 8. Bedrock Agent (Optional)
+### 8. Bedrock Agent (Required)
 - **Agent ID**: `HQNT0JXN8G`
 - **Name**: base-bedrock-agent
 - **Status**: NOT_PREPARED (needs preparation before use)
+- **Foundation Model**: amazon.nova-pro-v1:0
+- **Orchestration**: SUPERVISOR (agent collaboration mode)
+- **Runtime**: base_bedrock_agentcore-1XHDxj2o3Q
+- **Memory**: SESSION_SUMMARY enabled (30 days, 20 sessions)
 
 ### 9. AWS End User Messaging Social (WhatsApp)
 
@@ -124,8 +128,8 @@
 - bulk-worker
 - bulk-job-control
 - dlq-replay
-- ai-query-kb (optional)
-- ai-generate-response (optional)
+- ai-query-kb (required)
+- ai-generate-response (required)
 
 ### CloudWatch Log Groups
 - /base-wecare-digital/common

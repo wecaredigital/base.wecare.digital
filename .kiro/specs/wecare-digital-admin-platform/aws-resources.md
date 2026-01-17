@@ -366,13 +366,14 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 
 ---
 
-## 8. AWS Bedrock (Optional AI Features)
+## 8. AWS Bedrock (AI Automation)
 
 ### 8.1 Knowledge Base
 
 **KB ID**: `FZBPKGTOYE`  
 **Region**: us-east-1  
-**Purpose**: AI-powered response generation from knowledge documents
+**Purpose**: AI-powered response generation from knowledge documents  
+**Status**: ACTIVE ✓
 
 **Data Sources**:
 - Data Source 1 ID: `AXR9PXIVUK`
@@ -382,15 +383,28 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 ### 8.2 Bedrock Agent
 
 **Agent ID**: `HQNT0JXN8G`  
+**Agent Name**: base-bedrock-agent  
 **Agent Alias**: (Generated during deployment)  
-**Runtime**: `base_bedrock_agentcore-1XHDxj2o3Q`  
-**Purpose**: Automated response suggestions with tool integration
+**Status**: NOT_PREPARED (requires preparation before first use)  
+**Foundation Model**: amazon.nova-pro-v1:0  
+**Orchestration Type**: SUPERVISOR (agent collaboration mode)  
+**Purpose**: Automated response suggestions with tool integration  
+**Idle Session TTL**: 600 seconds (10 minutes)  
+**Memory**: SESSION_SUMMARY enabled (30 days, max 20 recent sessions)
 
-**Agent Tools**:
-- Query knowledge base
-- Generate responses
-- Enforce opt-in validation
-- Require confirmation for actions
+**Agent Execution Role**:
+- **Role ARN**: `arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5`
+
+**Agent Core Runtime**:
+- **Runtime ID**: `base_bedrock_agentcore-1XHDxj2o3Q`
+- **Purpose**: Execution environment for agent orchestration and tool invocation
+
+**Agent Capabilities**:
+- Query knowledge base (FZBPKGTOYE)
+- Generate contextual responses
+- Multi-agent collaboration (SUPERVISOR mode)
+- Session memory with automatic summarization
+- Tool/function calling for actions
 
 ---
 
