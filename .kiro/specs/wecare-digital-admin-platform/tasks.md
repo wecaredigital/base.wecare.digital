@@ -17,7 +17,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
   - Configure branch-specific deployments (main=LIVE, feature/*=DRY_RUN, release/*=DRY_RUN)
   - _Requirements: 10.1, 10.2, 10.3, 10.5, 10.6, 11.1, 11.2, 11.3, 11.6, 18.1, 18.2, 18.4, 18.5_
 
-- [-] 2. Implement core utility modules
+- [x] 2. Implement core utility modules
   - [x] 2.1 Create MessageValidator class with validation methods
     - Implement validate_whatsapp() with opt-in and allowlist checks
     - Implement validate_sms() with opt-in check
@@ -71,11 +71,11 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - Implement CircuitBreaker class for external API calls
     - _Requirements: 4.7, 8.9, 13.8_
 
-- [ ] 3. Checkpoint - Ensure core utilities tests pass
+- [x] 3. Checkpoint - Ensure core utilities tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Implement authentication and authorization
-  - [ ] 4.1 Create auth-middleware Lambda function
+- [x] 4. Implement authentication and authorization
+  - [x] 4.1 Create auth-middleware Lambda function
     - Extract JWT from Authorization header
     - Validate JWT against Cognito JWKS endpoint (us-east-1_CC9u1fYh6)
     - Extract user claims (userId, email, role)
@@ -88,7 +88,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 1: Authentication Returns Valid Role**
     - **Validates: Requirements 1.1, 1.2**
   
-  - [ ] 4.3 Implement RBAC enforcement logic
+  - [x] 4.3 Implement RBAC enforcement logic
     - Define role permissions: Viewer (read-only), Operator (read-write), Admin (all)
     - Implement check_permission() function
     - Return HTTP 403 for unauthorized actions
@@ -102,8 +102,8 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 3: Unauthorized Access Returns 403**
     - **Validates: Requirements 1.6**
 
-- [ ] 5. Implement contact management Lambda functions
-  - [ ] 5.1 Create contacts-create Lambda function
+- [x] 5. Implement contact management Lambda functions
+  - [x] 5.1 Create contacts-create Lambda function
     - Validate at least one of {phone, email} is provided
     - Generate unique contactId (UUID)
     - Set all opt-in flags to False by default
@@ -120,13 +120,13 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 5: Contact Requires Phone or Email**
     - **Validates: Requirements 2.2**
   
-  - [ ] 5.4 Create contacts-read Lambda function
+  - [x] 5.4 Create contacts-read Lambda function
     - Query DynamoDB by contactId
     - Filter out soft-deleted records (deletedAt is null)
     - Return contact record or 404
     - _Requirements: 2.3_
   
-  - [ ] 5.5 Create contacts-update Lambda function
+  - [x] 5.5 Create contacts-update Lambda function
     - Validate contactId exists and not soft-deleted
     - Update only provided fields
     - Require explicit opt-in changes
@@ -138,7 +138,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 6: Contact Update Requires Explicit Opt-In Changes**
     - **Validates: Requirements 2.4**
   
-  - [ ] 5.7 Create contacts-delete Lambda function
+  - [x] 5.7 Create contacts-delete Lambda function
     - Set deletedAt timestamp (soft delete)
     - Do not physically delete record
     - _Requirements: 2.5_
@@ -147,7 +147,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 7: Contact Deletion is Soft Delete**
     - **Validates: Requirements 2.5**
   
-  - [ ] 5.9 Create contacts-search Lambda function
+  - [x] 5.9 Create contacts-search Lambda function
     - Perform case-insensitive search on name, phone, email
     - Use DynamoDB Scan with FilterExpression
     - Filter out soft-deleted records
@@ -161,8 +161,8 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
 - [ ] 6. Checkpoint - Ensure contact management tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Implement WhatsApp inbound message processing
-  - [ ] 7.1 Create inbound-whatsapp-handler Lambda function
+- [x] 7. Implement WhatsApp inbound message processing
+  - [x] 7.1 Create inbound-whatsapp-handler Lambda function
     - Parse SNS event and extract Message
     - Decode whatsAppWebhookEntry JSON string
     - Process messages array: extract sender, lookup/create Contact
@@ -189,7 +189,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 20: Inbound Message Updates Contact Timestamp**
     - **Validates: Requirements 4.9**
   
-  - [ ] 7.6 Implement inbound media download logic
+  - [x] 7.6 Implement inbound media download logic
     - Check if message contains media (type: image|video|audio|document)
     - Call GetWhatsAppMessageMedia API with mediaId
     - Store file in S3 auth.wecare.digital with prefix whatsapp-media/whatsapp-media-incoming/
@@ -204,8 +204,8 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 18: Inbound Processing Failure Goes to DLQ**
     - **Validates: Requirements 4.7**
 
-- [ ] 8. Implement WhatsApp outbound message delivery
-  - [ ] 8.1 Create outbound-whatsapp Lambda function
+- [x] 8. Implement WhatsApp outbound message delivery
+  - [x] 8.1 Create outbound-whatsapp Lambda function
     - Retrieve Contact record by contactId
     - Call MessageValidator.validate_whatsapp() for opt-in and allowlist
     - Check customer service window for free-form vs template requirement
@@ -244,8 +244,8 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 72: Outside Window Requires Template**
     - **Validates: Requirements 16.2, 16.3, 16.4, 16.5, 16.6**
 
-- [ ] 9. Implement SMS and Email outbound delivery
-  - [ ] 9.1 Create outbound-sms Lambda function
+- [x] 9. Implement SMS and Email outbound delivery
+  - [x] 9.1 Create outbound-sms Lambda function
     - Retrieve Contact record
     - Call MessageValidator.validate_sms()
     - Check SEND_MODE: if DRY_RUN log and return, if LIVE proceed
@@ -265,7 +265,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 32: SMS Character Limit with Segmentation**
     - **Validates: Requirements 6.4**
   
-  - [ ] 9.4 Create outbound-email Lambda function
+  - [x] 9.4 Create outbound-email Lambda function
     - Retrieve Contact record
     - Call MessageValidator.validate_email()
     - Check SEND_MODE: if DRY_RUN log and return, if LIVE proceed
@@ -292,8 +292,8 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
 - [ ] 10. Checkpoint - Ensure messaging tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 11. Implement bulk message processing
-  - [ ] 11.1 Create bulk-job-create Lambda function
+- [x] 11. Implement bulk message processing
+  - [x] 11.1 Create bulk-job-create Lambda function
     - Validate input parameters
     - Check confirmation gate: if recipients > 20 and not confirmed, return error
     - Query RateLimitTrackers for WhatsApp tier limit check
@@ -317,7 +317,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 40: Bulk Message Chunking**
     - **Validates: Requirements 8.3**
   
-  - [ ] 11.5 Create bulk-worker Lambda function
+  - [x] 11.5 Create bulk-worker Lambda function
     - Parse SQS message
     - For each recipient: retrieve Contact, validate, call outbound Lambda
     - Update BulkRecipients record with status
@@ -342,7 +342,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 44: Bulk Job Completion Report**
     - **Validates: Requirements 8.8**
   
-  - [ ] 11.9 Create bulk-job-control Lambda function
+  - [x] 11.9 Create bulk-job-control Lambda function
     - Validate jobId exists
     - Implement pause: update status to "paused"
     - Implement resume: update status to "pending", re-enqueue unprocessed chunks
@@ -353,8 +353,8 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 43: Bulk Job Control Operations**
     - **Validates: Requirements 8.7**
 
-- [ ] 12. Implement DLQ replay functionality
-  - [ ] 12.1 Create dlq-replay Lambda function
+- [x] 12. Implement DLQ replay functionality
+  - [x] 12.1 Create dlq-replay Lambda function
     - Receive messages from specified DLQ (up to batchSize)
     - Check retry counter: if >= maxRetries, skip and delete
     - Apply original processing logic
@@ -380,7 +380,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 14. Implement AI automation (optional)
-  - [ ] 14.1 Create ai-query-kb Lambda function
+  - [x] 14.1 Create ai-query-kb Lambda function
     - Call Bedrock RetrieveAndGenerate API
     - Pass query to Knowledge Base FZBPKGTOYE
     - Return top results with relevance scores
@@ -391,7 +391,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 63: AI Enabled Queries Knowledge Base**
     - **Validates: Requirements 15.1**
   
-  - [ ] 14.3 Create ai-generate-response Lambda function
+  - [x] 14.3 Create ai-generate-response Lambda function
     - Call Bedrock Agent HQNT0JXN8G
     - Pass message content and context
     - Generate response suggestion
