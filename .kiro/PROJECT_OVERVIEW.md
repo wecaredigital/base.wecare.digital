@@ -41,11 +41,13 @@ A **cloud-based multi-channel messaging platform** that enables organizations to
 
 #### AI (Required)
 - **Bedrock Knowledge Base**: `FZBPKGTOYE` (base-wecare-digital-bedrock-kb) - ACTIVE ✓
-- **Bedrock Agent**: `HQNT0JXN8G` (base-bedrock-agent) - NOT_PREPARED
+- **Bedrock Agent 1** (WhatsApp Customer): `HQNT0JXN8G` (base-bedrock-agent) - NOT_PREPARED
   - **Foundation Model**: amazon.nova-pro-v1:0
-  - **Orchestration**: SUPERVISOR (agent collaboration)
-  - **Runtime**: base_bedrock_agentcore-1XHDxj2o3Q
+  - **Purpose**: Generate responses for WhatsApp customer inquiries
   - **Memory**: SESSION_SUMMARY (30 days, 20 sessions)
+- **Bedrock Agent 2** (Internal Admin): `base_bedrock_agentcore-1XHDxj2o3Q`
+  - **Type**: Internal AWS-managed runtime
+  - **Purpose**: Amplify dashboard tasks and admin operations
 
 ---
 
@@ -176,9 +178,12 @@ A **cloud-based multi-channel messaging platform** that enables organizations to
 ┌─────────────────────────────────────────────────────────────────┐
 │                   AI AUTOMATION (Required)                      │
 │  • Bedrock Knowledge Base (query documents)                    │
-│  • Bedrock Agent (generate responses with Nova Pro v1)        │
-│  • Agent Core Runtime (base_bedrock_agentcore-1XHDxj2o3Q)     │
-│  • Operator approval required before sending                   │
+│  • Bedrock Agent 1: WhatsApp Customer (Nova Pro v1)           │
+│    - Generate responses for customer inquiries                 │
+│    - Operator approval required before sending                 │
+│  • Bedrock Agent 2: Internal Admin (agentcore runtime)        │
+│    - Amplify dashboard automation                              │
+│    - Internal task processing                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -251,9 +256,9 @@ A **cloud-based multi-channel messaging platform** that enables organizations to
 
 ### 7. AI Automation (Required)
 - Query Bedrock knowledge base for relevant info
-- Generate response suggestions via Bedrock Agent (Amazon Nova Pro v1)
-- Agent core runtime for orchestration and tool calling
-- Operator approval required (never auto-send)
+- **Agent 1 (WhatsApp Customer)**: Generate response suggestions via Bedrock Agent (Amazon Nova Pro v1)
+- **Agent 2 (Internal Admin)**: Amplify dashboard automation via agent core runtime
+- Operator approval required for customer-facing responses (never auto-send)
 - Feedback collection for AI quality improvement
 
 ### 8. Monitoring & Alerting

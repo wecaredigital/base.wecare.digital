@@ -45,14 +45,21 @@
 - **Name**: base-wecare-digital-bedrock-kb
 - **Status**: ACTIVE ✓
 
-### 8. Bedrock Agent (Required)
+### 8. Bedrock Agents (Required - 2 Agents)
+
+**Agent 1: WhatsApp Customer Interaction**
 - **Agent ID**: `HQNT0JXN8G`
 - **Name**: base-bedrock-agent
 - **Status**: NOT_PREPARED (needs preparation before use)
 - **Foundation Model**: amazon.nova-pro-v1:0
-- **Orchestration**: SUPERVISOR (agent collaboration mode)
-- **Runtime**: base_bedrock_agentcore-1XHDxj2o3Q
+- **Purpose**: Generate responses for WhatsApp customer inquiries
 - **Memory**: SESSION_SUMMARY enabled (30 days, 20 sessions)
+- **Action Groups**: CodeInterpreterAction, UserInputAction
+
+**Agent 2: Internal Admin Dashboard**
+- **Runtime ID**: `base_bedrock_agentcore-1XHDxj2o3Q`
+- **Type**: Internal AWS-managed runtime (not a separate resource)
+- **Purpose**: Amplify dashboard automation and internal task processing
 
 ### 9. AWS End User Messaging Social (WhatsApp)
 

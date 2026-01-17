@@ -380,31 +380,45 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 - Data Source 2 ID: `8KHGUUWYJ8`
 - S3 Location: `s3://stream.wecare.digital/base-wecare-digital/bedrock/kb/whatsapp/`
 
-### 8.2 Bedrock Agent
+### 8.2 Bedrock Agents (2 Agents)
+
+#### Agent 1: WhatsApp Customer Interaction Agent
 
 **Agent ID**: `HQNT0JXN8G`  
 **Agent Name**: base-bedrock-agent  
-**Agent Alias**: (Generated during deployment)  
+**Purpose**: Generate automated responses for WhatsApp customer inquiries  
 **Status**: NOT_PREPARED (requires preparation before first use)  
 **Foundation Model**: amazon.nova-pro-v1:0  
-**Orchestration Type**: SUPERVISOR (agent collaboration mode)  
-**Purpose**: Automated response suggestions with tool integration  
+**Orchestration Type**: DEFAULT  
 **Idle Session TTL**: 600 seconds (10 minutes)  
 **Memory**: SESSION_SUMMARY enabled (30 days, max 20 recent sessions)
 
 **Agent Execution Role**:
 - **Role ARN**: `arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5`
 
-**Agent Core Runtime**:
-- **Runtime ID**: `base_bedrock_agentcore-1XHDxj2o3Q`
-- **Purpose**: Execution environment for agent orchestration and tool invocation
+**Action Groups**:
+- CodeInterpreterAction (ENABLED)
+- UserInputAction (ENABLED)
 
-**Agent Capabilities**:
+**Capabilities**:
 - Query knowledge base (FZBPKGTOYE)
-- Generate contextual responses
-- Multi-agent collaboration (SUPERVISOR mode)
+- Generate contextual responses for WhatsApp users
 - Session memory with automatic summarization
 - Tool/function calling for actions
+- Operator approval required before sending
+
+**Integration**: Used by `ai-generate-response` Lambda function for WhatsApp inbound message processing
+
+---
+
+#### Agent 2: Internal Admin Dashboard Agent
+
+**Agent Core Runtime**: `base_bedrock_agentcore-1XHDxj2o3Q`  
+**Purpose**: Handle internal Amplify dashboard tasks and admin operations  
+**Type**: Internal AWS-managed runtime (not a separate resource)  
+**Usage**: Amplify dashboard automation, internal task processing
+
+**Note**: This is an internal runtime identifier used by AWS Bedrock for dashboard operations, not a separately created or managed resource.
 
 ---
 
