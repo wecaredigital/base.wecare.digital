@@ -10,11 +10,25 @@ Requirements: 14.4, 14.5
 import os
 import time
 import logging
+import boto3
 from typing import Dict, Any, List, Optional
 from enum import Enum
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+# Initialize CloudWatch client
+_cloudwatch_client = None
+
+def get_cloudwatch_client():
+    """Get or create CloudWatch client singleton."""
+    global _cloudwatch_client
+    if _cloudwatch_client is None:
+        _cloudwatch_client = boto3.client(
+            'cloudwatch',
+            region_name=os.environ.get('AWS_REGION', 'us-east-1')
+        )
+    return _cloudwatch_client
 
 
 class MetricUnit(Enum):
@@ -78,9 +92,9 @@ class MetricsEmitter:
         Initialize MetricsEmitter.
         
         Args:
-            cloudwatch_client: Boto3 CloudWatch client (optional, for testing)
+            cloudwatch_client: Boto3 CloudWatch client (optional, uses default if not provided)
         """
-        self.cloudwatch = cloudwatch_client
+        self.cloudwatch = cloudwatch_client or get_cloudwatch_client()
         self._metric_buffer: List[Metric] = []
         self._buffer_size = int(os.environ.get('METRICS_BUFFER_SIZE', 20))
 
@@ -362,3 +376,221 @@ class MetricsEmitter:
         except Exception as e:
             logger.error(f"Failed to emit metrics: {str(e)}")
             # Keep metrics in buffer for retry
+
+
+    def emit_authentication_metric(
+        self,
+        result: str,
+        role: str = None
+    ) -> None:
+        """
+        Emit authentication metric.
+        
+        Requirement 14.1: Log all authentication attempts
+        
+        Args:
+            result: Authentication result (SUCCESS, FAILED, UNAUTHORIZED)
+            role: User role if authentication succeeded
+        """
+        dimensions = {'Result': result}
+        if role:
+            dimensions['Role'] = role
+            
+        self._emit_metric(Metric(
+            name="AuthenticationAttempts",
+            value=1,
+            unit=MetricUnit.COUNT,
+            dimensions=dimensions,
+            timestamp=time.time()
+        ))
+
+    def emit_lambda_invocation_metric(
+        self,
+        function_name: str,
+        duration_ms: float,
+        success: bool
+    ) -> None:
+        """
+        Emit Lambda invocation metric.
+        
+        Args:
+            function_name: Lambda function name
+            duration_ms: Execution duration in milliseconds
+            success: Whether invocation succeeded
+        """
+        self._emit_metric(Metric(
+            name="LambdaInvocations",
+            value=1,
+            unit=MetricUnit.COUNT,
+            dimensions={
+                'FunctionName': function_name,
+                'Status': 'SUCCESS' if success else 'FAILED'
+            },
+            timestamp=time.time()
+        ))
+        
+        self._emit_metric(Metric(
+            name="LambdaDuration",
+            value=duration_ms,
+            unit=MetricUnit.MILLISECONDS,
+            dimensions={'FunctionName': function_name},
+            timestamp=time.time()
+        ))
+
+    def emit_error_metric(
+        self,
+        error_type: str,
+        function_name: str
+    ) -> None:
+        """
+        Emit error metric.
+        
+        Args:
+            error_type: Type of error
+            function_name: Lambda function where error occurred
+        """
+        self._emit_metric(Metric(
+            name="Errors",
+            value=1,
+            unit=MetricUnit.COUNT,
+            dimensions={
+                'ErrorType': error_type,
+                'FunctionName': function_name
+            },
+            timestamp=time.time()
+        ))
+
+
+# Global metrics emitter instance
+_metrics_emitter = None
+
+def get_metrics_emitter() -> MetricsEmitter:
+    """Get or create global MetricsEmitter instance."""
+    global _metrics_emitter
+    if _metrics_emitter is None:
+        _metrics_emitter = MetricsEmitter()
+    return _metrics_emitter
+
+
+# SNS Alert Publisher
+class AlertPublisher:
+    """
+    SNS alert publisher for critical errors and warnings.
+    
+    Requirement 14.7: Publish alerts to SNS Topic
+    """
+    
+    SNS_TOPIC_ARN = os.environ.get(
+        'SNS_ALERT_TOPIC',
+        'arn:aws:sns:us-east-1:809904170947:base-wecare-digital'
+    )
+    
+    def __init__(self, sns_client=None):
+        """Initialize AlertPublisher."""
+        self.sns = sns_client or boto3.client(
+            'sns',
+            region_name=os.environ.get('AWS_REGION', 'us-east-1')
+        )
+    
+    def publish_critical_error(
+        self,
+        error_type: str,
+        message: str,
+        details: Dict[str, Any] = None
+    ) -> None:
+        """
+        Publish critical error alert.
+        
+        Requirement 14.7: Publish alerts on critical errors
+        """
+        self._publish_alert(
+            subject=f"[CRITICAL] WECARE.DIGITAL: {error_type}",
+            message=message,
+            details=details,
+            severity='CRITICAL'
+        )
+    
+    def publish_tier_limit_warning(
+        self,
+        current_usage: int,
+        limit: int,
+        usage_percent: float
+    ) -> None:
+        """
+        Publish WhatsApp tier limit warning.
+        
+        Requirement 13.9: Alert when tier limit reaches 80%
+        """
+        if usage_percent >= 80:
+            self._publish_alert(
+                subject=f"[WARNING] WECARE.DIGITAL: WhatsApp Tier Limit at {usage_percent:.1f}%",
+                message=f"WhatsApp business tier limit approaching. Current usage: {current_usage}/{limit} ({usage_percent:.1f}%)",
+                details={
+                    'currentUsage': current_usage,
+                    'limit': limit,
+                    'usagePercent': usage_percent
+                },
+                severity='WARNING'
+            )
+    
+    def publish_dlq_depth_warning(
+        self,
+        queue_name: str,
+        depth: int
+    ) -> None:
+        """
+        Publish DLQ depth warning.
+        
+        Alert when DLQ depth exceeds threshold
+        """
+        if depth > 10:
+            self._publish_alert(
+                subject=f"[WARNING] WECARE.DIGITAL: DLQ Depth Alert - {queue_name}",
+                message=f"Dead Letter Queue '{queue_name}' has {depth} messages pending",
+                details={
+                    'queueName': queue_name,
+                    'depth': depth
+                },
+                severity='WARNING'
+            )
+    
+    def _publish_alert(
+        self,
+        subject: str,
+        message: str,
+        details: Dict[str, Any] = None,
+        severity: str = 'INFO'
+    ) -> None:
+        """Publish alert to SNS topic."""
+        try:
+            import json
+            
+            alert_body = {
+                'severity': severity,
+                'message': message,
+                'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                'environment': os.environ.get('ENVIRONMENT', 'unknown'),
+                'details': details or {}
+            }
+            
+            self.sns.publish(
+                TopicArn=self.SNS_TOPIC_ARN,
+                Subject=subject[:100],  # SNS subject limit
+                Message=json.dumps(alert_body, indent=2)
+            )
+            
+            logger.info(f"Alert published: {subject}")
+            
+        except Exception as e:
+            logger.error(f"Failed to publish alert: {str(e)}")
+
+
+# Global alert publisher instance
+_alert_publisher = None
+
+def get_alert_publisher() -> AlertPublisher:
+    """Get or create global AlertPublisher instance."""
+    global _alert_publisher
+    if _alert_publisher is None:
+        _alert_publisher = AlertPublisher()
+    return _alert_publisher

@@ -403,7 +403,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 65: AI Responses Require Approval**
     - **Validates: Requirements 15.3**
   
-  - [ ] 14.5 Integrate AI into inbound-whatsapp-handler
+  - [x] 14.5 Integrate AI into inbound-whatsapp-handler
     - Check if AI automation is enabled in SystemConfig
     - If enabled: call ai-query-kb and ai-generate-response
     - If disabled: skip AI processing
@@ -414,14 +414,14 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 66: AI Disabled Skips AI Processing**
     - **Validates: Requirements 15.4**
 
-- [ ] 15. Implement monitoring and alerting
-  - [ ] 15.1 Add CloudWatch metrics emission to all Lambda functions
+- [-] 15. Implement monitoring and alerting
+  - [x] 15.1 Add CloudWatch metrics emission to all Lambda functions
     - Emit message delivery metrics per channel
     - Emit bulk job metrics (duration, throughput)
     - Emit authentication metrics
     - _Requirements: 14.4, 14.5_
   
-  - [ ] 15.2 Configure CloudWatch alarms
+  - [x] 15.2 Configure CloudWatch alarms
     - Lambda error rate > 1%
     - DLQ depth > 10
     - WhatsApp tier limit > 80%
@@ -429,7 +429,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - Bulk job failure rate > 10%
     - _Requirements: 13.9, 14.7_
   
-  - [ ] 15.3 Implement SNS alert publishing
+  - [x] 15.3 Implement SNS alert publishing
     - Publish to arn:aws:sns:us-east-1:809904170947:base-wecare-digital
     - Alert on critical errors
     - Alert on tier limit warnings
@@ -440,8 +440,8 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 57: WhatsApp Tier Limit Alert**
     - **Validates: Requirements 13.9**
 
-- [ ] 16. Implement TTL and data lifecycle
-  - [ ] 16.1 Add TTL calculation to all record creation
+- [-] 16. Implement TTL and data lifecycle
+  - [x] 16.1 Add TTL calculation to all record creation
     - Messages table: expiresAt = current_time + 2592000 (30 days)
     - DLQMessages table: expiresAt = current_time + 604800 (7 days)
     - AuditLogs table: expiresAt = current_time + 15552000 (180 days)
@@ -458,7 +458,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 77: TTL Expiration Calculation**
     - **Validates: Requirements 17.6**
   
-  - [ ] 16.4 Add filter expressions to queries
+  - [x] 16.4 Add filter expressions to queries
     - Implement filter for expiresAt > current_time in all queries
     - Handle TTL deletion lag (items may still appear until physically deleted)
     - _Requirements: 17.7_
@@ -467,8 +467,8 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 78: Queries Exclude Expired Items**
     - **Validates: Requirements 17.7**
 
-- [ ] 17. Implement environment variable validation
-  - [ ] 17.1 Add startup validation to all Lambda functions
+- [-] 17. Implement environment variable validation
+  - [x] 17.1 Add startup validation to all Lambda functions
     - Check required environment variables are present
     - Fail fast with clear error message if missing
     - Log validation results
@@ -478,35 +478,35 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 80: Lambda Startup Validates Environment Variables**
     - **Validates: Requirements 18.6**
 
-- [ ] 18. Implement UI components (React)
-  - [ ] 18.1 Create sidebar navigation component
+- [-] 18. Implement UI components (React)
+  - [x] 18.1 Create sidebar navigation component
     - Display "WECARE.DIGITL" as application title
     - Menu items: Pay, Link, Forms, Docs, Invoice, DM, Contacts, Bulk Messaging, Agent
     - Use Helvetica Light font, white background, black buttons with 13px border radius
     - Implement SPA navigation (no full page reload)
     - _Requirements: 12.1, 12.2, 12.7_
   
-  - [ ] 18.2 Create contacts management UI
+  - [x] 18.2 Create contacts management UI
     - Contact list with search
     - Contact create/edit form
     - Opt-in toggle switches
     - Display customer service window expiration time
     - _Requirements: 2.1, 2.2, 2.4, 2.5, 2.6, 16.9_
   
-  - [ ] 18.3 Create messaging UI
+  - [x] 18.3 Create messaging UI
     - Message compose form with channel selection
     - Media upload for WhatsApp
     - Message history view
     - _Requirements: 5.2, 5.3, 5.4, 5.5_
   
-  - [ ] 18.4 Create bulk messaging UI
+  - [x] 18.4 Create bulk messaging UI
     - Recipient selection
     - Confirmation dialog for >20 recipients
     - Progress tracking display
     - Job control buttons (pause/resume/cancel)
     - _Requirements: 8.1, 8.6, 8.7_
   
-  - [ ] 18.5 Create AI automation UI (optional)
+  - [x] 18.5 Create AI automation UI (optional)
     - AI response suggestion display
     - Approval/reject buttons
     - Feedback form

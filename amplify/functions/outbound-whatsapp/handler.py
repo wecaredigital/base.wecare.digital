@@ -2,10 +2,11 @@
 Outbound WhatsApp Lambda Function
 
 Purpose: Send WhatsApp text/media messages
-Requirements: 3.1, 3.2, 5.2-5.11, 16.2-16.6
+Requirements: 3.1, 3.2, 5.2-5.11, 14.4, 16.2-16.6
 
 Validates opt-in and allowlist, checks customer service window,
 calls AWS EUM Social SendWhatsAppMessage API.
+Emits CloudWatch metrics for delivery success/failure.
 """
 
 import os
@@ -25,6 +26,7 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 social_messaging = boto3.client('socialmessaging', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 s3 = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+cloudwatch = boto3.client('cloudwatch', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Environment variables
 SEND_MODE = os.environ.get('SEND_MODE', 'DRY_RUN')
@@ -46,6 +48,7 @@ MAX_TEXT_LENGTH = 4096  # Requirement 5.4
 MESSAGE_TTL_SECONDS = 30 * 24 * 60 * 60  # 30 days
 CUSTOMER_SERVICE_WINDOW_HOURS = 24  # Requirement 16.2
 RATE_LIMIT_PER_SECOND = 80  # Requirement 5.9
+METRICS_NAMESPACE = 'WECARE.DIGITAL'
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -225,6 +228,9 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
             'requestId': request_id
         }))
         
+        # Requirement 14.4: Emit success metric
+        _emit_delivery_metric('success', is_template)
+        
         return {
             'statusCode': 200,
             'headers': {'Content-Type': 'application/json'},
@@ -245,6 +251,8 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
             status='failed',
             error_details={'type': 'throttling', 'message': str(e)}
         )
+        # Emit failure metric
+        _emit_delivery_metric('failed', is_template)
         return _error_response(429, 'API rate limit exceeded')
         
     except Exception as e:
@@ -256,6 +264,8 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
             status='failed',
             error_details={'type': 'api_error', 'message': str(e)}
         )
+        # Emit failure metric
+        _emit_delivery_metric('failed', is_template)
         logger.error(json.dumps({
             'event': 'send_api_error',
             'messageId': message_id,
@@ -498,3 +508,36 @@ def _error_response(status_code: int, error: str, message: str = None) -> Dict[s
         'headers': {'Content-Type': 'application/json'},
         'body': json.dumps(body)
     }
+
+
+def _emit_delivery_metric(status: str, is_template: bool = False) -> None:
+    """
+    Emit message delivery metric to CloudWatch.
+    Requirement 14.4: Emit CloudWatch metrics for message delivery success/failure
+    """
+    try:
+        cloudwatch.put_metric_data(
+            Namespace=METRICS_NAMESPACE,
+            MetricData=[
+                {
+                    'MetricName': f'Messages{status.capitalize()}',
+                    'Value': 1,
+                    'Unit': 'Count',
+                    'Dimensions': [
+                        {'Name': 'Channel', 'Value': 'WHATSAPP'},
+                        {'Name': 'Status', 'Value': status.upper()},
+                        {'Name': 'MessageType', 'Value': 'TEMPLATE' if is_template else 'FREEFORM'}
+                    ]
+                },
+                {
+                    'MetricName': 'MessagesTotal',
+                    'Value': 1,
+                    'Unit': 'Count',
+                    'Dimensions': [
+                        {'Name': 'Channel', 'Value': 'WHATSAPP'}
+                    ]
+                }
+            ]
+        )
+    except Exception as e:
+        logger.warning(f"Failed to emit metric: {str(e)}")

@@ -2,10 +2,11 @@
 Inbound WhatsApp Handler Lambda Function
 
 Purpose: Process SNS notifications for WhatsApp messages
-Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5.12
+Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5.12, 15.4, 15.7
 
 Parses AWS EUM Social event format, stores messages, downloads media,
 updates contact timestamps for 24-hour customer service window.
+Integrates with AI automation when enabled in SystemConfig.
 """
 
 import os
@@ -26,14 +27,22 @@ dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', '
 sqs = boto3.client('sqs', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 social_messaging = boto3.client('socialmessaging', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 s3 = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+lambda_client = boto3.client('lambda', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Environment variables
 CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contacts')
 MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'Messages')
 MEDIA_FILES_TABLE = os.environ.get('MEDIA_FILES_TABLE', 'MediaFiles')
+SYSTEM_CONFIG_TABLE = os.environ.get('SYSTEM_CONFIG_TABLE', 'SystemConfig')
+AI_INTERACTIONS_TABLE = os.environ.get('AI_INTERACTIONS_TABLE', 'AIInteractions')
 INBOUND_DLQ_URL = os.environ.get('INBOUND_DLQ_URL', '')
 MEDIA_BUCKET = os.environ.get('MEDIA_BUCKET', 'auth.wecare.digital')
 MEDIA_PREFIX = os.environ.get('MEDIA_INBOUND_PREFIX', 'whatsapp-media/whatsapp-media-incoming/')
+SEND_MODE = os.environ.get('SEND_MODE', 'DRY_RUN')
+
+# AI Lambda function names
+AI_QUERY_KB_FUNCTION = os.environ.get('AI_QUERY_KB_FUNCTION', 'ai-query-kb')
+AI_GENERATE_RESPONSE_FUNCTION = os.environ.get('AI_GENERATE_RESPONSE_FUNCTION', 'ai-generate-response')
 
 # TTL: 30 days in seconds
 MESSAGE_TTL_SECONDS = 30 * 24 * 60 * 60
@@ -208,6 +217,16 @@ def _process_message(message: Dict, metadata: Dict, request_id: str) -> None:
         'hasMedia': bool(media_id),
         'requestId': request_id
     }))
+    
+    # Requirements 15.4, 15.7: Process AI automation if enabled
+    # Only process text messages for AI (skip media-only messages)
+    if msg_type == 'text' and content:
+        _process_ai_automation(
+            message_id=message_id,
+            contact_id=contact_id,
+            content=content,
+            request_id=request_id
+        )
 
 
 def _extract_content(message: Dict, msg_type: str) -> str:
@@ -467,6 +486,247 @@ def _send_to_dlq(record: Dict, error: str, request_id: str) -> None:
     except Exception as e:
         logger.error(json.dumps({
             'event': 'dlq_send_error',
+            'error': str(e),
+            'requestId': request_id
+        }))
+
+
+# ============================================================================
+# AI AUTOMATION INTEGRATION
+# Requirements: 15.4, 15.7
+# ============================================================================
+
+def _is_ai_enabled() -> bool:
+    """
+    Check if AI automation is enabled in SystemConfig.
+    Requirement 15.4: Check if AI automation is enabled
+    """
+    try:
+        config_table = dynamodb.Table(SYSTEM_CONFIG_TABLE)
+        response = config_table.get_item(Key={'configKey': 'ai_automation_enabled'})
+        item = response.get('Item', {})
+        return item.get('configValue', 'false').lower() == 'true'
+    except Exception as e:
+        logger.warning(f"Failed to check AI config, defaulting to disabled: {str(e)}")
+        return False
+
+
+def _process_ai_automation(
+    message_id: str,
+    contact_id: str,
+    content: str,
+    request_id: str
+) -> Optional[Dict[str, Any]]:
+    """
+    Process AI automation for inbound message.
+    
+    Requirements:
+    - 15.4: If AI enabled, call ai-query-kb and ai-generate-response
+    - 15.7: Respect SEND_MODE - DRY_RUN prevents sending AI responses
+    
+    Returns AI suggestion if generated, None otherwise.
+    """
+    # Requirement 15.4: Check if AI automation is enabled
+    if not _is_ai_enabled():
+        logger.info(json.dumps({
+            'event': 'ai_automation_disabled',
+            'messageId': message_id,
+            'requestId': request_id
+        }))
+        return None
+    
+    logger.info(json.dumps({
+        'event': 'ai_automation_start',
+        'messageId': message_id,
+        'contactId': contact_id,
+        'requestId': request_id
+    }))
+    
+    try:
+        # Step 1: Query Knowledge Base
+        kb_result = _invoke_ai_query_kb(content, message_id, request_id)
+        
+        # Step 2: Generate response suggestion
+        ai_response = _invoke_ai_generate_response(
+            content=content,
+            kb_context=kb_result,
+            message_id=message_id,
+            contact_id=contact_id,
+            request_id=request_id
+        )
+        
+        # Requirement 15.7: Log but don't send if DRY_RUN
+        if SEND_MODE == 'DRY_RUN':
+            logger.info(json.dumps({
+                'event': 'ai_response_dry_run',
+                'messageId': message_id,
+                'suggestion': ai_response.get('suggestion', '')[:100] if ai_response else None,
+                'requestId': request_id
+            }))
+        
+        return ai_response
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'ai_automation_error',
+            'messageId': message_id,
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return None
+
+
+def _invoke_ai_query_kb(query: str, message_id: str, request_id: str) -> Optional[Dict]:
+    """
+    Invoke ai-query-kb Lambda function.
+    Requirement 15.1: Query Bedrock KB for relevant knowledge
+    """
+    try:
+        payload = {
+            'query': query,
+            'messageId': message_id,
+            'requestId': request_id
+        }
+        
+        response = lambda_client.invoke(
+            FunctionName=AI_QUERY_KB_FUNCTION,
+            InvocationType='RequestResponse',
+            Payload=json.dumps(payload)
+        )
+        
+        response_payload = json.loads(response['Payload'].read().decode('utf-8'))
+        
+        if response.get('StatusCode') == 200:
+            body = json.loads(response_payload.get('body', '{}'))
+            logger.info(json.dumps({
+                'event': 'ai_kb_query_success',
+                'messageId': message_id,
+                'resultsCount': len(body.get('results', [])),
+                'requestId': request_id
+            }))
+            return body
+        else:
+            logger.warning(json.dumps({
+                'event': 'ai_kb_query_failed',
+                'messageId': message_id,
+                'statusCode': response.get('StatusCode'),
+                'requestId': request_id
+            }))
+            return None
+            
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'ai_kb_invoke_error',
+            'messageId': message_id,
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return None
+
+
+def _invoke_ai_generate_response(
+    content: str,
+    kb_context: Optional[Dict],
+    message_id: str,
+    contact_id: str,
+    request_id: str
+) -> Optional[Dict]:
+    """
+    Invoke ai-generate-response Lambda function.
+    Requirements 15.2, 15.3: Generate response suggestion (never auto-send)
+    """
+    try:
+        payload = {
+            'messageContent': content,
+            'kbContext': kb_context,
+            'messageId': message_id,
+            'contactId': contact_id,
+            'requestId': request_id
+        }
+        
+        response = lambda_client.invoke(
+            FunctionName=AI_GENERATE_RESPONSE_FUNCTION,
+            InvocationType='RequestResponse',
+            Payload=json.dumps(payload)
+        )
+        
+        response_payload = json.loads(response['Payload'].read().decode('utf-8'))
+        
+        if response.get('StatusCode') == 200:
+            body = json.loads(response_payload.get('body', '{}'))
+            
+            # Store AI interaction record
+            _store_ai_interaction(
+                message_id=message_id,
+                query=content,
+                response=body.get('suggestion', ''),
+                request_id=request_id
+            )
+            
+            logger.info(json.dumps({
+                'event': 'ai_response_generated',
+                'messageId': message_id,
+                'interactionId': body.get('interactionId'),
+                'requestId': request_id
+            }))
+            return body
+        else:
+            logger.warning(json.dumps({
+                'event': 'ai_response_failed',
+                'messageId': message_id,
+                'statusCode': response.get('StatusCode'),
+                'requestId': request_id
+            }))
+            return None
+            
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'ai_generate_invoke_error',
+            'messageId': message_id,
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return None
+
+
+def _store_ai_interaction(
+    message_id: str,
+    query: str,
+    response: str,
+    request_id: str
+) -> None:
+    """
+    Store AI interaction record.
+    Requirement 15.5: Store AI interaction logs
+    """
+    try:
+        interaction_id = str(uuid.uuid4())
+        now = int(time.time())
+        
+        interaction_record = {
+            'interactionId': interaction_id,
+            'messageId': message_id,
+            'query': query,
+            'response': response,
+            'approved': False,  # Requirement 15.3: Never auto-approve
+            'feedback': None,
+            'timestamp': Decimal(str(now)),
+        }
+        
+        ai_table = dynamodb.Table(AI_INTERACTIONS_TABLE)
+        ai_table.put_item(Item=interaction_record)
+        
+        logger.info(json.dumps({
+            'event': 'ai_interaction_stored',
+            'interactionId': interaction_id,
+            'messageId': message_id,
+            'requestId': request_id
+        }))
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'ai_interaction_store_error',
+            'messageId': message_id,
             'error': str(e),
             'requestId': request_id
         }))
