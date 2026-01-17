@@ -2,7 +2,7 @@
  * Layout Component with Sidebar Navigation
  * 
  * Requirements:
- * - 12.1: Display "WECARE.DIGITL" as application title
+ * - 12.1: Display "WECARE.DIGITAL" as application title
  * - 12.2: Sidebar navigation with menu items
  * - 12.3: Helvetica Light font
  * - 12.4: White background
@@ -34,7 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <h1 className="app-title">WECARE.DIGITL</h1>
+          <h1 className="app-title">WECARE.DIGITAL</h1>
         </div>
         
         <nav className="sidebar-nav">

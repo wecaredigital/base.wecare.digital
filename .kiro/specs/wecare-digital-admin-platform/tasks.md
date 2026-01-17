@@ -480,7 +480,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
 
 - [-] 18. Implement UI components (React)
   - [x] 18.1 Create sidebar navigation component
-    - Display "WECARE.DIGITL" as application title
+    - Display "WECARE.DIGITAL" as application title
     - Menu items: Pay, Link, Forms, Docs, Invoice, DM, Contacts, Bulk Messaging, Agent
     - Use Helvetica Light font, white background, black buttons with 13px border radius
     - Implement SPA navigation (no full page reload)

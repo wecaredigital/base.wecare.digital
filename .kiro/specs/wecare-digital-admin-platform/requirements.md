@@ -206,7 +206,7 @@ The WECARE.DIGITAL Admin Platform is a cloud-based multi-channel messaging syste
 
 #### Acceptance Criteria
 
-1. THE System SHALL display "WECARE.DIGITL" as the application title
+1. THE System SHALL display "WECARE.DIGITAL" as the application title
 2. THE System SHALL provide a sidebar navigation with menu items: Pay, Link, Forms, Docs, Invoice, DM (WhatsApp/SMS/SES), Contacts, Bulk Messaging, Agent
 3. THE System SHALL use Helvetica Light font throughout the interface
 4. THE System SHALL use white background color for all pages
