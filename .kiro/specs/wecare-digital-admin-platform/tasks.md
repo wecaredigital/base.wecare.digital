@@ -6,7 +6,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
 
 ## Tasks
 
-- [ ] 1. Set up AWS Amplify Gen 2 infrastructure
+- [-] 1. Set up AWS Amplify Gen 2 infrastructure
   - Define 11 DynamoDB tables in amplify/backend.ts with PAY_PER_REQUEST billing
   - Configure TTL on Messages (30 days), DLQMessages (7 days), AuditLogs (180 days), RateLimitTrackers (24 hours)
   - Define 4 SQS queues: inbound-dlq, bulk-queue, bulk-dlq, outbound-dlq (optional)

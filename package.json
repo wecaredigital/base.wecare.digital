@@ -1,0 +1,31 @@
+{
+  "name": "wecare-digital-admin-platform",
+  "version": "1.0.0",
+  "description": "WECARE.DIGITAL Admin Platform - Multi-channel messaging system",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "amplify": "ampx sandbox",
+    "amplify:deploy": "ampx pipeline-deploy"
+  },
+  "dependencies": {
+    "@aws-amplify/backend": "^1.0.0",
+    "@aws-amplify/backend-cli": "^1.0.0",
+    "aws-amplify": "^6.0.0",
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
