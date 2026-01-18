@@ -294,6 +294,7 @@ def _get_or_create_contact(phone: str) -> Dict[str, Any]:
     now = int(time.time())
     
     contact = {
+        'id': contact_id,  # Primary key for DynamoDB
         'contactId': contact_id,
         'name': '',
         'phone': phone,
@@ -322,7 +323,7 @@ def _update_contact_timestamp(contact_id: str, timestamp: int) -> None:
     try:
         contacts_table = dynamodb.Table(CONTACTS_TABLE)
         contacts_table.update_item(
-            Key={'contactId': contact_id},
+            Key={'id': contact_id},  # Use 'id' as primary key
             UpdateExpression='SET lastInboundMessageAt = :ts, updatedAt = :ts',
             ExpressionAttributeValues={
                 ':ts': Decimal(str(timestamp))
