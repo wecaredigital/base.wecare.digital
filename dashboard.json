@@ -1,0 +1,78 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Lambda Invocations",
+        "metrics": [
+          ["AWS/Lambda", "Invocations", "FunctionName", "wecare-contacts-create"],
+          [".", ".", ".", "wecare-outbound-whatsapp"],
+          [".", ".", ".", "wecare-inbound-whatsapp"],
+          [".", ".", ".", "wecare-bulk-worker"]
+        ],
+        "region": "us-east-1",
+        "period": 300,
+        "stat": "Sum"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Lambda Errors",
+        "metrics": [
+          ["AWS/Lambda", "Errors", "FunctionName", "wecare-contacts-create"],
+          [".", ".", ".", "wecare-outbound-whatsapp"],
+          [".", ".", ".", "wecare-inbound-whatsapp"],
+          [".", ".", ".", "wecare-bulk-worker"]
+        ],
+        "region": "us-east-1",
+        "period": 300,
+        "stat": "Sum"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 6,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "SQS Queue Depth",
+        "metrics": [
+          ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "base-wecare-digital-inbound-dlq"],
+          [".", ".", ".", "base-wecare-digital-bulk-queue"],
+          [".", ".", ".", "base-wecare-digital-bulk-dlq"],
+          [".", ".", ".", "base-wecare-digital-outbound-dlq"]
+        ],
+        "region": "us-east-1",
+        "period": 300,
+        "stat": "Maximum"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 6,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "DynamoDB Operations",
+        "metrics": [
+          ["AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", "base-wecare-digital-ContactsTable"],
+          [".", "ConsumedWriteCapacityUnits", ".", "."]
+        ],
+        "region": "us-east-1",
+        "period": 300,
+        "stat": "Sum"
+      }
+    }
+  ]
+}
