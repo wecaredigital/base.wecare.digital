@@ -1,0 +1,449 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: WECARE.DIGITAL Admin Platform - Lambda Functions
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - production
+      - staging
+      - development
+
+Resources:
+  # IAM Role for Lambda Functions
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: wecare-digital-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: WecareDigitalLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - arn:aws:dynamodb:us-east-1:809904170947:table/base-wecare-digital-*
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource:
+                  - arn:aws:s3:::auth.wecare.digital/*
+                  - arn:aws:s3:::stream.wecare.digital/*
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource:
+                  - arn:aws:sns:us-east-1:809904170947:base-wecare-digital
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource:
+                  - arn:aws:sqs:us-east-1:809904170947:*
+              - Effect: Allow
+                Action:
+                  - social-messaging:SendWhatsAppMessage
+                  - social-messaging:GetWhatsAppMessageMedia
+                  - social-messaging:PostWhatsAppMessageMedia
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - sms-voice:SendTextMessage
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeAgent
+                  - bedrock:RetrieveAndGenerate
+                  - bedrock:Retrieve
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - arn:aws:lambda:us-east-1:809904170947:function:wecare-*
+
+  # Shared Lambda Layer for utilities
+  SharedUtilsLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: wecare-shared-utils
+      Description: Shared utilities for WECARE.DIGITAL Lambda functions
+      Content:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/shared-layer.zip
+      CompatibleRuntimes:
+        - python3.12
+
+  # 1. Inbound WhatsApp Handler - SNS Triggered
+  InboundWhatsAppFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-inbound-whatsapp
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/inbound-whatsapp-handler.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          AWS_REGION_NAME: us-east-1
+          LOG_LEVEL: INFO
+          SEND_MODE: LIVE
+          CONTACTS_TABLE: base-wecare-digital-ContactsTable
+          MESSAGES_TABLE: base-wecare-digital-WhatsAppInboundTable
+          MEDIA_BUCKET: auth.wecare.digital
+          SNS_TOPIC_ARN: arn:aws:sns:us-east-1:809904170947:base-wecare-digital
+
+  # SNS Subscription for Inbound WhatsApp
+  InboundWhatsAppSNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: arn:aws:sns:us-east-1:809904170947:base-wecare-digital
+      Protocol: lambda
+      Endpoint: !GetAtt InboundWhatsAppFunction.Arn
+
+  # Permission for SNS to invoke Lambda
+  InboundWhatsAppSNSPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref InboundWhatsAppFunction
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: arn:aws:sns:us-east-1:809904170947:base-wecare-digital
+
+  # 2. Outbound WhatsApp
+  OutboundWhatsAppFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-outbound-whatsapp
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/outbound-whatsapp.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          AWS_REGION_NAME: us-east-1
+          SEND_MODE: LIVE
+          CONTACTS_TABLE: base-wecare-digital-ContactsTable
+          MESSAGES_TABLE: base-wecare-digital-WhatsAppOutboundTable
+          MEDIA_BUCKET: auth.wecare.digital
+          WHATSAPP_PHONE_NUMBER_ID_1: phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54
+
+  # 3. Outbound SMS
+  OutboundSmsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-outbound-sms
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/outbound-sms.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          AWS_REGION_NAME: us-east-1
+          SEND_MODE: LIVE
+          CONTACTS_TABLE: base-wecare-digital-ContactsTable
+          SMS_POOL_ID: pool-6fbf5a5f390d4eeeaa7dbae39d78933e
+
+  # 4. Outbound Email
+  OutboundEmailFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-outbound-email
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/outbound-email.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          AWS_REGION_NAME: us-east-1
+          SEND_MODE: LIVE
+          CONTACTS_TABLE: base-wecare-digital-ContactsTable
+          SES_SENDER_EMAIL: one@wecare.digital
+
+  # 5. Auth Middleware
+  AuthMiddlewareFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-auth-middleware
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/auth-middleware.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: us-east-1_CC9u1fYh6
+
+  # 6. Contacts Create
+  ContactsCreateFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-contacts-create
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/contacts-create.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          CONTACTS_TABLE: base-wecare-digital-ContactsTable
+
+  # 7. Contacts Read
+  ContactsReadFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-contacts-read
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/contacts-read.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          CONTACTS_TABLE: base-wecare-digital-ContactsTable
+
+  # 8. Contacts Update
+  ContactsUpdateFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-contacts-update
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/contacts-update.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          CONTACTS_TABLE: base-wecare-digital-ContactsTable
+
+  # 9. Contacts Delete
+  ContactsDeleteFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-contacts-delete
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/contacts-delete.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          CONTACTS_TABLE: base-wecare-digital-ContactsTable
+
+  # 10. Contacts Search
+  ContactsSearchFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-contacts-search
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/contacts-search.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          CONTACTS_TABLE: base-wecare-digital-ContactsTable
+
+  # 11. Bulk Job Create
+  BulkJobCreateFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-bulk-job-create
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/bulk-job-create.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          BULK_JOBS_TABLE: base-wecare-digital-BulkJobsTable
+
+  # 12. Bulk Worker
+  BulkWorkerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-bulk-worker
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/bulk-worker.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          BULK_JOBS_TABLE: base-wecare-digital-BulkJobsTable
+          SEND_MODE: LIVE
+
+  # 13. Bulk Job Control
+  BulkJobControlFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-bulk-job-control
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/bulk-job-control.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          BULK_JOBS_TABLE: base-wecare-digital-BulkJobsTable
+
+  # 14. DLQ Replay
+  DlqReplayFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-dlq-replay
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/dlq-replay.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+
+  # 15. AI Query KB
+  AiQueryKbFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-ai-query-kb
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/ai-query-kb.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          BEDROCK_KB_ID: FZBPKGTOYE
+
+  # 16. AI Generate Response
+  AiGenerateResponseFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: wecare-ai-generate-response
+      Runtime: python3.12
+      Handler: handler.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: wecare-digital-deployment-809904170947
+        S3Key: packages/ai-generate-response.zip
+      Layers:
+        - !Ref SharedUtilsLayer
+      Environment:
+        Variables:
+          BEDROCK_AGENT_ID: HQNT0JXN8G
+
+Outputs:
+  InboundWhatsAppFunctionArn:
+    Description: Inbound WhatsApp Handler ARN
+    Value: !GetAtt InboundWhatsAppFunction.Arn
+  OutboundWhatsAppFunctionArn:
+    Description: Outbound WhatsApp Function ARN
+    Value: !GetAtt OutboundWhatsAppFunction.Arn

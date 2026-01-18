@@ -1,0 +1,177 @@
+"""
+Contacts Update Lambda Function
+
+Purpose: Update contact information and opt-in status
+Requirements: 2.4
+
+Updates only provided fields and requires explicit opt-in changes.
+Uses DynamoDB UpdateItem with conditional expression.
+"""
+
+import os
+import json
+import time
+import logging
+import boto3
+from typing import Dict, Any, List
+from decimal import Decimal
+from boto3.dynamodb.conditions import Attr
+
+# Configure logging
+logger = logging.getLogger()
+logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
+
+# DynamoDB client
+dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contacts')
+
+# Allowed update fields
+ALLOWED_FIELDS = {'name', 'phone', 'email', 'optInWhatsApp', 'optInSms', 'optInEmail'}
+OPT_IN_FIELDS = {'optInWhatsApp', 'optInSms', 'optInEmail'}
+
+
+def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """
+    Update contact record.
+    Requirement 2.4: Validate explicit opt-in changes, update only provided fields
+    """
+    request_id = context.aws_request_id if context else 'local'
+    
+    try:
+        # Extract contactId from path parameters
+        path_params = event.get('pathParameters', {}) or {}
+        contact_id = path_params.get('contactId')
+        
+        if not contact_id:
+            return _error_response(400, 'contactId is required')
+        
+        # Parse request body
+        body = json.loads(event.get('body', '{}'))
+        
+        if not body:
+            return _error_response(400, 'Request body is required')
+        
+        # Filter to allowed fields only
+        updates = {k: v for k, v in body.items() if k in ALLOWED_FIELDS}
+        
+        if not updates:
+            return _error_response(400, 'No valid fields to update')
+        
+        # Requirement 2.4: Validate opt-in changes are explicit booleans
+        for field in OPT_IN_FIELDS:
+            if field in updates:
+                if not isinstance(updates[field], bool):
+                    return _error_response(400, f'{field} must be a boolean value')
+        
+        # Validate phone/email if provided
+        if 'phone' in updates and updates['phone']:
+            if not _validate_phone(updates['phone']):
+                return _error_response(400, 'Invalid phone number format')
+        
+        if 'email' in updates and updates['email']:
+            updates['email'] = updates['email'].strip().lower()
+            if not _validate_email(updates['email']):
+                return _error_response(400, 'Invalid email format')
+        
+        # Add updatedAt timestamp
+        updates['updatedAt'] = int(time.time())
+        
+        # Build update expression
+        update_expr, expr_names, expr_values = _build_update_expression(updates)
+        
+        # Update in DynamoDB with condition that record exists and not deleted
+        table = dynamodb.Table(CONTACTS_TABLE)
+        
+        try:
+            response = table.update_item(
+                Key={'contactId': contact_id},
+                UpdateExpression=update_expr,
+                ExpressionAttributeNames=expr_names,
+                ExpressionAttributeValues=expr_values,
+                ConditionExpression=Attr('contactId').exists() & Attr('deletedAt').not_exists(),
+                ReturnValues='ALL_NEW'
+            )
+        except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
+            return _error_response(404, 'Contact not found or has been deleted')
+        
+        updated_contact = response.get('Attributes', {})
+        
+        logger.info(json.dumps({
+            'event': 'contact_updated',
+            'contactId': contact_id,
+            'updatedFields': list(updates.keys()),
+            'requestId': request_id
+        }))
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps(_convert_from_dynamodb(updated_contact)),
+        }
+        
+    except json.JSONDecodeError:
+        return _error_response(400, 'Invalid JSON in request body')
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'contact_update_error',
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return _error_response(500, 'Internal server error')
+
+
+def _build_update_expression(updates: Dict[str, Any]) -> tuple:
+    """Build DynamoDB update expression."""
+    set_parts: List[str] = []
+    expr_names: Dict[str, str] = {}
+    expr_values: Dict[str, Any] = {}
+    
+    for i, (key, value) in enumerate(updates.items()):
+        name_placeholder = f'#n{i}'
+        value_placeholder = f':v{i}'
+        
+        set_parts.append(f'{name_placeholder} = {value_placeholder}')
+        expr_names[name_placeholder] = key
+        
+        # Convert to DynamoDB types
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            expr_values[value_placeholder] = Decimal(str(value))
+        else:
+            expr_values[value_placeholder] = value
+    
+    update_expr = 'SET ' + ', '.join(set_parts)
+    return update_expr, expr_names, expr_values
+
+
+def _validate_phone(phone: str) -> bool:
+    """Validate phone number format."""
+    import re
+    pattern = r'^\+?[\d\s\-\(\)]{7,20}$'
+    return bool(re.match(pattern, phone))
+
+
+def _validate_email(email: str) -> bool:
+    """Validate email format."""
+    import re
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
+
+
+def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert DynamoDB types to Python types."""
+    result = {}
+    for key, value in item.items():
+        if isinstance(value, Decimal):
+            result[key] = int(value) if value % 1 == 0 else float(value)
+        else:
+            result[key] = value
+    return result
+
+
+def _error_response(status_code: int, message: str) -> Dict[str, Any]:
+    """Return error response."""
+    return {
+        'statusCode': status_code,
+        'headers': {'Content-Type': 'application/json'},
+        'body': json.dumps({'error': message}),
+    }

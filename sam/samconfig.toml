@@ -1,0 +1,17 @@
+# SAM Configuration for WECARE.DIGITAL
+# Deploy with: sam deploy --config-file samconfig.toml
+
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "wecare-digital-lambdas"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_NAMED_IAM"
+disable_rollback = false
+s3_prefix = "wecare-digital-sam"
+parameter_overrides = "Environment=production"
+
+[default.build.parameters]
+cached = true
+parallel = true
