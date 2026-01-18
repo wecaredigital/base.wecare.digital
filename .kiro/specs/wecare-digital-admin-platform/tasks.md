@@ -158,7 +158,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 8: Contact Search is Case-Insensitive**
     - **Validates: Requirements 2.6**
 
-- [ ] 6. Checkpoint - Ensure contact management tests pass
+- [x] 6. Checkpoint - Ensure contact management tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 7. Implement WhatsApp inbound message processing
@@ -289,7 +289,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 27: API Error Updates Message Status**
     - **Validates: Requirements 5.10, 6.6, 7.6**
 
-- [ ] 10. Checkpoint - Ensure messaging tests pass
+- [x] 10. Checkpoint - Ensure messaging tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 11. Implement bulk message processing
@@ -376,10 +376,10 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 51: DLQ Replay Retry Limit**
     - **Validates: Requirements 9.7**
 
-- [ ] 13. Checkpoint - Ensure bulk and DLQ tests pass
+- [x] 13. Checkpoint - Ensure bulk and DLQ tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 14. Implement AI automation (optional)
+- [x] 14. Implement AI automation (optional)
   - [x] 14.1 Create ai-query-kb Lambda function
     - Call Bedrock RetrieveAndGenerate API
     - Pass query to Knowledge Base FZBPKGTOYE
@@ -414,7 +414,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 66: AI Disabled Skips AI Processing**
     - **Validates: Requirements 15.4**
 
-- [-] 15. Implement monitoring and alerting
+- [x] 15. Implement monitoring and alerting
   - [x] 15.1 Add CloudWatch metrics emission to all Lambda functions
     - Emit message delivery metrics per channel
     - Emit bulk job metrics (duration, throughput)
@@ -440,7 +440,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 57: WhatsApp Tier Limit Alert**
     - **Validates: Requirements 13.9**
 
-- [-] 16. Implement TTL and data lifecycle
+- [x] 16. Implement TTL and data lifecycle
   - [x] 16.1 Add TTL calculation to all record creation
     - Messages table: expiresAt = current_time + 2592000 (30 days)
     - DLQMessages table: expiresAt = current_time + 604800 (7 days)
@@ -467,7 +467,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 78: Queries Exclude Expired Items**
     - **Validates: Requirements 17.7**
 
-- [-] 17. Implement environment variable validation
+- [x] 17. Implement environment variable validation
   - [x] 17.1 Add startup validation to all Lambda functions
     - Check required environment variables are present
     - Fail fast with clear error message if missing
@@ -478,7 +478,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Property 80: Lambda Startup Validates Environment Variables**
     - **Validates: Requirements 18.6**
 
-- [-] 18. Implement UI components (React)
+- [x] 18. Implement UI components (React)
   - [x] 18.1 Create sidebar navigation component
     - Display "WECARE.DIGITAL" as application title
     - Menu items: Pay, Link, Forms, Docs, Invoice, DM, Contacts, Bulk Messaging, Agent
@@ -512,7 +512,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - Feedback form
     - _Requirements: 15.3, 15.6_
 
-- [ ] 19. Final checkpoint - Integration testing
+- [x] 19. Final checkpoint - Integration testing
   - Run end-to-end tests for complete workflows
   - Test WhatsApp inbound → AI → outbound flow
   - Test bulk message job with 150 recipients
@@ -521,7 +521,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
   - Verify all CloudWatch metrics and alarms
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 20. Deployment and verification
+- [x] 20. Deployment and verification
   - Deploy to preview environment (feature branch)
   - Verify SEND_MODE=DRY_RUN enforcement
   - Test all API endpoints
