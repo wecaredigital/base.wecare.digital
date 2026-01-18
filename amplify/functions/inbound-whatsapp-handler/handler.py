@@ -185,8 +185,10 @@ def _process_message(message: Dict, metadata: Dict, request_id: str) -> None:
                 media_id = _store_media_record(message_id, s3_key, media_data, whatsapp_media_id)
     
     # Requirement 4.3: Store message in DynamoDB with TTL (30 days)
+    # Note: Table uses 'id' as primary key
     message_record = {
-        'messageId': message_id,
+        'id': message_id,  # Primary key - table uses 'id' not 'messageId'
+        'messageId': message_id,  # Keep for backwards compatibility
         'contactId': contact_id,
         'channel': 'whatsapp',
         'direction': 'inbound',
@@ -292,8 +294,10 @@ def _get_or_create_contact(phone: str) -> Dict[str, Any]:
     contact_id = str(uuid.uuid4())
     now = int(time.time())
     
+    # Note: Table uses 'id' as primary key
     contact = {
-        'contactId': contact_id,
+        'id': contact_id,  # Primary key - table uses 'id' not 'contactId'
+        'contactId': contact_id,  # Keep for backwards compatibility
         'name': '',
         'phone': phone,
         'email': None,
@@ -320,8 +324,9 @@ def _update_contact_timestamp(contact_id: str, timestamp: int) -> None:
     """Update contact's lastInboundMessageAt for 24-hour window tracking."""
     try:
         contacts_table = dynamodb.Table(CONTACTS_TABLE)
+        # Note: Table uses 'id' as primary key
         contacts_table.update_item(
-            Key={'contactId': contact_id},
+            Key={'id': contact_id},
             UpdateExpression='SET lastInboundMessageAt = :ts, updatedAt = :ts',
             ExpressionAttributeValues={
                 ':ts': Decimal(str(timestamp))
@@ -427,9 +432,10 @@ def _process_status(status: Dict, request_id: str) -> None:
         
         items = response.get('Items', [])
         if items:
-            message_id = items[0].get('messageId')
+            message_id = items[0].get('id') or items[0].get('messageId')
+            # Note: Table uses 'id' as primary key
             messages_table.update_item(
-                Key={'messageId': message_id},
+                Key={'id': message_id},
                 UpdateExpression='SET #status = :status, statusUpdatedAt = :ts',
                 ExpressionAttributeNames={'#status': 'status'},
                 ExpressionAttributeValues={
