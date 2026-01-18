@@ -220,13 +220,24 @@ This document provides comprehensive details of all AWS resources used in the WE
 ### 2.1 User Pool
 
 **User Pool ID**: `us-east-1_CC9u1fYh6`  
+**Name**: WECARE.DIGITAL  
 **Region**: us-east-1  
+**Status**: Active ✓  
+**Created**: 2026-01-14  
 **Purpose**: Authentication and user management
 
 **JWKS Endpoint**:
 ```
 https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks.json
 ```
+
+**User Groups**:
+- `Viewer` - Read-only access to contacts and message history
+- `Operator` - Contact management and message sending
+- `Admin` - All operations including user management
+
+**Custom Attributes**:
+- `custom:role` (String, mutable)
 
 **Token Validation**:
 - JWT tokens must be validated against JWKS
@@ -241,6 +252,7 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 
 **Bucket Name**: `auth.wecare.digital`  
 **Region**: us-east-1  
+**Status**: ✓ Exists  
 **Purpose**: WhatsApp media file storage
 
 **Prefixes**:
@@ -256,6 +268,7 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 
 **Bucket Name**: `stream.wecare.digital`  
 **Region**: us-east-1  
+**Status**: ✓ Exists  
 **Purpose**: Bulk message reports and Bedrock KB documents
 
 **Prefixes**:
@@ -273,12 +286,15 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 ### 4.1 WhatsApp Inbound Topic
 
 **Topic ARN**: `arn:aws:sns:us-east-1:809904170947:base-wecare-digital`  
+**Display Name**: base-wecare-digital  
+**Status**: ✓ Active  
 **Purpose**: Receive WhatsApp inbound messages and status updates from AWS EUM Social
 
 **Subscriptions**:
 - Lambda function: `inbound-whatsapp-handler`
 - Protocol: Lambda
 - Filter policy: None (all messages)
+- **Subscriptions Confirmed**: 0 (will be configured during deployment)
 
 **Message Format**: See Section 1.5 (WhatsApp Inbound Webhook Events)
 
@@ -291,7 +307,8 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 **Pool Name**: WECARE-DIGITAL  
 **Pool ID**: `pool-6fbf5a5f390d4eeeaa7dbae39d78933e`  
 **Pool ARN**: `arn:aws:sms-voice:us-east-1:809904170947:pool/pool-6fbf5a5f390d4eeeaa7dbae39d78933e`  
-**Type**: Transactional  
+**Type**: TRANSACTIONAL  
+**Status**: ✓ ACTIVE  
 **Region**: us-east-1
 
 **Opt-Out Management**:
@@ -318,9 +335,10 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 
 **Email Address**: `one@wecare.digital`  
 **Identity ARN**: `arn:aws:ses:us-east-1:809904170947:identity/one@wecare.digital`  
-**Region**: us-east-1
+**Region**: us-east-1  
+**Verification Status**: ✓ Success
 
-**DKIM Status**: Successful  
+**DKIM Status**: ✓ Configured  
 **MAIL FROM Domain**: `one.wecare.digital`  
 **SPF**: Configured  
 **DMARC**: Recommended (configure DNS)
@@ -339,6 +357,8 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 
 **Role Name**: `base-wecare-digital`  
 **Role ARN**: `arn:aws:iam::809904170947:role/base-wecare-digital`  
+**Status**: ✓ Active  
+**Created**: 2026-01-14  
 **Purpose**: Unified execution role for all Lambda functions
 
 **Permissions** (Required):
@@ -380,18 +400,20 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 - Data Source 2 ID: `8KHGUUWYJ8`
 - S3 Location: `s3://stream.wecare.digital/base-wecare-digital/bedrock/kb/whatsapp/`
 
-### 8.2 Bedrock Agents (2 Agents)
+### 8.2 Bedrock Agents (2 Agents - Required)
 
 #### Agent 1: WhatsApp Customer Interaction Agent
 
 **Agent ID**: `HQNT0JXN8G`  
 **Agent Name**: base-bedrock-agent  
 **Purpose**: Generate automated responses for WhatsApp customer inquiries  
-**Status**: NOT_PREPARED (requires preparation before first use)  
+**Status**: NOT_PREPARED (needs preparation before use)  
 **Foundation Model**: amazon.nova-pro-v1:0  
 **Orchestration Type**: DEFAULT  
 **Idle Session TTL**: 600 seconds (10 minutes)  
 **Memory**: SESSION_SUMMARY enabled (30 days, max 20 recent sessions)
+
+**Note**: Agent status "NOT_PREPARED" is normal - it will be prepared automatically during first use.
 
 **Agent Execution Role**:
 - **Role ARN**: `arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5`
@@ -413,10 +435,9 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 
 #### Agent 2: Internal Admin Dashboard Agent
 
-**Agent Core Runtime**: `base_bedrock_agentcore-1XHDxj2o3Q`  
-**Purpose**: Handle internal Amplify dashboard tasks and admin operations  
+**Runtime ID**: `base_bedrock_agentcore-1XHDxj2o3Q`  
 **Type**: Internal AWS-managed runtime (not a separate resource)  
-**Usage**: Amplify dashboard automation, internal task processing
+**Purpose**: Amplify dashboard automation and internal task processing
 
 **Note**: This is an internal runtime identifier used by AWS Bedrock for dashboard operations, not a separately created or managed resource.
 

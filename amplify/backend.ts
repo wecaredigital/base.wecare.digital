@@ -28,7 +28,7 @@ import { aiGenerateResponse } from './functions/ai-generate-response/resource';
  * Region: us-east-1
  * 
  * Branch Deployment Strategy:
- * - main → Production (SEND_MODE=LIVE)
+ * - base → Production (SEND_MODE=LIVE)
  * - feature/* → Preview (SEND_MODE=DRY_RUN)
  * - release/* → Staging (SEND_MODE=DRY_RUN)
  * - hotfix/* → Production (SEND_MODE=LIVE)
