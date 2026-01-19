@@ -444,6 +444,195 @@ Status values from WhatsApp:
 
 ---
 
+## WhatsApp Message Types Reference
+
+### Text Messages
+```json
+{
+  "messaging_product": "whatsapp",
+  "to": "PHONE_NUMBER",
+  "type": "text",
+  "text": {
+    "body": "Hello, this is a text message"
+  }
+}
+```
+
+### Template Messages (Can be sent anytime)
+```json
+{
+  "messaging_product": "whatsapp",
+  "to": "PHONE_NUMBER",
+  "type": "template",
+  "template": {
+    "name": "hello_world",
+    "language": { "code": "en_US" },
+    "components": [
+      {
+        "type": "body",
+        "parameters": [
+          { "type": "text", "text": "Customer Name" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Interactive Messages - Reply Buttons (max 3)
+```json
+{
+  "messaging_product": "whatsapp",
+  "to": "PHONE_NUMBER",
+  "type": "interactive",
+  "interactive": {
+    "type": "button",
+    "header": { "type": "text", "text": "Header Text" },
+    "body": { "text": "Please select an option:" },
+    "footer": { "text": "Footer text" },
+    "action": {
+      "buttons": [
+        { "type": "reply", "reply": { "id": "btn1", "title": "Option 1" } },
+        { "type": "reply", "reply": { "id": "btn2", "title": "Option 2" } },
+        { "type": "reply", "reply": { "id": "btn3", "title": "Option 3" } }
+      ]
+    }
+  }
+}
+```
+
+### Interactive Messages - List Menu (max 10 items)
+```json
+{
+  "messaging_product": "whatsapp",
+  "to": "PHONE_NUMBER",
+  "type": "interactive",
+  "interactive": {
+    "type": "list",
+    "header": { "type": "text", "text": "Menu" },
+    "body": { "text": "Please select from the menu:" },
+    "action": {
+      "button": "View Options",
+      "sections": [
+        {
+          "title": "Section 1",
+          "rows": [
+            { "id": "row1", "title": "Item 1", "description": "Description" },
+            { "id": "row2", "title": "Item 2", "description": "Description" }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Media Messages - Image
+```json
+{
+  "messaging_product": "whatsapp",
+  "to": "PHONE_NUMBER",
+  "type": "image",
+  "image": {
+    "id": "MEDIA_ID",
+    "caption": "Image caption"
+  }
+}
+```
+
+### Media Messages - Document
+```json
+{
+  "messaging_product": "whatsapp",
+  "to": "PHONE_NUMBER",
+  "type": "document",
+  "document": {
+    "id": "MEDIA_ID",
+    "filename": "document.pdf",
+    "caption": "Document caption"
+  }
+}
+```
+
+### Location Messages
+```json
+{
+  "messaging_product": "whatsapp",
+  "to": "PHONE_NUMBER",
+  "type": "location",
+  "location": {
+    "latitude": "19.0760",
+    "longitude": "72.8777",
+    "name": "Mumbai",
+    "address": "Mumbai, Maharashtra, India"
+  }
+}
+```
+
+---
+
+## AWS CLI Examples
+
+### Send Text Message
+```bash
+aws socialmessaging send-whatsapp-message \
+  --origination-phone-number-id phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54 \
+  --meta-api-version v20.0 \
+  --message '{"messaging_product":"whatsapp","to":"919876543210","type":"text","text":{"body":"Hello from WECARE.DIGITAL"}}'
+```
+
+### Send Template Message
+```bash
+aws socialmessaging send-whatsapp-message \
+  --origination-phone-number-id phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54 \
+  --meta-api-version v20.0 \
+  --message '{"messaging_product":"whatsapp","to":"919876543210","type":"template","template":{"name":"hello_world","language":{"code":"en_US"}}}'
+```
+
+### Upload Media to S3 for WhatsApp
+```bash
+aws socialmessaging post-whatsapp-message-media \
+  --origination-phone-number-id phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54 \
+  --source-s3-file bucketName=auth.wecare.digital,key=whatsapp-media/whatsapp-media-outgoing/image.jpg
+```
+
+### Download Received Media from WhatsApp
+```bash
+aws socialmessaging get-whatsapp-message-media \
+  --media-id MEDIA_ID_FROM_WEBHOOK \
+  --origination-phone-number-id phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54 \
+  --destination-s3-file bucketName=auth.wecare.digital,key=whatsapp-media/whatsapp-media-incoming/received.jpg
+```
+
+### List WhatsApp Business Accounts
+```bash
+aws socialmessaging list-linked-whats-app-business-accounts --region us-east-1
+```
+
+---
+
+## Region Availability
+
+AWS End User Messaging Social is available in the following regions:
+
+| Region | Endpoint | WhatsApp API Version |
+|--------|----------|---------------------|
+| US East (N. Virginia) | social-messaging.us-east-1.amazonaws.com | v20+ |
+| US East (Ohio) | social-messaging.us-east-2.amazonaws.com | v20+ |
+| US West (Oregon) | social-messaging.us-west-2.amazonaws.com | v20+ |
+| Canada (Central) | social-messaging.ca-central-1.amazonaws.com | v20+ |
+| Europe (Frankfurt) | social-messaging.eu-central-1.amazonaws.com | v20+ |
+| Europe (Ireland) | social-messaging.eu-west-1.amazonaws.com | v20+ |
+| Europe (London) | social-messaging.eu-west-2.amazonaws.com | v20+ |
+| Asia Pacific (Mumbai) | social-messaging.ap-south-1.amazonaws.com | v20+ |
+| Asia Pacific (Singapore) | social-messaging.ap-southeast-1.amazonaws.com | v20+ |
+| Asia Pacific (Sydney) | social-messaging.ap-southeast-2.amazonaws.com | v20+ |
+| Asia Pacific (Tokyo) | social-messaging.ap-northeast-1.amazonaws.com | v20+ |
+
+**WECARE.DIGITAL Region**: us-east-1 (US East - N. Virginia)
+
+---
+
 ### 10. DynamoDB Tables (11 Active)
 
 All tables use **PAY_PER_REQUEST** billing mode:
