@@ -265,6 +265,185 @@ COGNITO_USER_POOL_ID=us-east-1_CC9u1fYh6
 - **Account-level Rate Limit**: 1000 requests/second
 - **Allowlist**: Both phone numbers configured
 
+---
+
+## AWS End User Messaging Social — WhatsApp Deep Check
+
+### Service Overview
+AWS End User Messaging Social enables WhatsApp Business integration with AWS. It provides:
+- Native WhatsApp messaging via REST API and SDK
+- Inbound message handling via SNS notifications
+- Media file upload/download via S3
+- IAM-based access control
+
+**Documentation**: https://docs.aws.amazon.com/social-messaging/latest/userguide/what-is-service.html
+
+### API Endpoints (us-east-1)
+- **Standard**: `social-messaging.us-east-1.amazonaws.com`
+- **FIPS**: `social-messaging-fips.us-east-1.amazonaws.com`
+- **API Version**: WhatsApp Cloud API v20.0 and later
+
+### Service Quotas
+
+| Operation | Default Rate (req/sec) |
+|-----------|----------------------|
+| SendWhatsAppMessage | 1,000 |
+| PostWhatsAppMessageMedia | 100 |
+| GetWhatsAppMessageMedia | 100 |
+| DeleteWhatsAppMessageMedia | 100 |
+| DisassociateWhatsAppBusinessAccount | 10 |
+| ListWhatsAppBusinessAccount | 10 |
+
+**WABA Limit**: 25 per Region per account
+
+### Message Types Supported
+- **Text messages** - Plain text
+- **Template messages** - Pre-approved templates (can be sent anytime)
+- **Media messages** - Images, videos, audio, documents
+- **Interactive messages** - Buttons, lists
+- **Location messages** - GPS coordinates
+- **Contact messages** - vCard format
+
+### 24-Hour Customer Service Window
+- When a user messages you, a 24-hour window opens
+- **Within window**: All message types allowed
+- **Outside window**: Only template messages allowed
+- Window refreshes with each user message
+
+### Inbound Message Flow
+```
+User → WhatsApp → AWS EUM Social → SNS Topic → Lambda → DynamoDB
+```
+
+**Event Format** (SNS Message):
+```json
+{
+  "context": {
+    "MetaWabaIds": [{"wabaId": "...", "arn": "..."}],
+    "MetaPhoneNumberIds": [{"metaPhoneNumberId": "...", "arn": "..."}]
+  },
+  "whatsAppWebhookEntry": "{...JSON STRING...}",
+  "aws_account_id": "809904170947",
+  "message_timestamp": "2026-01-18T08:14:04.923Z",
+  "messageId": "uuid"
+}
+```
+
+### Outbound Message Flow
+```
+Lambda → AWS EUM Social API → WhatsApp → User
+```
+
+**CLI Example** (Template Message):
+```bash
+aws socialmessaging send-whatsapp-message \
+  --origination-phone-number-id phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54 \
+  --meta-api-version v20.0 \
+  --message '{"messaging_product":"whatsapp","to":"PHONE","type":"template","template":{"name":"TEMPLATE_NAME","language":{"code":"en_US"}}}'
+```
+
+### Media File Handling
+
+**Upload Media (for sending)**:
+```bash
+aws socialmessaging post-whatsapp-message-media \
+  --origination-phone-number-id PHONE_NUMBER_ID \
+  --source-s3-file bucketName=auth.wecare.digital,key=whatsapp-media/file.jpg
+```
+
+**Download Media (from received messages)**:
+```bash
+aws socialmessaging get-whatsapp-message-media \
+  --media-id MEDIA_ID \
+  --origination-phone-number-id PHONE_NUMBER_ID \
+  --destination-s3-file bucketName=auth.wecare.digital,key=whatsapp-media/incoming/file.jpg
+```
+
+**S3 Bucket Requirements**:
+- Must be in same AWS account and Region as WABA
+- Media bucket: `auth.wecare.digital`
+- Inbound prefix: `whatsapp-media/whatsapp-media-incoming/`
+- Outbound prefix: `whatsapp-media/whatsapp-media-outgoing/`
+
+---
+
+## ✅ Deep Check Checklist — WhatsApp Production Readiness
+
+### A) WABA Registration Status
+- [x] WABA 1 (WECARE.DIGITAL): `COMPLETE`
+- [x] WABA 2 (Manish Agarwal): `COMPLETE`
+- [x] Both WABAs linked to AWS account 809904170947
+
+### B) Phone Number Quality
+- [x] Phone 1 (+91 93309 94400): Quality Rating `GREEN`
+- [x] Phone 2 (+91 99033 00044): Quality Rating `GREEN`
+- [x] Both phone numbers verified and active
+
+### C) Event Destination (SNS)
+- [x] SNS Topic configured: `arn:aws:sns:us-east-1:809904170947:base-wecare-digital`
+- [x] Both WABAs have event destination set
+- [x] Lambda subscription active: `wecare-inbound-whatsapp`
+
+### D) Lambda Handler
+- [x] Function: `wecare-inbound-whatsapp`
+- [x] Runtime: Python 3.12
+- [x] Memory: 256MB
+- [x] Timeout: 30s
+- [x] DynamoDB key fix deployed (uses `id` as primary key)
+
+### E) DynamoDB Tables
+- [x] `base-wecare-digital-WhatsAppInboundTable` - Primary key: `id`
+- [x] `base-wecare-digital-WhatsAppOutboundTable` - Primary key: `id`
+- [x] `base-wecare-digital-ContactsTable` - Primary key: `id`
+
+### F) S3 Media Bucket
+- [x] Bucket: `auth.wecare.digital`
+- [x] Region: us-east-1
+- [x] Same account as WABA
+
+### G) IAM Permissions
+Required permissions for Lambda:
+- `socialmessaging:SendWhatsAppMessage`
+- `socialmessaging:GetWhatsAppMessageMedia`
+- `socialmessaging:PostWhatsAppMessageMedia`
+- `dynamodb:PutItem`, `dynamodb:GetItem`, `dynamodb:UpdateItem`
+- `s3:GetObject`, `s3:PutObject`
+- `sns:Publish` (for DLQ)
+
+### H) Message Status Tracking
+Status values from WhatsApp:
+- `sent` - Message sent to WhatsApp servers
+- `delivered` - Message delivered to user's device
+- `read` - Message read by user
+- `failed` - Message delivery failed
+
+### I) Error Handling
+- [x] DLQ configured: `base-wecare-digital-inbound-dlq`
+- [x] Failed messages sent to DLQ
+- [x] CloudWatch alarm: `wecare-dlq-depth`
+
+### J) Rate Limiting
+- [x] Per-phone rate limit: 80 msg/sec
+- [x] Account API rate limit: 1000 req/sec
+- [x] Rate limiter implemented in Lambda
+
+---
+
+## WhatsApp API Reference URLs
+
+| Resource | URL |
+|----------|-----|
+| Service Overview | https://docs.aws.amazon.com/social-messaging/latest/userguide/what-is-service.html |
+| Send Messages | https://docs.aws.amazon.com/social-messaging/latest/userguide/send-message.html |
+| Receive Messages | https://docs.aws.amazon.com/social-messaging/latest/userguide/whatsapp-receive-message.html |
+| Event Format | https://docs.aws.amazon.com/social-messaging/latest/userguide/managing-event-destination-dlrs.html |
+| Media Files | https://docs.aws.amazon.com/social-messaging/latest/userguide/managing-media-files-s3.html |
+| Quotas | https://docs.aws.amazon.com/social-messaging/latest/userguide/quotas.html |
+| CLI Reference | https://docs.aws.amazon.com/cli/latest/reference/socialmessaging/ |
+| WhatsApp Cloud API | https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages |
+
+---
+
 ### 10. DynamoDB Tables (11 Active)
 
 All tables use **PAY_PER_REQUEST** billing mode:
