@@ -828,7 +828,32 @@
 .sidebar-header h2 {
   font-size: 18px;
   font-weight: 400;
-  margin: 0 0 12px 0;
+  margin: 0;
+}
+
+.sidebar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.btn-new-chat {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #1a1a1a;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-new-chat:hover {
+  background: #333;
 }
 
 .phone-selector {
@@ -847,7 +872,7 @@
 .contact-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   padding: 12px 16px;
   cursor: pointer;
   border-bottom: 1px solid #f0f0f0;
@@ -861,6 +886,32 @@
 .contact-item.active {
   background: #f0f7ff;
   border-left: 3px solid #1a1a1a;
+}
+
+.contact-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-delete-chat {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  font-size: 14px;
+}
+
+.contact-item:hover .btn-delete-chat {
+  opacity: 0.5;
+}
+
+.btn-delete-chat:hover {
+  opacity: 1 !important;
 }
 
 .contact-avatar {
@@ -1481,5 +1532,483 @@
   .workflow-arrow {
     transform: rotate(90deg);
     text-align: center;
+  }
+}
+
+
+/* ============================================
+   ADDITIONAL UI IMPROVEMENTS
+   ============================================ */
+
+/* Template Modal */
+.template-info {
+  background: #f0f7ff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e40af;
+  margin-bottom: 20px;
+}
+
+.template-preview {
+  margin-bottom: 16px;
+}
+
+.template-preview label {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.preview-box {
+  background: #f9fafb;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  border-left: 3px solid #22c55e;
+}
+
+.template-variables {
+  margin-bottom: 16px;
+}
+
+.template-variables > label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.variable-input {
+  margin-bottom: 12px;
+}
+
+.variable-label {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.variable-input input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* Interactive Message */
+.toggle-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-option {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.toggle-option:hover {
+  border-color: #1a1a1a;
+}
+
+.toggle-option.active {
+  background: #1a1a1a;
+  color: white;
+  border-color: #1a1a1a;
+}
+
+.list-item-inputs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.list-item-inputs input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* Empty Messages */
+.empty-messages {
+  text-align: center;
+  padding: 48px 24px;
+  color: #999;
+}
+
+.empty-messages p {
+  margin: 8px 0;
+}
+
+/* Contacts Page */
+.action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-icon-danger:hover {
+  color: #ef4444;
+}
+
+.empty-table {
+  text-align: center;
+  padding: 48px 24px !important;
+  color: #999;
+}
+
+.checkbox-group {
+  display: flex;
+  gap: 20px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.checkbox-label input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.badge-gray {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Info Panel Improvements */
+.info-value {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+/* Toolbar Buttons */
+.toolbar-btn {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolbar-btn:hover {
+  background: #f5f5f5;
+  border-color: #1a1a1a;
+}
+
+/* Quick Actions on Dashboard */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Responsive Improvements */
+@media (max-width: 768px) {
+  .toggle-buttons {
+    flex-direction: column;
+  }
+  
+  .checkbox-group {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .list-item-inputs {
+    flex-direction: column;
+  }
+}
+
+
+/* ============================================
+   DASHBOARD UI IMPROVEMENTS
+   ============================================ */
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Stats with Icons */
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.stat-icon {
+  font-size: 32px;
+  opacity: 0.8;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+/* Status Grid */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.status-card {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.status-icon {
+  font-size: 20px;
+}
+
+.status-name {
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.status-detail {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+
+/* Quick Actions */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.quick-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+  background: #f9fafb;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.quick-action-card:hover {
+  background: #fff;
+  border-color: #1a1a1a;
+  transform: translateY(-2px);
+}
+
+.qa-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.qa-title {
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.qa-desc {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Phone Cards */
+.phone-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.phone-card {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.phone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.phone-name {
+  font-weight: 500;
+}
+
+.phone-number {
+  font-size: 18px;
+  font-weight: 300;
+  margin-bottom: 8px;
+}
+
+.phone-details {
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  gap: 8px;
+}
+
+/* Resources Grid */
+.resources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 12px;
+}
+
+.resource-item {
+  text-align: center;
+  padding: 16px 12px;
+  background: #f9fafb;
+  border-radius: 12px;
+}
+
+.resource-count {
+  font-size: 24px;
+  font-weight: 300;
+  color: #1a1a1a;
+}
+
+.resource-name {
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+}
+
+/* Section Header */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-header .section-title {
+  margin: 0;
+}
+
+.view-all-link {
+  font-size: 13px;
+  color: #666;
+  text-decoration: none;
+}
+
+.view-all-link:hover {
+  color: #1a1a1a;
+}
+
+/* Activity List */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.activity-icon.inbound {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.activity-icon.outbound {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-text {
+  font-size: 14px;
+}
+
+.activity-detail {
+  font-size: 13px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #999;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .resources-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }

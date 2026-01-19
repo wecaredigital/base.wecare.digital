@@ -1,5 +1,6 @@
 /**
  * Contacts Management Page
+ * Full CRUD operations
  */
 
 import React, { useState } from 'react';
@@ -24,20 +25,30 @@ interface Contact {
 
 const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
   
-  // Mock contacts
-  const [contacts] = useState<Contact[]>([
+  // Form state
+  const [formName, setFormName] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formOptInWA, setFormOptInWA] = useState(false);
+  const [formOptInSms, setFormOptInSms] = useState(false);
+  const [formOptInEmail, setFormOptInEmail] = useState(false);
+  
+  // Contacts state
+  const [contacts, setContacts] = useState<Contact[]>([
     {
-      id: '1',
-      name: 'Test Customer',
-      phone: '+919876543210',
-      email: 'test@example.com',
+      id: '61004f7e-43b2-4a80-b247-7eeab58077bc',
+      name: 'UK Test',
+      phone: '+447123456789',
+      email: '',
       optInWhatsApp: true,
       optInSms: false,
-      optInEmail: true,
+      optInEmail: false,
       lastInboundMessageAt: '2026-01-19 10:30',
-      createdAt: '2026-01-15'
+      createdAt: '2026-01-19'
     }
   ]);
 
@@ -47,12 +58,78 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
     c.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const resetForm = () => {
+    setFormName('');
+    setFormPhone('');
+    setFormEmail('');
+    setFormOptInWA(false);
+    setFormOptInSms(false);
+    setFormOptInEmail(false);
+  };
+
+  const handleCreate = () => {
+    if (!formPhone) return;
+    
+    const newContact: Contact = {
+      id: Date.now().toString(),
+      name: formName,
+      phone: formPhone.startsWith('+') ? formPhone : `+${formPhone}`,
+      email: formEmail || undefined,
+      optInWhatsApp: formOptInWA,
+      optInSms: formOptInSms,
+      optInEmail: formOptInEmail,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    
+    setContacts(prev => [newContact, ...prev]);
+    setShowModal(false);
+    resetForm();
+  };
+
+  const handleEdit = (contact: Contact) => {
+    setEditingContact(contact);
+    setFormName(contact.name);
+    setFormPhone(contact.phone);
+    setFormEmail(contact.email || '');
+    setFormOptInWA(contact.optInWhatsApp);
+    setFormOptInSms(contact.optInSms);
+    setFormOptInEmail(contact.optInEmail);
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = () => {
+    if (!editingContact || !formPhone) return;
+    
+    setContacts(prev => prev.map(c => 
+      c.id === editingContact.id 
+        ? {
+            ...c,
+            name: formName,
+            phone: formPhone.startsWith('+') ? formPhone : `+${formPhone}`,
+            email: formEmail || undefined,
+            optInWhatsApp: formOptInWA,
+            optInSms: formOptInSms,
+            optInEmail: formOptInEmail
+          }
+        : c
+    ));
+    setShowEditModal(false);
+    setEditingContact(null);
+    resetForm();
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this contact?')) {
+      setContacts(prev => prev.filter(c => c.id !== id));
+    }
+  };
+
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
         <div className="page-header">
           <h1 className="page-title">Contacts</h1>
-          <button className="btn-primary" onClick={() => setShowModal(true)}>
+          <button className="btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
             + Add Contact
           </button>
         </div>
@@ -102,7 +179,7 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
               <tbody>
                 {filteredContacts.map(contact => (
                   <tr key={contact.id}>
-                    <td>{contact.name || '-'}</td>
+                    <td><strong>{contact.name || '-'}</strong></td>
                     <td>{contact.phone}</td>
                     <td>{contact.email || '-'}</td>
                     <td>
@@ -110,20 +187,43 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
                         {contact.optInWhatsApp && <span className="badge badge-green">WA</span>}
                         {contact.optInSms && <span className="badge badge-blue">SMS</span>}
                         {contact.optInEmail && <span className="badge badge-purple">Email</span>}
+                        {!contact.optInWhatsApp && !contact.optInSms && !contact.optInEmail && (
+                          <span className="badge badge-gray">None</span>
+                        )}
                       </div>
                     </td>
                     <td>{contact.lastInboundMessageAt || '-'}</td>
                     <td>
-                      <button className="btn-icon" title="Edit">✏️</button>
-                      <button className="btn-icon" title="Message">💬</button>
-                      <button className="btn-icon" title="Delete">🗑️</button>
+                      <div className="action-buttons">
+                        <button 
+                          className="btn-icon" 
+                          title="Edit"
+                          onClick={() => handleEdit(contact)}
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          className="btn-icon" 
+                          title="Message"
+                          onClick={() => window.location.href = '/messaging'}
+                        >
+                          💬
+                        </button>
+                        <button 
+                          className="btn-icon btn-icon-danger" 
+                          title="Delete"
+                          onClick={() => handleDelete(contact.id)}
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
                 {filteredContacts.length === 0 && (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '32px' }}>
-                      No contacts found
+                    <td colSpan={6} className="empty-table">
+                      {searchQuery ? 'No contacts match your search' : 'No contacts yet. Add your first contact!'}
                     </td>
                   </tr>
                 )}
@@ -132,39 +232,144 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
           </div>
         </div>
 
+        {/* Add Contact Modal */}
         {showModal && (
           <div className="modal-overlay" onClick={() => setShowModal(false)}>
             <div className="modal" onClick={e => e.stopPropagation()}>
               <h2>Add Contact</h2>
               <div className="form-group">
                 <label>Name</label>
-                <input type="text" placeholder="Contact name" />
+                <input 
+                  type="text" 
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="Contact name" 
+                />
               </div>
               <div className="form-group">
-                <label>Phone Number</label>
-                <input type="tel" placeholder="+91 98765 43210" />
+                <label>Phone Number *</label>
+                <input 
+                  type="tel" 
+                  value={formPhone}
+                  onChange={(e) => setFormPhone(e.target.value)}
+                  placeholder="+91 98765 43210" 
+                />
+                <div className="help-text">Include country code</div>
               </div>
               <div className="form-group">
-                <label>Email (optional)</label>
-                <input type="email" placeholder="email@example.com" />
+                <label>Email</label>
+                <input 
+                  type="email" 
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  placeholder="email@example.com" 
+                />
               </div>
               <div className="form-group">
                 <label>Opt-In Channels</label>
-                <div className="toggle-group">
-                  <label className="toggle">
-                    <input type="checkbox" /> WhatsApp
+                <div className="checkbox-group">
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox" 
+                      checked={formOptInWA}
+                      onChange={(e) => setFormOptInWA(e.target.checked)}
+                    />
+                    <span>WhatsApp</span>
                   </label>
-                  <label className="toggle">
-                    <input type="checkbox" /> SMS
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox"
+                      checked={formOptInSms}
+                      onChange={(e) => setFormOptInSms(e.target.checked)}
+                    />
+                    <span>SMS</span>
                   </label>
-                  <label className="toggle">
-                    <input type="checkbox" /> Email
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox"
+                      checked={formOptInEmail}
+                      onChange={(e) => setFormOptInEmail(e.target.checked)}
+                    />
+                    <span>Email</span>
                   </label>
                 </div>
               </div>
               <div className="form-actions">
                 <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                <button className="btn-primary">Add Contact</button>
+                <button className="btn-primary" onClick={handleCreate} disabled={!formPhone}>
+                  Add Contact
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Contact Modal */}
+        {showEditModal && (
+          <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <h2>Edit Contact</h2>
+              <div className="form-group">
+                <label>Name</label>
+                <input 
+                  type="text" 
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="Contact name" 
+                />
+              </div>
+              <div className="form-group">
+                <label>Phone Number *</label>
+                <input 
+                  type="tel" 
+                  value={formPhone}
+                  onChange={(e) => setFormPhone(e.target.value)}
+                  placeholder="+91 98765 43210" 
+                />
+              </div>
+              <div className="form-group">
+                <label>Email</label>
+                <input 
+                  type="email" 
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  placeholder="email@example.com" 
+                />
+              </div>
+              <div className="form-group">
+                <label>Opt-In Channels</label>
+                <div className="checkbox-group">
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox" 
+                      checked={formOptInWA}
+                      onChange={(e) => setFormOptInWA(e.target.checked)}
+                    />
+                    <span>WhatsApp</span>
+                  </label>
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox"
+                      checked={formOptInSms}
+                      onChange={(e) => setFormOptInSms(e.target.checked)}
+                    />
+                    <span>SMS</span>
+                  </label>
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox"
+                      checked={formOptInEmail}
+                      onChange={(e) => setFormOptInEmail(e.target.checked)}
+                    />
+                    <span>Email</span>
+                  </label>
+                </div>
+              </div>
+              <div className="form-actions">
+                <button className="btn-secondary" onClick={() => { setShowEditModal(false); setEditingContact(null); }}>Cancel</button>
+                <button className="btn-primary" onClick={handleUpdate} disabled={!formPhone}>
+                  Save Changes
+                </button>
               </div>
             </div>
           </div>
