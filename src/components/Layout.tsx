@@ -26,17 +26,23 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // Navigation items per Requirement 20.3
+  // Navigation items per Requirement 20.3 - Updated order
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/contacts', label: 'Contacts', icon: '👥' },
+    { path: '/pay', label: 'Pay', icon: '💳' },
+    { path: '/link', label: 'Link', icon: '🔗' },
+    { path: '/forms', label: 'Forms', icon: '📝' },
+    { path: '/docs', label: 'Docs', icon: '📄' },
+    { path: '/invoice', label: 'Invoice', icon: '🧾' },
     { path: '/messaging', label: 'DM', icon: '💬', subItems: [
-      { path: '/messaging?channel=whatsapp', label: 'WhatsApp' },
-      { path: '/messaging?channel=sms', label: 'SMS' },
-      { path: '/messaging?channel=email', label: 'Email' },
+      { path: '/dm/whatsapp', label: 'WhatsApp' },
+      { path: '/dm/sms', label: 'SMS' },
+      { path: '/dm/email', label: 'Email (SES)' },
     ]},
+    { path: '/contacts', label: 'Contacts', icon: '👥' },
     { path: '/bulk-messaging', label: 'Bulk Messaging', icon: '📨' },
-    { path: '/ai-automation', label: 'Agent', icon: '🤖' },
+    { path: '/agent', label: 'Agent', icon: '🤖' },
+    { path: '/admin', label: 'Admin Tools', icon: '⚙️', adminOnly: true },
   ];
 
   // Close mobile menu on route change

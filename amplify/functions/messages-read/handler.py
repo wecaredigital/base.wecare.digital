@@ -1,9 +1,13 @@
 """
 Messages Read Lambda Function
 
-Purpose: Read messages from unified Messages table
+Purpose: Read messages from WhatsApp Inbound/Outbound tables
 Returns combined inbound and outbound messages for dashboard/messaging views.
 Supports filtering by contactId, channel, and direction.
+
+DynamoDB Tables (actual names):
+- base-wecare-digital-WhatsAppInboundTable
+- base-wecare-digital-WhatsAppOutboundTable
 """
 
 import os
@@ -19,7 +23,10 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 # DynamoDB client
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
-MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'Messages')
+
+# Actual DynamoDB table names (not Amplify Gen 2 schema tables)
+INBOUND_TABLE = os.environ.get('INBOUND_TABLE', 'base-wecare-digital-WhatsAppInboundTable')
+OUTBOUND_TABLE = os.environ.get('OUTBOUND_TABLE', 'base-wecare-digital-WhatsAppOutboundTable')
 
 # Pagination defaults
 DEFAULT_LIMIT = 50
@@ -57,8 +64,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             filter_parts.append('direction = :dir')
             expression_values[':dir'] = direction.lower()
         
-        # Query messages
-        messages = _scan_messages(filter_parts, expression_values, limit)
+        # Query messages from actual DynamoDB tables
+        messages = _scan_messages(filter_parts, expression_values, limit, direction)
         
         # Sort by timestamp descending
         messages.sort(key=lambda x: x.get('timestamp', x.get('createdAt', 0)), reverse=True)
@@ -107,22 +114,53 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
 
 
-def _scan_messages(filter_parts: List[str], expression_values: Dict, limit: int) -> List[Dict]:
-    """Scan Messages table with filters."""
+def _scan_messages(filter_parts: List[str], expression_values: Dict, limit: int, direction: str = '') -> List[Dict]:
+    """Scan WhatsApp Inbound/Outbound tables and combine results."""
+    all_messages = []
+    
     try:
-        table = dynamodb.Table(MESSAGES_TABLE)
+        # Determine which tables to scan based on direction filter
+        tables_to_scan = []
+        if direction == 'INBOUND':
+            tables_to_scan = [(INBOUND_TABLE, 'inbound')]
+        elif direction == 'OUTBOUND':
+            tables_to_scan = [(OUTBOUND_TABLE, 'outbound')]
+        else:
+            # Scan both tables
+            tables_to_scan = [(INBOUND_TABLE, 'inbound'), (OUTBOUND_TABLE, 'outbound')]
         
-        scan_kwargs = {'Limit': limit * 2}
+        for table_name, msg_direction in tables_to_scan:
+            try:
+                table = dynamodb.Table(table_name)
+                scan_kwargs = {'Limit': limit}
+                
+                # Build filter for this table (exclude direction filter since we're scanning specific tables)
+                table_filter_parts = [f for f in filter_parts if 'direction' not in f]
+                table_expression_values = {k: v for k, v in expression_values.items() if k != ':dir'}
+                
+                if table_filter_parts:
+                    scan_kwargs['FilterExpression'] = ' AND '.join(table_filter_parts)
+                    scan_kwargs['ExpressionAttributeValues'] = table_expression_values
+                
+                response = table.scan(**scan_kwargs)
+                items = response.get('Items', [])
+                
+                # Add direction and channel to each message
+                for item in items:
+                    item['direction'] = msg_direction
+                    item['channel'] = 'whatsapp'
+                
+                all_messages.extend(items)
+                logger.info(f"Scanned {len(items)} messages from {table_name}")
+                
+            except Exception as e:
+                logger.error(f"Error scanning {table_name}: {str(e)}")
+                continue
         
-        if filter_parts:
-            scan_kwargs['FilterExpression'] = ' AND '.join(filter_parts)
-            scan_kwargs['ExpressionAttributeValues'] = expression_values
-        
-        response = table.scan(**scan_kwargs)
-        return response.get('Items', [])
+        return all_messages
         
     except Exception as e:
-        logger.error(f"Error scanning Messages table: {str(e)}")
+        logger.error(f"Error scanning messages: {str(e)}")
         return []
 
 
