@@ -13,6 +13,7 @@ import { contactsRead } from './functions/contacts-read/resource';
 import { contactsUpdate } from './functions/contacts-update/resource';
 import { contactsDelete } from './functions/contacts-delete/resource';
 import { contactsSearch } from './functions/contacts-search/resource';
+import { messagesRead } from './functions/messages-read/resource';
 import { inboundWhatsappHandler } from './functions/inbound-whatsapp-handler/resource';
 import { outboundWhatsapp } from './functions/outbound-whatsapp/resource';
 import { outboundSms } from './functions/outbound-sms/resource';
@@ -47,6 +48,7 @@ const backend = defineBackend({
   contactsUpdate,
   contactsDelete,
   contactsSearch,
+  messagesRead,
   inboundWhatsappHandler,
   outboundWhatsapp,
   outboundSms,
@@ -107,6 +109,15 @@ httpApi.addRoutes({
   path: '/contacts/{contactId}',
   methods: [HttpMethod.DELETE],
   integration: contactsDeleteIntegration,
+});
+
+// Messages API routes
+const messagesReadIntegration = new HttpLambdaIntegration('MessagesReadIntegration', backend.messagesRead.resources.lambda);
+
+httpApi.addRoutes({
+  path: '/messages',
+  methods: [HttpMethod.GET],
+  integration: messagesReadIntegration,
 });
 
 // WhatsApp API routes

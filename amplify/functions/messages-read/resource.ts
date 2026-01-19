@@ -7,8 +7,7 @@ export const messagesRead = defineFunction({
   timeoutSeconds: 30,
   memoryMB: 256,
   environment: {
-    INBOUND_TABLE: 'base-wecare-digital-WhatsAppInboundTable',
-    OUTBOUND_TABLE: 'base-wecare-digital-WhatsAppOutboundTable',
+    MESSAGES_TABLE: 'Messages',
     LOG_LEVEL: 'INFO',
   },
 });

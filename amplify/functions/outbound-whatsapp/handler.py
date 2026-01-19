@@ -90,6 +90,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return _error_response(400, 'WhatsApp opt-in required')
         
         # Requirement 3.2: Validate allowlist
+        if not contact.get('allowlistWhatsApp'):
+            _log_validation_failure(contact_id, 'whatsapp', 'allowlist_required', request_id)
+            return _error_response(400, 'Contact not allowlisted for WhatsApp')
+        
+        # Requirement 3.2: Validate phone number ID allowlist
         if phone_number_id not in ALLOWLIST:
             _log_validation_failure(contact_id, 'whatsapp', 'phone_not_in_allowlist', request_id)
             return _error_response(400, 'Phone number not in allowlist')

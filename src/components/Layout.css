@@ -1,11 +1,12 @@
 /**
- * Layout Styles
+ * Layout Styles - WECARE.DIGITAL
  * 
  * Requirements:
- * - 12.3: Helvetica Light font
- * - 12.4: White background
- * - 12.5: Black buttons with 13px border radius
- * - 12.6: Responsive down to 320px
+ * - 20.1: Helvetica Light font, favicon, 13px border radius
+ * - 20.2: WebView compatible (Android WebView + iOS WKWebView)
+ * - Tap targets ≥ 44px, input font-size ≥ 16px
+ * - Safe-area inset support for notches
+ * - No horizontal scroll, no hover-only behaviors
  */
 
 * {
@@ -14,11 +15,42 @@
   padding: 0;
 }
 
+/* WebView Safe: Prevent text size adjustment */
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-weight: 300;
   background-color: #ffffff;
   color: #1a1a1a;
+  /* WebView Safe: Prevent overscroll bounce */
+  overscroll-behavior: none;
+  /* Safe area insets for notched devices */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* WebView Safe: Prevent horizontal scroll */
+body, html {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* WebView Safe: Minimum tap target size */
+button, a, input[type="checkbox"], input[type="radio"], select {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* WebView Safe: Prevent zoom on input focus (iOS) */
+input, textarea, select {
+  font-size: 16px !important;
 }
 
 .layout {
@@ -199,4 +231,154 @@ body {
     min-width: 60px;
     padding: 6px;
   }
+}
+
+/* ============================================
+   SEND_MODE BANNER (DRY_RUN vs LIVE)
+   Requirement 20.5: Always show SEND_MODE banner
+   ============================================ */
+
+.send-mode-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.send-mode-banner.dry-run {
+  background: #fef3c7;
+  color: #92400e;
+  border-bottom: 2px solid #f59e0b;
+}
+
+.send-mode-banner.live {
+  background: #dcfce7;
+  color: #166534;
+  border-bottom: 2px solid #22c55e;
+}
+
+.send-mode-banner + .layout {
+  margin-top: 36px;
+}
+
+/* ============================================
+   WEBVIEW COMPATIBILITY ENHANCEMENTS
+   ============================================ */
+
+/* Prevent text selection on UI elements */
+.nav-item, .btn-primary, .btn-secondary, .stat-card, .status-card {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth scrolling for iOS */
+.sidebar-nav, .main-content {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for iOS keyboard pushing content */
+@supports (-webkit-touch-callout: none) {
+  .main-content {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+  }
+}
+
+/* Landscape mode adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  .sidebar {
+    width: 180px;
+  }
+  
+  .main-content {
+    margin-left: 180px;
+  }
+  
+  .sidebar-header {
+    padding: 12px 16px;
+  }
+  
+  .nav-item {
+    padding: 8px 12px;
+  }
+}
+
+
+/* ============================================
+   MOBILE MENU STYLES
+   ============================================ */
+
+.mobile-menu-toggle {
+  display: none;
+  position: fixed;
+  top: 44px; /* Below SEND_MODE banner */
+  left: 16px;
+  z-index: 1001;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: #1a1a1a;
+  color: #ffffff;
+  border-radius: 13px;
+  font-size: 20px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .mobile-overlay {
+    display: block;
+  }
+  
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .main-content {
+    margin-left: 0;
+    padding-top: 70px; /* Space for mobile toggle */
+  }
+}
+
+/* User Role Badge */
+.user-role {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #f0f0f0;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+  margin-bottom: 4px;
 }

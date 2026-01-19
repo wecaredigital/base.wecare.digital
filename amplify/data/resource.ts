@@ -8,15 +8,21 @@ import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
  */
 const schema = a.schema({
   // Table 1: Contacts - Contact records with opt-in preferences
+  // Requirement 3.2: Default Block Rule - allowlist fields required
   Contact: a
     .model({
       contactId: a.id().required(),
       name: a.string(),
       phone: a.string(),
       email: a.string(),
+      // Opt-in fields (Requirement 3.2: defaults to false)
       optInWhatsApp: a.boolean().default(false),
       optInSms: a.boolean().default(false),
       optInEmail: a.boolean().default(false),
+      // Allowlist fields (Requirement 3.2: defaults to false)
+      allowlistWhatsApp: a.boolean().default(false),
+      allowlistSms: a.boolean().default(false),
+      allowlistEmail: a.boolean().default(false),
       lastInboundMessageAt: a.datetime(),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),

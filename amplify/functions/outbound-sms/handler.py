@@ -72,6 +72,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             _log_validation_failure(contact_id, 'sms', 'opt_in_required', request_id)
             return _error_response(400, 'SMS opt-in required')
         
+        # Requirement 3.3: Validate SMS allowlist
+        if not contact.get('allowlistSms'):
+            _log_validation_failure(contact_id, 'sms', 'allowlist_required', request_id)
+            return _error_response(400, 'Contact not allowlisted for SMS')
+        
         # Validate phone number exists
         recipient_phone = contact.get('phone')
         if not recipient_phone:

@@ -1,8 +1,9 @@
 """
 Messages Read Lambda Function
 
-Purpose: Read messages from WhatsAppInboundTable and WhatsAppOutboundTable
+Purpose: Read messages from unified Messages table
 Returns combined inbound and outbound messages for dashboard/messaging views.
+Supports filtering by contactId, channel, and direction.
 """
 
 import os
@@ -18,8 +19,7 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 # DynamoDB client
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
-INBOUND_TABLE = os.environ.get('INBOUND_TABLE', 'base-wecare-digital-WhatsAppInboundTable')
-OUTBOUND_TABLE = os.environ.get('OUTBOUND_TABLE', 'base-wecare-digital-WhatsAppOutboundTable')
+MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'Messages')
 
 # Pagination defaults
 DEFAULT_LIMIT = 50
@@ -28,8 +28,8 @@ MAX_LIMIT = 100
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Read messages from DynamoDB tables.
-    Supports filtering by contactId and channel.
+    Read messages from DynamoDB Messages table.
+    Supports filtering by contactId, channel, and direction.
     """
     request_id = context.aws_request_id if context else 'local'
     
@@ -38,25 +38,27 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         params = event.get('queryStringParameters', {}) or {}
         contact_id = params.get('contactId')
         channel = params.get('channel', '').upper()
+        direction = params.get('direction', '').upper()
         limit = min(int(params.get('limit', DEFAULT_LIMIT)), MAX_LIMIT)
         
-        messages = []
+        # Build filter expression
+        filter_parts = []
+        expression_values = {}
         
-        # Query inbound messages
-        if not channel or channel == 'WHATSAPP':
-            inbound = _scan_table(INBOUND_TABLE, contact_id, limit)
-            for msg in inbound:
-                msg['direction'] = 'INBOUND'
-                msg['channel'] = 'WHATSAPP'
-            messages.extend(inbound)
+        if contact_id:
+            filter_parts.append('contactId = :cid')
+            expression_values[':cid'] = contact_id
         
-        # Query outbound messages
-        if not channel or channel == 'WHATSAPP':
-            outbound = _scan_table(OUTBOUND_TABLE, contact_id, limit)
-            for msg in outbound:
-                msg['direction'] = 'OUTBOUND'
-                msg['channel'] = 'WHATSAPP'
-            messages.extend(outbound)
+        if channel and channel in ['WHATSAPP', 'SMS', 'EMAIL']:
+            filter_parts.append('channel = :ch')
+            expression_values[':ch'] = channel.lower()
+        
+        if direction and direction in ['INBOUND', 'OUTBOUND']:
+            filter_parts.append('direction = :dir')
+            expression_values[':dir'] = direction.lower()
+        
+        # Query messages
+        messages = _scan_messages(filter_parts, expression_values, limit)
         
         # Sort by timestamp descending
         messages.sort(key=lambda x: x.get('timestamp', x.get('createdAt', 0)), reverse=True)
@@ -71,6 +73,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'event': 'messages_read',
             'count': len(messages),
             'contactId': contact_id,
+            'channel': channel,
             'requestId': request_id
         }))
         
@@ -104,22 +107,22 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
 
 
-def _scan_table(table_name: str, contact_id: str = None, limit: int = 50) -> List[Dict]:
-    """Scan DynamoDB table with optional contact filter."""
+def _scan_messages(filter_parts: List[str], expression_values: Dict, limit: int) -> List[Dict]:
+    """Scan Messages table with filters."""
     try:
-        table = dynamodb.Table(table_name)
+        table = dynamodb.Table(MESSAGES_TABLE)
         
         scan_kwargs = {'Limit': limit * 2}
         
-        if contact_id:
-            scan_kwargs['FilterExpression'] = 'contactId = :cid'
-            scan_kwargs['ExpressionAttributeValues'] = {':cid': contact_id}
+        if filter_parts:
+            scan_kwargs['FilterExpression'] = ' AND '.join(filter_parts)
+            scan_kwargs['ExpressionAttributeValues'] = expression_values
         
         response = table.scan(**scan_kwargs)
         return response.get('Items', [])
         
     except Exception as e:
-        logger.error(f"Error scanning {table_name}: {str(e)}")
+        logger.error(f"Error scanning Messages table: {str(e)}")
         return []
 
 
@@ -135,5 +138,11 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
     # Normalize field names for frontend
     if 'id' in result and 'messageId' not in result:
         result['messageId'] = result['id']
+    
+    # Normalize channel and direction to uppercase for frontend
+    if 'channel' in result:
+        result['channel'] = result['channel'].upper()
+    if 'direction' in result:
+        result['direction'] = result['direction'].upper()
     
     return result

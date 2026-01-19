@@ -3760,3 +3760,175 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ============================================
+   WEBVIEW COMPATIBILITY ENHANCEMENTS
+   Requirement 20.2: WebView safe
+   ============================================ */
+
+/* Prevent horizontal scroll */
+.page, .section, .modal {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Safe area insets for notched devices */
+.page {
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+/* Minimum tap target size (44px) */
+.btn-primary, .btn-secondary, .btn-danger, .btn-success,
+.nav-item, .channel-tab, .sub-tab, .type-btn,
+.contact-item, .inbox-item, .job-card,
+.action-btn, .toolbar-btn {
+  min-height: 44px;
+}
+
+/* Prevent zoom on input focus (iOS) - font-size >= 16px */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* Smooth scrolling for iOS */
+.messages-list, .contacts-list, .inbox-list, .jobs-list {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text selection on interactive elements */
+.btn-primary, .btn-secondary, .nav-item, .stat-card,
+.channel-tab, .sub-tab, .contact-item {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fix for iOS keyboard pushing content */
+@supports (-webkit-touch-callout: none) {
+  .quick-reply, .compose-area, .message-input-area {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+  }
+}
+
+/* Landscape mode adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  .stats-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  
+  .modal {
+    max-height: 90vh;
+  }
+}
+
+/* ============================================
+   ALLOWLIST BADGE STYLES
+   Requirement 20.5: Show allowlist badges
+   ============================================ */
+
+.badge-yellow {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* Opt-in only (not allowlisted) - show warning */
+.opt-in-badges .badge-yellow::after {
+  content: ' ⚠';
+  font-size: 10px;
+}
+
+/* Fully enabled (opt-in + allowlist) */
+.opt-in-badges .badge-green::after,
+.opt-in-badges .badge-blue::after,
+.opt-in-badges .badge-purple::after {
+  content: '';
+}
+
+/* ============================================
+   BLOCK REASON DISPLAY
+   Requirement 20.5: Show block reasons
+   ============================================ */
+
+.block-reason {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.block-reason-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.block-reason-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.block-reason-list li {
+  padding: 2px 0;
+}
+
+.block-reason-list li::before {
+  content: '✕ ';
+  color: #ef4444;
+}
+
+/* ============================================
+   RESPONSIVE TABLE TO CARDS
+   Requirement 20.2: Tables collapse to cards on mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+  .data-table {
+    display: block;
+  }
+  
+  .data-table thead {
+    display: none;
+  }
+  
+  .data-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .data-table tr {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  
+  .data-table td {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  .data-table td:last-child {
+    border-bottom: none;
+  }
+  
+  .data-table td::before {
+    content: attr(data-label);
+    font-weight: 500;
+    color: #666;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+}

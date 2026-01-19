@@ -25,9 +25,14 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
   const [formName, setFormName] = useState('');
   const [formPhone, setFormPhone] = useState('');
   const [formEmail, setFormEmail] = useState('');
+  // Opt-in fields
   const [formOptInWA, setFormOptInWA] = useState(false);
   const [formOptInSms, setFormOptInSms] = useState(false);
   const [formOptInEmail, setFormOptInEmail] = useState(false);
+  // Allowlist fields (Requirement 3.2)
+  const [formAllowlistWA, setFormAllowlistWA] = useState(false);
+  const [formAllowlistSms, setFormAllowlistSms] = useState(false);
+  const [formAllowlistEmail, setFormAllowlistEmail] = useState(false);
   
   // Contacts state
   const [contacts, setContacts] = useState<api.Contact[]>([]);
@@ -63,6 +68,9 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
     setFormOptInWA(false);
     setFormOptInSms(false);
     setFormOptInEmail(false);
+    setFormAllowlistWA(false);
+    setFormAllowlistSms(false);
+    setFormAllowlistEmail(false);
   };
 
   const handleCreate = async () => {
@@ -81,6 +89,9 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
         optInWhatsApp: formOptInWA,
         optInSms: formOptInSms,
         optInEmail: formOptInEmail,
+        allowlistWhatsApp: formAllowlistWA,
+        allowlistSms: formAllowlistSms,
+        allowlistEmail: formAllowlistEmail,
       });
       
       if (result) {
@@ -106,6 +117,9 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
     setFormOptInWA(contact.optInWhatsApp || false);
     setFormOptInSms(contact.optInSms || false);
     setFormOptInEmail(contact.optInEmail || false);
+    setFormAllowlistWA(contact.allowlistWhatsApp || false);
+    setFormAllowlistSms(contact.allowlistSms || false);
+    setFormAllowlistEmail(contact.allowlistEmail || false);
     setShowEditModal(true);
   };
 
@@ -125,6 +139,9 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
         optInWhatsApp: formOptInWA,
         optInSms: formOptInSms,
         optInEmail: formOptInEmail,
+        allowlistWhatsApp: formAllowlistWA,
+        allowlistSms: formAllowlistSms,
+        allowlistEmail: formAllowlistEmail,
       });
       
       if (result) {
@@ -222,9 +239,12 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
                     <td>{contact.email || '-'}</td>
                     <td>
                       <div className="opt-in-badges">
-                        {contact.optInWhatsApp && <span className="badge badge-green">WA</span>}
-                        {contact.optInSms && <span className="badge badge-blue">SMS</span>}
-                        {contact.optInEmail && <span className="badge badge-purple">Email</span>}
+                        {contact.optInWhatsApp && contact.allowlistWhatsApp && <span className="badge badge-green">WA ✓</span>}
+                        {contact.optInWhatsApp && !contact.allowlistWhatsApp && <span className="badge badge-yellow">WA</span>}
+                        {contact.optInSms && contact.allowlistSms && <span className="badge badge-blue">SMS ✓</span>}
+                        {contact.optInSms && !contact.allowlistSms && <span className="badge badge-yellow">SMS</span>}
+                        {contact.optInEmail && contact.allowlistEmail && <span className="badge badge-purple">Email ✓</span>}
+                        {contact.optInEmail && !contact.allowlistEmail && <span className="badge badge-yellow">Email</span>}
                         {!contact.optInWhatsApp && !contact.optInSms && !contact.optInEmail && (
                           <span className="badge badge-gray">None</span>
                         )}
@@ -287,6 +307,24 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
                   </label>
                 </div>
               </div>
+              <div className="form-group">
+                <label>Allowlist (Required for Sending)</label>
+                <div className="help-text" style={{marginBottom: '8px'}}>Contacts must be both opted-in AND allowlisted to receive messages</div>
+                <div className="checkbox-group">
+                  <label className="checkbox-label">
+                    <input type="checkbox" checked={formAllowlistWA} onChange={(e) => setFormAllowlistWA(e.target.checked)} disabled={!formOptInWA} />
+                    <span>WhatsApp {!formOptInWA && '(opt-in first)'}</span>
+                  </label>
+                  <label className="checkbox-label">
+                    <input type="checkbox" checked={formAllowlistSms} onChange={(e) => setFormAllowlistSms(e.target.checked)} disabled={!formOptInSms} />
+                    <span>SMS {!formOptInSms && '(opt-in first)'}</span>
+                  </label>
+                  <label className="checkbox-label">
+                    <input type="checkbox" checked={formAllowlistEmail} onChange={(e) => setFormAllowlistEmail(e.target.checked)} disabled={!formOptInEmail} />
+                    <span>Email {!formOptInEmail && '(opt-in first)'}</span>
+                  </label>
+                </div>
+              </div>
               <div className="form-actions">
                 <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                 <button className="btn-primary" onClick={handleCreate} disabled={(!formPhone && !formEmail) || saving}>
@@ -328,6 +366,24 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
                   <label className="checkbox-label">
                     <input type="checkbox" checked={formOptInEmail} onChange={(e) => setFormOptInEmail(e.target.checked)} />
                     <span>Email</span>
+                  </label>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Allowlist (Required for Sending)</label>
+                <div className="help-text" style={{marginBottom: '8px'}}>Contacts must be both opted-in AND allowlisted to receive messages</div>
+                <div className="checkbox-group">
+                  <label className="checkbox-label">
+                    <input type="checkbox" checked={formAllowlistWA} onChange={(e) => setFormAllowlistWA(e.target.checked)} disabled={!formOptInWA} />
+                    <span>WhatsApp {!formOptInWA && '(opt-in first)'}</span>
+                  </label>
+                  <label className="checkbox-label">
+                    <input type="checkbox" checked={formAllowlistSms} onChange={(e) => setFormAllowlistSms(e.target.checked)} disabled={!formOptInSms} />
+                    <span>SMS {!formOptInSms && '(opt-in first)'}</span>
+                  </label>
+                  <label className="checkbox-label">
+                    <input type="checkbox" checked={formAllowlistEmail} onChange={(e) => setFormAllowlistEmail(e.target.checked)} disabled={!formOptInEmail} />
+                    <span>Email {!formOptInEmail && '(opt-in first)'}</span>
                   </label>
                 </div>
               </div>

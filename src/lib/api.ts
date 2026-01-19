@@ -18,9 +18,14 @@ export interface Contact {
   name: string;
   phone: string;
   email?: string;
+  // Opt-in fields (Requirement 3.2)
   optInWhatsApp: boolean;
   optInSms: boolean;
   optInEmail: boolean;
+  // Allowlist fields (Requirement 3.2)
+  allowlistWhatsApp: boolean;
+  allowlistSms: boolean;
+  allowlistEmail: boolean;
   lastInboundMessageAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -113,9 +118,14 @@ function normalizeContact(item: any): Contact {
     name: item.name || '',
     phone: item.phone || '',
     email: item.email || '',
+    // Opt-in fields
     optInWhatsApp: item.optInWhatsApp || false,
     optInSms: item.optInSms || false,
     optInEmail: item.optInEmail || false,
+    // Allowlist fields (Requirement 3.2)
+    allowlistWhatsApp: item.allowlistWhatsApp || false,
+    allowlistSms: item.allowlistSms || false,
+    allowlistEmail: item.allowlistEmail || false,
     lastInboundMessageAt: item.lastInboundMessageAt ? new Date(Number(item.lastInboundMessageAt) * 1000).toISOString() : undefined,
     createdAt: item.createdAt ? new Date(Number(item.createdAt) * 1000).toISOString() : new Date().toISOString(),
     updatedAt: item.updatedAt ? new Date(Number(item.updatedAt) * 1000).toISOString() : new Date().toISOString(),
