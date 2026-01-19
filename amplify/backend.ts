@@ -2,9 +2,9 @@ import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { storage } from './storage/resource';
-import * as apigateway from 'aws-cdk-lib/aws-apigatewayv2';
-import * as integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
-import { Stack } from 'aws-cdk-lib';
+import { HttpApi, HttpMethod, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { Duration } from 'aws-cdk-lib';
 
 // Import Lambda functions
 import { authMiddleware } from './functions/auth-middleware/resource';
@@ -62,109 +62,109 @@ const backend = defineBackend({
 // Create HTTP API for frontend to call Lambda functions
 const apiStack = backend.createStack('api-stack');
 
-const httpApi = new apigateway.HttpApi(apiStack, 'WecareDmApi', {
+const httpApi = new HttpApi(apiStack, 'WecareDmApi', {
   apiName: 'wecare-dm-api',
   corsPreflight: {
     allowHeaders: ['Content-Type', 'Authorization'],
-    allowMethods: [apigateway.CorsHttpMethod.GET, apigateway.CorsHttpMethod.POST, apigateway.CorsHttpMethod.PUT, apigateway.CorsHttpMethod.DELETE, apigateway.CorsHttpMethod.OPTIONS],
+    allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.PUT, CorsHttpMethod.DELETE, CorsHttpMethod.OPTIONS],
     allowOrigins: ['https://base.wecare.digital', 'https://base.dtiq7il2x5c5g.amplifyapp.com', 'http://localhost:3000'],
-    maxAge: Stack.of(apiStack).toJsonString({ days: 1 }),
+    maxAge: Duration.days(1),
   },
 });
 
 // Contacts API routes
-const contactsReadIntegration = new integrations.HttpLambdaIntegration('ContactsReadIntegration', backend.contactsRead.resources.lambda);
-const contactsCreateIntegration = new integrations.HttpLambdaIntegration('ContactsCreateIntegration', backend.contactsCreate.resources.lambda);
-const contactsUpdateIntegration = new integrations.HttpLambdaIntegration('ContactsUpdateIntegration', backend.contactsUpdate.resources.lambda);
-const contactsDeleteIntegration = new integrations.HttpLambdaIntegration('ContactsDeleteIntegration', backend.contactsDelete.resources.lambda);
-const contactsSearchIntegration = new integrations.HttpLambdaIntegration('ContactsSearchIntegration', backend.contactsSearch.resources.lambda);
+const contactsReadIntegration = new HttpLambdaIntegration('ContactsReadIntegration', backend.contactsRead.resources.lambda);
+const contactsCreateIntegration = new HttpLambdaIntegration('ContactsCreateIntegration', backend.contactsCreate.resources.lambda);
+const contactsUpdateIntegration = new HttpLambdaIntegration('ContactsUpdateIntegration', backend.contactsUpdate.resources.lambda);
+const contactsDeleteIntegration = new HttpLambdaIntegration('ContactsDeleteIntegration', backend.contactsDelete.resources.lambda);
+const contactsSearchIntegration = new HttpLambdaIntegration('ContactsSearchIntegration', backend.contactsSearch.resources.lambda);
 
 httpApi.addRoutes({
   path: '/contacts',
-  methods: [apigateway.HttpMethod.GET],
+  methods: [HttpMethod.GET],
   integration: contactsSearchIntegration,
 });
 
 httpApi.addRoutes({
   path: '/contacts',
-  methods: [apigateway.HttpMethod.POST],
+  methods: [HttpMethod.POST],
   integration: contactsCreateIntegration,
 });
 
 httpApi.addRoutes({
   path: '/contacts/{contactId}',
-  methods: [apigateway.HttpMethod.GET],
+  methods: [HttpMethod.GET],
   integration: contactsReadIntegration,
 });
 
 httpApi.addRoutes({
   path: '/contacts/{contactId}',
-  methods: [apigateway.HttpMethod.PUT],
+  methods: [HttpMethod.PUT],
   integration: contactsUpdateIntegration,
 });
 
 httpApi.addRoutes({
   path: '/contacts/{contactId}',
-  methods: [apigateway.HttpMethod.DELETE],
+  methods: [HttpMethod.DELETE],
   integration: contactsDeleteIntegration,
 });
 
 // WhatsApp API routes
-const outboundWhatsappIntegration = new integrations.HttpLambdaIntegration('OutboundWhatsappIntegration', backend.outboundWhatsapp.resources.lambda);
+const outboundWhatsappIntegration = new HttpLambdaIntegration('OutboundWhatsappIntegration', backend.outboundWhatsapp.resources.lambda);
 
 httpApi.addRoutes({
   path: '/whatsapp/send',
-  methods: [apigateway.HttpMethod.POST],
+  methods: [HttpMethod.POST],
   integration: outboundWhatsappIntegration,
 });
 
 // SMS API routes
-const outboundSmsIntegration = new integrations.HttpLambdaIntegration('OutboundSmsIntegration', backend.outboundSms.resources.lambda);
+const outboundSmsIntegration = new HttpLambdaIntegration('OutboundSmsIntegration', backend.outboundSms.resources.lambda);
 
 httpApi.addRoutes({
   path: '/sms/send',
-  methods: [apigateway.HttpMethod.POST],
+  methods: [HttpMethod.POST],
   integration: outboundSmsIntegration,
 });
 
 // Email API routes
-const outboundEmailIntegration = new integrations.HttpLambdaIntegration('OutboundEmailIntegration', backend.outboundEmail.resources.lambda);
+const outboundEmailIntegration = new HttpLambdaIntegration('OutboundEmailIntegration', backend.outboundEmail.resources.lambda);
 
 httpApi.addRoutes({
   path: '/email/send',
-  methods: [apigateway.HttpMethod.POST],
+  methods: [HttpMethod.POST],
   integration: outboundEmailIntegration,
 });
 
 // Bulk Job API routes
-const bulkJobCreateIntegration = new integrations.HttpLambdaIntegration('BulkJobCreateIntegration', backend.bulkJobCreate.resources.lambda);
-const bulkJobControlIntegration = new integrations.HttpLambdaIntegration('BulkJobControlIntegration', backend.bulkJobControl.resources.lambda);
+const bulkJobCreateIntegration = new HttpLambdaIntegration('BulkJobCreateIntegration', backend.bulkJobCreate.resources.lambda);
+const bulkJobControlIntegration = new HttpLambdaIntegration('BulkJobControlIntegration', backend.bulkJobControl.resources.lambda);
 
 httpApi.addRoutes({
   path: '/bulk/jobs',
-  methods: [apigateway.HttpMethod.POST],
+  methods: [HttpMethod.POST],
   integration: bulkJobCreateIntegration,
 });
 
 httpApi.addRoutes({
   path: '/bulk/jobs/{jobId}',
-  methods: [apigateway.HttpMethod.GET, apigateway.HttpMethod.PUT],
+  methods: [HttpMethod.GET, HttpMethod.PUT],
   integration: bulkJobControlIntegration,
 });
 
 // AI API routes
-const aiQueryKbIntegration = new integrations.HttpLambdaIntegration('AiQueryKbIntegration', backend.aiQueryKb.resources.lambda);
-const aiGenerateResponseIntegration = new integrations.HttpLambdaIntegration('AiGenerateResponseIntegration', backend.aiGenerateResponse.resources.lambda);
+const aiQueryKbIntegration = new HttpLambdaIntegration('AiQueryKbIntegration', backend.aiQueryKb.resources.lambda);
+const aiGenerateResponseIntegration = new HttpLambdaIntegration('AiGenerateResponseIntegration', backend.aiGenerateResponse.resources.lambda);
 
 httpApi.addRoutes({
   path: '/ai/query',
-  methods: [apigateway.HttpMethod.POST],
+  methods: [HttpMethod.POST],
   integration: aiQueryKbIntegration,
 });
 
 httpApi.addRoutes({
   path: '/ai/generate',
-  methods: [apigateway.HttpMethod.POST],
+  methods: [HttpMethod.POST],
   integration: aiGenerateResponseIntegration,
 });
 
