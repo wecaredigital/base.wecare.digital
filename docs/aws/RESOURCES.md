@@ -1063,6 +1063,124 @@ arn:aws:sqs:us-east-1:809904170947:base-wecare-digital-*
 
 ---
 
+## Threat Model + Mitigations
+
+### 1. Token Theft Prevention (WebView Safe)
+
+| Threat | Mitigation | Status |
+|--------|------------|--------|
+| Token stored in localStorage | Use Secure HttpOnly cookies only | ✓ Implemented |
+| XSS token extraction | CSP headers + HttpOnly cookies | ✓ Configured |
+| WebView token interception | PKCE flow + no implicit grant | ✓ Enforced |
+| Session hijacking | Short-lived tokens (1h) + refresh rotation | ✓ Active |
+
+**Implementation**:
+- Cognito tokens stored in HttpOnly cookies (not localStorage)
+- Authorization Code + PKCE flow enforced
+- Implicit flow disabled on app client
+- SameSite=Lax cookie attribute for CSRF protection
+
+### 2. Replay Attack Prevention (Idempotency)
+
+| Threat | Mitigation | Status |
+|--------|------------|--------|
+| Duplicate message sends | Idempotency key per request | ✓ Implemented |
+| Webhook replay | `whatsappMessageId` deduplication | ✓ Active |
+| Double-charge bulk jobs | Job ID uniqueness constraint | ✓ Enforced |
+| API request replay | Request timestamp validation (5min window) | ✓ Active |
+
+**Implementation**:
+- `whatsappMessageId` checked before storing inbound messages
+- Bulk jobs use UUID primary key with conditional writes
+- Outbound messages include client-generated idempotency key
+- DynamoDB conditional expressions prevent duplicates
+
+### 3. Cost Explosion Prevention (Rate Limits + Bulk Caps)
+
+| Threat | Mitigation | Limit |
+|--------|------------|-------|
+| Runaway bulk jobs | Max recipients per job | 10,000 |
+| API abuse | Per-user rate limiting | 100 req/min |
+| WhatsApp overspend | Daily message cap | 50,000/day |
+| Lambda cost spike | Concurrency limit | 100 concurrent |
+| DynamoDB cost spike | Provisioned capacity alerts | 1000 WCU |
+
+**Implementation**:
+- Bulk job creation validates recipient count
+- Rate limiter in `auth-middleware` Lambda
+- CloudWatch billing alarm at $100/day threshold
+- Lambda reserved concurrency configured
+- DynamoDB auto-scaling with max limits
+
+### 4. Data Protection (PII Masking + TTL)
+
+| Data Type | Protection | Retention |
+|-----------|------------|-----------|
+| Phone numbers | Stored hashed for search, plain for display | Permanent |
+| Message content | Encrypted at rest (AES-256) | 30 days TTL |
+| Media files | S3 SSE-S3 encryption | 30 days lifecycle |
+| Contact names | Encrypted at rest | Until deleted |
+| AI interactions | Encrypted, no PII in prompts | 90 days TTL |
+
+**Implementation**:
+- DynamoDB encryption at rest enabled
+- S3 bucket encryption (SSE-S3) enabled
+- Message TTL: `expiresAt` attribute (30 days)
+- Media lifecycle policy: 30 days expiration
+- CloudWatch logs: 14 days retention
+- PII scrubbed from error logs
+
+### 5. Operational Safety (DLQ + Rollback Strategy)
+
+| Component | Safety Mechanism | Recovery |
+|-----------|------------------|----------|
+| Inbound messages | `inbound-dlq` queue | Manual replay via `dlq-replay` Lambda |
+| Outbound messages | `outbound-dlq` queue | Retry with exponential backoff |
+| Bulk jobs | `bulk-dlq` queue | Job status tracking + resume |
+| Lambda failures | DLQ + CloudWatch alarm | Auto-alert + manual intervention |
+| Database corruption | Point-in-time recovery | 35-day PITR enabled |
+
+**DLQ Configuration**:
+```
+base-wecare-digital-inbound-dlq   - Failed inbound webhooks
+base-wecare-digital-outbound-dlq  - Failed outbound sends
+base-wecare-digital-bulk-dlq      - Failed bulk job items
+```
+
+**Rollback Strategy**:
+1. **Code rollback**: Amplify instant rollback to previous deployment
+2. **Data rollback**: DynamoDB PITR restore to any point in 35 days
+3. **Config rollback**: Lambda version aliases for instant switch
+4. **Feature flags**: `SystemConfig` table for runtime toggles
+
+### 6. Security Monitoring
+
+| Monitor | Alert Threshold | Action |
+|---------|-----------------|--------|
+| Failed auth attempts | >10/min per IP | Block IP + alert |
+| DLQ depth | >10 messages | PagerDuty alert |
+| Error rate | >5% of requests | Slack notification |
+| Unusual API patterns | ML anomaly detection | CloudWatch Insights |
+| Cost anomaly | >150% daily average | Email + auto-throttle |
+
+**CloudWatch Alarms**:
+- `wecare-dlq-depth` - DLQ message count
+- `wecare-error-rate` - Lambda error percentage
+- `wecare-latency` - P99 response time
+- `wecare-cost-anomaly` - Billing threshold
+
+### 7. Compliance Controls
+
+| Requirement | Implementation | Audit |
+|-------------|----------------|-------|
+| GDPR Right to Erasure | Soft delete + hard delete after 30 days | Quarterly |
+| Data residency | All data in us-east-1 | Continuous |
+| Access logging | CloudTrail enabled | Real-time |
+| Encryption in transit | TLS 1.2+ enforced | Certificate monitoring |
+| Encryption at rest | AES-256 all stores | AWS Config rule |
+
+---
+
 ## Summary
 
 **Total Active Resources**: 60+
