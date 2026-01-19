@@ -1,19 +1,20 @@
 /**
  * Dashboard Page (Home)
  * WECARE.DIGITAL Admin Platform
- * Live dashboard with real-time stats and full feature access
+ * Live dashboard with real-time stats from Amplify Data API
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout';
 import Link from 'next/link';
+import * as api from '../lib/api';
 
 interface PageProps {
   signOut?: () => void;
   user?: any;
 }
 
-interface Message {
+interface RecentMessage {
   id: string;
   direction: 'inbound' | 'outbound';
   channel: 'whatsapp' | 'sms' | 'email';
@@ -35,16 +36,18 @@ interface SystemHealth {
 
 const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<api.DashboardStats>({
     messagesToday: 0,
     messagesWeek: 0,
     activeContacts: 0,
     bulkJobs: 0,
     deliveryRate: 100,
-    aiResponses: 0
+    aiResponses: 0,
+    dlqDepth: 0
   });
   
-  const [recentMessages, setRecentMessages] = useState<Message[]>([]);
+  const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
     whatsapp: { status: 'active', detail: '2 Phone Numbers • GREEN Rating' },
     sms: { status: 'active', detail: 'Pinpoint Pool • 5 msg/sec' },
@@ -53,60 +56,57 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
     dlq: { depth: 0, status: 'active' }
   });
 
-  // Simulate loading real data
-  useEffect(() => {
-    const loadDashboardData = async () => {
-      // In production, these would be API calls
-      await new Promise(resolve => setTimeout(resolve, 500));
+  const loadDashboardData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Load stats from API
+      const dashboardStats = await api.getDashboardStats();
+      setStats(dashboardStats);
       
-      setStats({
-        messagesToday: 3,
-        messagesWeek: 15,
-        activeContacts: 2,
-        bulkJobs: 1,
-        deliveryRate: 98,
-        aiResponses: 5
+      // Load recent messages
+      const messages = await api.listMessages();
+      const contacts = await api.listContacts();
+      
+      const recent: RecentMessage[] = messages.slice(0, 10).map(m => {
+        const contact = contacts.find(c => c.contactId === m.contactId);
+        return {
+          id: m.messageId,
+          direction: m.direction.toLowerCase() as 'inbound' | 'outbound',
+          channel: m.channel.toLowerCase() as 'whatsapp' | 'sms' | 'email',
+          content: m.content || '',
+          contactName: contact?.name || contact?.phone || 'Unknown',
+          contactPhone: contact?.phone || '',
+          timestamp: m.timestamp || new Date().toISOString(),
+          status: m.status?.toLowerCase() || 'sent',
+          mediaUrl: m.s3Key ? `https://auth.wecare.digital/${m.s3Key}` : undefined
+        };
       });
+      setRecentMessages(recent);
       
-      setRecentMessages([
-        {
-          id: '1',
-          direction: 'inbound',
-          channel: 'whatsapp',
-          content: 'Hello from UK test',
-          contactName: 'UK Test',
-          contactPhone: '+447123456789',
-          timestamp: '2026-01-19 10:30',
-          status: 'received'
-        },
-        {
-          id: '2',
-          direction: 'inbound',
-          channel: 'whatsapp',
-          content: '[Image] Product photo',
-          contactName: 'UK Test',
-          contactPhone: '+447123456789',
-          timestamp: '2026-01-19 10:32',
-          status: 'received',
-          mediaUrl: 'https://auth.wecare.digital/whatsapp-media/incoming/img001.jpg'
-        },
-        {
-          id: '3',
-          direction: 'outbound',
-          channel: 'whatsapp',
-          content: 'Thank you for contacting WECARE.DIGITAL!',
-          contactName: 'UK Test',
-          contactPhone: '+447123456789',
-          timestamp: '2026-01-19 10:35',
-          status: 'delivered'
-        }
-      ]);
+      // Update DLQ status
+      setSystemHealth(prev => ({
+        ...prev,
+        dlq: { depth: dashboardStats.dlqDepth, status: dashboardStats.dlqDepth > 10 ? 'error' : dashboardStats.dlqDepth > 0 ? 'warning' : 'active' }
+      }));
       
+    } catch (err) {
+      console.error('Dashboard load error:', err);
+      setError('Failed to load dashboard data. Please try again.');
+    } finally {
       setLoading(false);
-    };
-    
-    loadDashboardData();
+    }
   }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  // Auto-refresh every 60 seconds
+  useEffect(() => {
+    const interval = setInterval(loadDashboardData, 60000);
+    return () => clearInterval(interval);
+  }, [loadDashboardData]);
 
   const getStatusClass = (status: string) => {
     switch (status) {
@@ -126,30 +126,21 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
     }
   };
 
-  if (loading) {
-    return (
-      <Layout user={user} onSignOut={signOut}>
-        <div className="page">
-          <div className="loading">Loading dashboard...</div>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
         <div className="dashboard-header">
           <h1 className="page-title">Dashboard</h1>
           <div className="header-actions">
-            <Link href="/messaging" className="btn-primary">
-              💬 Send Message
-            </Link>
-            <Link href="/bulk-messaging" className="btn-secondary">
-              📨 Bulk Job
-            </Link>
+            <button className="btn-secondary" onClick={loadDashboardData} disabled={loading}>
+              🔄 {loading ? 'Loading...' : 'Refresh'}
+            </button>
+            <Link href="/messaging" className="btn-primary">💬 Send Message</Link>
+            <Link href="/bulk-messaging" className="btn-secondary">📨 Bulk Job</Link>
           </div>
         </div>
+
+        {error && <div className="error-banner">{error} <button onClick={() => setError(null)}>✕</button></div>}
         
         {/* Stats Grid */}
         <div className="stats-grid">
@@ -328,38 +319,14 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         <div className="section">
           <h2 className="section-title">AWS Resources (60+ Active)</h2>
           <div className="resources-grid">
-            <div className="resource-item">
-              <div className="resource-count">16</div>
-              <div className="resource-name">Lambda</div>
-            </div>
-            <div className="resource-item">
-              <div className="resource-count">11</div>
-              <div className="resource-name">DynamoDB</div>
-            </div>
-            <div className="resource-item">
-              <div className="resource-count">5</div>
-              <div className="resource-name">SQS</div>
-            </div>
-            <div className="resource-item">
-              <div className="resource-count">4</div>
-              <div className="resource-name">S3</div>
-            </div>
-            <div className="resource-item">
-              <div className="resource-count">2</div>
-              <div className="resource-name">WABA</div>
-            </div>
-            <div className="resource-item">
-              <div className="resource-count">2</div>
-              <div className="resource-name">Agents</div>
-            </div>
-            <div className="resource-item">
-              <div className="resource-count">1</div>
-              <div className="resource-name">KB</div>
-            </div>
-            <div className="resource-item">
-              <div className="resource-count">1</div>
-              <div className="resource-name">Cognito</div>
-            </div>
+            <div className="resource-item"><div className="resource-count">16</div><div className="resource-name">Lambda</div></div>
+            <div className="resource-item"><div className="resource-count">11</div><div className="resource-name">DynamoDB</div></div>
+            <div className="resource-item"><div className="resource-count">5</div><div className="resource-name">SQS</div></div>
+            <div className="resource-item"><div className="resource-count">4</div><div className="resource-name">S3</div></div>
+            <div className="resource-item"><div className="resource-count">2</div><div className="resource-name">WABA</div></div>
+            <div className="resource-item"><div className="resource-count">2</div><div className="resource-name">Agents</div></div>
+            <div className="resource-item"><div className="resource-count">1</div><div className="resource-name">KB</div></div>
+            <div className="resource-item"><div className="resource-count">1</div><div className="resource-name">Cognito</div></div>
           </div>
         </div>
         
@@ -370,7 +337,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
             <Link href="/messaging" className="view-all-link">View All →</Link>
           </div>
           <div className="activity-list">
-            {recentMessages.map(msg => (
+            {recentMessages.length > 0 ? recentMessages.map(msg => (
               <div key={msg.id} className="activity-item">
                 <div className={`activity-icon ${msg.direction}`}>
                   {msg.direction === 'inbound' ? '↓' : '↑'}
@@ -386,14 +353,13 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                   </div>
                 </div>
                 <div className="activity-meta">
-                  <div className="activity-time">{msg.timestamp.split(' ')[1]}</div>
+                  <div className="activity-time">{new Date(msg.timestamp).toLocaleTimeString()}</div>
                   <div className={`activity-status status-${msg.status}`}>
-                    {msg.status === 'delivered' ? '✓✓' : msg.status === 'sent' ? '✓' : '●'}
+                    {msg.status === 'delivered' || msg.status === 'read' ? '✓✓' : msg.status === 'sent' ? '✓' : '●'}
                   </div>
                 </div>
               </div>
-            ))}
-            {recentMessages.length === 0 && (
+            )) : (
               <div className="empty-state">
                 <p>No recent messages</p>
                 <Link href="/messaging" className="btn-primary">Send First Message</Link>
@@ -408,23 +374,17 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
           <div className="quota-grid">
             <div className="quota-item">
               <div className="quota-name">SendWhatsAppMessage</div>
-              <div className="quota-bar">
-                <div className="quota-fill" style={{ width: '5%' }}></div>
-              </div>
+              <div className="quota-bar"><div className="quota-fill" style={{ width: '5%' }}></div></div>
               <div className="quota-value">50 / 1,000 per sec</div>
             </div>
             <div className="quota-item">
               <div className="quota-name">PostWhatsAppMessageMedia</div>
-              <div className="quota-bar">
-                <div className="quota-fill" style={{ width: '2%' }}></div>
-              </div>
+              <div className="quota-bar"><div className="quota-fill" style={{ width: '2%' }}></div></div>
               <div className="quota-value">2 / 100 per sec</div>
             </div>
             <div className="quota-item">
               <div className="quota-name">GetWhatsAppMessageMedia</div>
-              <div className="quota-bar">
-                <div className="quota-fill" style={{ width: '3%' }}></div>
-              </div>
+              <div className="quota-bar"><div className="quota-fill" style={{ width: '3%' }}></div></div>
               <div className="quota-value">3 / 100 per sec</div>
             </div>
           </div>

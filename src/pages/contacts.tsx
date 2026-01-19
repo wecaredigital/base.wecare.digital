@@ -1,33 +1,25 @@
 /**
  * Contacts Management Page
- * Full CRUD operations
+ * Full CRUD operations with Amplify Data API
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout';
+import * as api from '../lib/api';
 
 interface PageProps {
   signOut?: () => void;
   user?: any;
 }
 
-interface Contact {
-  id: string;
-  name: string;
-  phone: string;
-  email?: string;
-  optInWhatsApp: boolean;
-  optInSms: boolean;
-  optInEmail: boolean;
-  lastInboundMessageAt?: string;
-  createdAt: string;
-}
-
 const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [editingContact, setEditingContact] = useState<api.Contact | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // Form state
   const [formName, setFormName] = useState('');
@@ -38,24 +30,30 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
   const [formOptInEmail, setFormOptInEmail] = useState(false);
   
   // Contacts state
-  const [contacts, setContacts] = useState<Contact[]>([
-    {
-      id: '61004f7e-43b2-4a80-b247-7eeab58077bc',
-      name: 'UK Test',
-      phone: '+447123456789',
-      email: '',
-      optInWhatsApp: true,
-      optInSms: false,
-      optInEmail: false,
-      lastInboundMessageAt: '2026-01-19 10:30',
-      createdAt: '2026-01-19'
+  const [contacts, setContacts] = useState<api.Contact[]>([]);
+
+  const loadContacts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.listContacts();
+      setContacts(data);
+    } catch (err) {
+      console.error('Failed to load contacts:', err);
+      setError('Failed to load contacts. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }, []);
+
+  useEffect(() => {
+    loadContacts();
+  }, [loadContacts]);
 
   const filteredContacts = contacts.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone.includes(searchQuery) ||
-    c.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.phone || '').includes(searchQuery) ||
+    (c.email || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const resetForm = () => {
@@ -67,60 +65,97 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
     setFormOptInEmail(false);
   };
 
-  const handleCreate = () => {
-    if (!formPhone) return;
+  const handleCreate = async () => {
+    if (!formPhone && !formEmail) {
+      setError('Phone or email is required');
+      return;
+    }
     
-    const newContact: Contact = {
-      id: Date.now().toString(),
-      name: formName,
-      phone: formPhone.startsWith('+') ? formPhone : `+${formPhone}`,
-      email: formEmail || undefined,
-      optInWhatsApp: formOptInWA,
-      optInSms: formOptInSms,
-      optInEmail: formOptInEmail,
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-    
-    setContacts(prev => [newContact, ...prev]);
-    setShowModal(false);
-    resetForm();
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await api.createContact({
+        name: formName,
+        phone: formPhone.startsWith('+') ? formPhone : `+${formPhone}`,
+        email: formEmail || undefined,
+        optInWhatsApp: formOptInWA,
+        optInSms: formOptInSms,
+        optInEmail: formOptInEmail,
+      });
+      
+      if (result) {
+        setShowModal(false);
+        resetForm();
+        await loadContacts();
+      } else {
+        setError('Failed to create contact');
+      }
+    } catch (err) {
+      console.error('Create error:', err);
+      setError('Failed to create contact');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleEdit = (contact: Contact) => {
+  const handleEdit = (contact: api.Contact) => {
     setEditingContact(contact);
-    setFormName(contact.name);
-    setFormPhone(contact.phone);
+    setFormName(contact.name || '');
+    setFormPhone(contact.phone || '');
     setFormEmail(contact.email || '');
-    setFormOptInWA(contact.optInWhatsApp);
-    setFormOptInSms(contact.optInSms);
-    setFormOptInEmail(contact.optInEmail);
+    setFormOptInWA(contact.optInWhatsApp || false);
+    setFormOptInSms(contact.optInSms || false);
+    setFormOptInEmail(contact.optInEmail || false);
     setShowEditModal(true);
   };
 
-  const handleUpdate = () => {
-    if (!editingContact || !formPhone) return;
+  const handleUpdate = async () => {
+    if (!editingContact || (!formPhone && !formEmail)) {
+      setError('Phone or email is required');
+      return;
+    }
     
-    setContacts(prev => prev.map(c => 
-      c.id === editingContact.id 
-        ? {
-            ...c,
-            name: formName,
-            phone: formPhone.startsWith('+') ? formPhone : `+${formPhone}`,
-            email: formEmail || undefined,
-            optInWhatsApp: formOptInWA,
-            optInSms: formOptInSms,
-            optInEmail: formOptInEmail
-          }
-        : c
-    ));
-    setShowEditModal(false);
-    setEditingContact(null);
-    resetForm();
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await api.updateContact(editingContact.contactId, {
+        name: formName,
+        phone: formPhone.startsWith('+') ? formPhone : `+${formPhone}`,
+        email: formEmail || undefined,
+        optInWhatsApp: formOptInWA,
+        optInSms: formOptInSms,
+        optInEmail: formOptInEmail,
+      });
+      
+      if (result) {
+        setShowEditModal(false);
+        setEditingContact(null);
+        resetForm();
+        await loadContacts();
+      } else {
+        setError('Failed to update contact');
+      }
+    } catch (err) {
+      console.error('Update error:', err);
+      setError('Failed to update contact');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this contact?')) {
-      setContacts(prev => prev.filter(c => c.id !== id));
+  const handleDelete = async (contactId: string) => {
+    if (!confirm('Are you sure you want to delete this contact?')) return;
+    
+    try {
+      const result = await api.deleteContact(contactId);
+      if (result) {
+        await loadContacts();
+      } else {
+        setError('Failed to delete contact');
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      setError('Failed to delete contact');
     }
   };
 
@@ -129,10 +164,13 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
       <div className="page">
         <div className="page-header">
           <h1 className="page-title">Contacts</h1>
-          <button className="btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
-            + Add Contact
-          </button>
+          <div className="header-actions">
+            <button className="btn-secondary" onClick={loadContacts} disabled={loading}>🔄 {loading ? 'Loading...' : 'Refresh'}</button>
+            <button className="btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>+ Add Contact</button>
+          </div>
         </div>
+
+        {error && <div className="error-banner">{error} <button onClick={() => setError(null)}>✕</button></div>}
 
         <div className="stats-grid">
           <div className="stat-card">
@@ -178,9 +216,9 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
               </thead>
               <tbody>
                 {filteredContacts.map(contact => (
-                  <tr key={contact.id}>
+                  <tr key={contact.contactId}>
                     <td><strong>{contact.name || '-'}</strong></td>
-                    <td>{contact.phone}</td>
+                    <td>{contact.phone || '-'}</td>
                     <td>{contact.email || '-'}</td>
                     <td>
                       <div className="opt-in-badges">
@@ -192,30 +230,12 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
                         )}
                       </div>
                     </td>
-                    <td>{contact.lastInboundMessageAt || '-'}</td>
+                    <td>{contact.lastInboundMessageAt ? new Date(contact.lastInboundMessageAt).toLocaleDateString() : '-'}</td>
                     <td>
                       <div className="action-buttons">
-                        <button 
-                          className="btn-icon" 
-                          title="Edit"
-                          onClick={() => handleEdit(contact)}
-                        >
-                          ✏️
-                        </button>
-                        <button 
-                          className="btn-icon" 
-                          title="Message"
-                          onClick={() => window.location.href = '/messaging'}
-                        >
-                          💬
-                        </button>
-                        <button 
-                          className="btn-icon btn-icon-danger" 
-                          title="Delete"
-                          onClick={() => handleDelete(contact.id)}
-                        >
-                          🗑️
-                        </button>
+                        <button className="btn-icon" title="Edit" onClick={() => handleEdit(contact)}>✏️</button>
+                        <button className="btn-icon" title="Message" onClick={() => window.location.href = '/messaging'}>💬</button>
+                        <button className="btn-icon btn-icon-danger" title="Delete" onClick={() => handleDelete(contact.contactId)}>🗑️</button>
                       </div>
                     </td>
                   </tr>
@@ -223,7 +243,7 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
                 {filteredContacts.length === 0 && (
                   <tr>
                     <td colSpan={6} className="empty-table">
-                      {searchQuery ? 'No contacts match your search' : 'No contacts yet. Add your first contact!'}
+                      {loading ? 'Loading...' : searchQuery ? 'No contacts match your search' : 'No contacts yet. Add your first contact!'}
                     </td>
                   </tr>
                 )}
@@ -239,65 +259,38 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
               <h2>Add Contact</h2>
               <div className="form-group">
                 <label>Name</label>
-                <input 
-                  type="text" 
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Contact name" 
-                />
+                <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Contact name" />
               </div>
               <div className="form-group">
                 <label>Phone Number *</label>
-                <input 
-                  type="tel" 
-                  value={formPhone}
-                  onChange={(e) => setFormPhone(e.target.value)}
-                  placeholder="+91 98765 43210" 
-                />
+                <input type="tel" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="+91 98765 43210" />
                 <div className="help-text">Include country code</div>
               </div>
               <div className="form-group">
                 <label>Email</label>
-                <input 
-                  type="email" 
-                  value={formEmail}
-                  onChange={(e) => setFormEmail(e.target.value)}
-                  placeholder="email@example.com" 
-                />
+                <input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@example.com" />
               </div>
               <div className="form-group">
                 <label>Opt-In Channels</label>
                 <div className="checkbox-group">
                   <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      checked={formOptInWA}
-                      onChange={(e) => setFormOptInWA(e.target.checked)}
-                    />
+                    <input type="checkbox" checked={formOptInWA} onChange={(e) => setFormOptInWA(e.target.checked)} />
                     <span>WhatsApp</span>
                   </label>
                   <label className="checkbox-label">
-                    <input 
-                      type="checkbox"
-                      checked={formOptInSms}
-                      onChange={(e) => setFormOptInSms(e.target.checked)}
-                    />
+                    <input type="checkbox" checked={formOptInSms} onChange={(e) => setFormOptInSms(e.target.checked)} />
                     <span>SMS</span>
                   </label>
                   <label className="checkbox-label">
-                    <input 
-                      type="checkbox"
-                      checked={formOptInEmail}
-                      onChange={(e) => setFormOptInEmail(e.target.checked)}
-                    />
+                    <input type="checkbox" checked={formOptInEmail} onChange={(e) => setFormOptInEmail(e.target.checked)} />
                     <span>Email</span>
                   </label>
                 </div>
               </div>
               <div className="form-actions">
                 <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                <button className="btn-primary" onClick={handleCreate} disabled={!formPhone}>
-                  Add Contact
+                <button className="btn-primary" onClick={handleCreate} disabled={(!formPhone && !formEmail) || saving}>
+                  {saving ? 'Saving...' : 'Add Contact'}
                 </button>
               </div>
             </div>
@@ -311,64 +304,37 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
               <h2>Edit Contact</h2>
               <div className="form-group">
                 <label>Name</label>
-                <input 
-                  type="text" 
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Contact name" 
-                />
+                <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Contact name" />
               </div>
               <div className="form-group">
                 <label>Phone Number *</label>
-                <input 
-                  type="tel" 
-                  value={formPhone}
-                  onChange={(e) => setFormPhone(e.target.value)}
-                  placeholder="+91 98765 43210" 
-                />
+                <input type="tel" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="+91 98765 43210" />
               </div>
               <div className="form-group">
                 <label>Email</label>
-                <input 
-                  type="email" 
-                  value={formEmail}
-                  onChange={(e) => setFormEmail(e.target.value)}
-                  placeholder="email@example.com" 
-                />
+                <input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@example.com" />
               </div>
               <div className="form-group">
                 <label>Opt-In Channels</label>
                 <div className="checkbox-group">
                   <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      checked={formOptInWA}
-                      onChange={(e) => setFormOptInWA(e.target.checked)}
-                    />
+                    <input type="checkbox" checked={formOptInWA} onChange={(e) => setFormOptInWA(e.target.checked)} />
                     <span>WhatsApp</span>
                   </label>
                   <label className="checkbox-label">
-                    <input 
-                      type="checkbox"
-                      checked={formOptInSms}
-                      onChange={(e) => setFormOptInSms(e.target.checked)}
-                    />
+                    <input type="checkbox" checked={formOptInSms} onChange={(e) => setFormOptInSms(e.target.checked)} />
                     <span>SMS</span>
                   </label>
                   <label className="checkbox-label">
-                    <input 
-                      type="checkbox"
-                      checked={formOptInEmail}
-                      onChange={(e) => setFormOptInEmail(e.target.checked)}
-                    />
+                    <input type="checkbox" checked={formOptInEmail} onChange={(e) => setFormOptInEmail(e.target.checked)} />
                     <span>Email</span>
                   </label>
                 </div>
               </div>
               <div className="form-actions">
                 <button className="btn-secondary" onClick={() => { setShowEditModal(false); setEditingContact(null); }}>Cancel</button>
-                <button className="btn-primary" onClick={handleUpdate} disabled={!formPhone}>
-                  Save Changes
+                <button className="btn-primary" onClick={handleUpdate} disabled={(!formPhone && !formEmail) || saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>

@@ -1,6 +1,6 @@
 /**
  * WECARE.DIGITAL Admin Platform
- * Next.js App Component
+ * Next.js App Component with Amplify Data API
  */
 
 import type { AppProps } from 'next/app';
@@ -10,21 +10,44 @@ import '@aws-amplify/ui-react/styles.css';
 import './Pages.css';
 import '../components/Layout.css';
 
-// Configure Amplify with OAuth
+// Import Amplify outputs if available
+let amplifyConfig: any = null;
+try {
+  amplifyConfig = require('../../amplify_outputs.json');
+} catch {
+  // Fallback config if amplify_outputs.json not available
+}
+
+// Configure Amplify with OAuth and Data API
 Amplify.configure({
   Auth: {
     Cognito: {
-      userPoolId: 'us-east-1_CC9u1fYh6',
-      userPoolClientId: '390cro53nf7gerev44gnq7felt',
+      userPoolId: amplifyConfig?.auth?.user_pool_id || 'us-east-1_CC9u1fYh6',
+      userPoolClientId: amplifyConfig?.auth?.user_pool_client_id || '390cro53nf7gerev44gnq7felt',
       loginWith: {
         oauth: {
-          domain: 'sso.wecare.digital',
-          scopes: ['openid', 'email', 'profile'],
-          redirectSignIn: ['https://base.dtiq7il2x5c5g.amplifyapp.com/'],
-          redirectSignOut: ['https://base.dtiq7il2x5c5g.amplifyapp.com/'],
+          domain: amplifyConfig?.auth?.oauth?.domain || 'sso.wecare.digital',
+          scopes: amplifyConfig?.auth?.oauth?.scopes || ['openid', 'email', 'profile'],
+          redirectSignIn: amplifyConfig?.auth?.oauth?.redirect_sign_in_uri || ['https://base.dtiq7il2x5c5g.amplifyapp.com/'],
+          redirectSignOut: amplifyConfig?.auth?.oauth?.redirect_sign_out_uri || ['https://base.dtiq7il2x5c5g.amplifyapp.com/'],
           responseType: 'code'
         }
       }
+    }
+  },
+  // Data API configuration - uses AppSync GraphQL
+  API: {
+    GraphQL: {
+      endpoint: amplifyConfig?.data?.url || process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || '',
+      region: amplifyConfig?.data?.aws_region || 'us-east-1',
+      defaultAuthMode: 'userPool'
+    }
+  },
+  // Storage configuration
+  Storage: {
+    S3: {
+      bucket: amplifyConfig?.storage?.bucket_name || 'auth.wecare.digital',
+      region: amplifyConfig?.storage?.aws_region || 'us-east-1'
     }
   }
 });
