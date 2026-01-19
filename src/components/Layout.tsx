@@ -11,8 +11,8 @@
  */
 
 import React, { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
-import './Layout.css';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 interface LayoutProps {
   children: ReactNode;
@@ -21,6 +21,8 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
+  const router = useRouter();
+  
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/contacts', label: 'Contacts', icon: '👥' },
@@ -39,16 +41,14 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
         
         <nav className="sidebar-nav">
           {menuItems.map((item) => (
-            <NavLink
+            <Link
               key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `nav-item ${isActive ? 'nav-item-active' : ''}`
-              }
+              href={item.path}
+              className={`nav-item ${router.pathname === item.path ? 'nav-item-active' : ''}`}
             >
               <span className="nav-icon">{item.icon}</span>
               <span className="nav-label">{item.label}</span>
-            </NavLink>
+            </Link>
           ))}
         </nav>
         

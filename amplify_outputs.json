@@ -2,7 +2,7 @@
   "version": "1",
   "auth": {
     "user_pool_id": "us-east-1_CC9u1fYh6",
-    "user_pool_client_id": "",
+    "user_pool_client_id": "1l9hpie81e1ia7u0cslak2p9tf",
     "aws_region": "us-east-1"
   },
   "storage": {
