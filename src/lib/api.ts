@@ -1,8 +1,9 @@
 /**
  * API Service Layer
  * Connects to API Gateway -> Lambda -> DynamoDB
+ * NO MOCK DATA - All data fetched from real AWS resources
  * 
- * API Endpoint: https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com
+ * API Endpoint: https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod
  */
 
 const API_BASE = 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
