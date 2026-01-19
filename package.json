@@ -16,9 +16,7 @@
     "@aws-amplify/backend-cli": "^1.0.0",
     "@aws-amplify/ui-react": "^6.13.2",
     "aws-amplify": "^6.0.0",
-    "aws-cdk-lib": "^2.170.0",
-    "@aws-cdk/aws-apigatewayv2-integrations-alpha": "^2.170.0-alpha.0",
-    "constructs": "^10.4.2",
+
     "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
