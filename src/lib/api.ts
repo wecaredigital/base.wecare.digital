@@ -1,18 +1,11 @@
 /**
  * API Service Layer
- * Direct DynamoDB queries via AWS SDK
+ * Connects to API Gateway -> Lambda -> DynamoDB
  * 
- * Tables:
- * - base-wecare-digital-ContactsTable
- * - base-wecare-digital-WhatsAppInboundTable
- * - base-wecare-digital-WhatsAppOutboundTable
- * - base-wecare-digital-BulkJobsTable
+ * API Endpoint: https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com
  */
 
-// For client-side, we'll use API Gateway endpoints or mock data
-// The actual DynamoDB queries happen in Lambda functions
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+const API_BASE = 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
 
 // ============================================================================
 // CONTACTS API
@@ -33,103 +26,100 @@ export interface Contact {
   deletedAt?: string;
 }
 
-// Mock data based on actual DynamoDB content (base-wecare-digital-ContactsTable)
-const MOCK_CONTACTS: Contact[] = [
-  {
-    id: '61004f7e-43b2-4a80-b247-7eeab58077bc',
-    contactId: '61004f7e-43b2-4a80-b247-7eeab58077bc',
-    name: 'UK Test',
-    phone: '+447123456789',
-    email: '',
-    optInWhatsApp: true,
-    optInSms: false,
-    optInEmail: false,
-    lastInboundMessageAt: '2026-01-19T14:30:00Z',
-    createdAt: '2026-01-18T10:30:00Z',
-    updatedAt: '2026-01-19T14:30:00Z',
-  },
-  {
-    id: 'test-customer-001',
-    contactId: 'test-customer-001',
-    name: 'Test Customer',
-    phone: '+919876543210',
-    email: 'test@example.com',
-    optInWhatsApp: true,
-    optInSms: false,
-    optInEmail: false,
-    lastInboundMessageAt: '2026-01-19T15:05:00Z',
-    createdAt: '2026-01-19T08:00:00Z',
-    updatedAt: '2026-01-19T15:05:00Z',
-  }
-];
-
 export async function listContacts(): Promise<Contact[]> {
-  // In production, this would call API Gateway -> Lambda -> DynamoDB
-  // For now, return mock data that matches actual DynamoDB content
-  if (API_BASE) {
-    try {
-      const response = await fetch(`${API_BASE}/contacts`);
-      if (response.ok) return response.json();
-    } catch (e) {
-      console.error('API error:', e);
+  try {
+    const response = await fetch(`${API_BASE}/contacts`);
+    if (response.ok) {
+      const data = await response.json();
+      // Handle both array response and {contacts: []} response
+      const contacts = Array.isArray(data) ? data : (data.contacts || []);
+      return contacts.map(normalizeContact);
     }
+    console.error('Failed to fetch contacts:', response.status);
+    return [];
+  } catch (e) {
+    console.error('API error fetching contacts:', e);
+    return [];
   }
-  return MOCK_CONTACTS;
 }
 
 export async function getContact(contactId: string): Promise<Contact | null> {
-  const contacts = await listContacts();
-  return contacts.find(c => c.contactId === contactId) || null;
+  try {
+    const response = await fetch(`${API_BASE}/contacts/${contactId}`);
+    if (response.ok) {
+      const data = await response.json();
+      return normalizeContact(data.contact || data);
+    }
+    return null;
+  } catch (e) {
+    console.error('API error getting contact:', e);
+    return null;
+  }
 }
 
 export async function createContact(contact: Partial<Contact>): Promise<Contact | null> {
-  const newContact: Contact = {
-    id: crypto.randomUUID(),
-    contactId: crypto.randomUUID(),
-    name: contact.name || '',
-    phone: contact.phone || '',
-    email: contact.email || '',
-    optInWhatsApp: contact.optInWhatsApp || false,
-    optInSms: contact.optInSms || false,
-    optInEmail: contact.optInEmail || false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  
-  if (API_BASE) {
-    try {
-      const response = await fetch(`${API_BASE}/contacts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newContact),
-      });
-      if (response.ok) return response.json();
-    } catch (e) {
-      console.error('API error:', e);
+  try {
+    const response = await fetch(`${API_BASE}/contacts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contact),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return normalizeContact(data.contact || data);
     }
+    return null;
+  } catch (e) {
+    console.error('API error creating contact:', e);
+    return null;
   }
-  
-  // Add to mock data for demo
-  MOCK_CONTACTS.push(newContact);
-  return newContact;
 }
 
 export async function updateContact(contactId: string, updates: Partial<Contact>): Promise<Contact | null> {
-  const index = MOCK_CONTACTS.findIndex(c => c.contactId === contactId);
-  if (index >= 0) {
-    MOCK_CONTACTS[index] = { ...MOCK_CONTACTS[index], ...updates, updatedAt: new Date().toISOString() };
-    return MOCK_CONTACTS[index];
+  try {
+    const response = await fetch(`${API_BASE}/contacts/${contactId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return normalizeContact(data.contact || data);
+    }
+    return null;
+  } catch (e) {
+    console.error('API error updating contact:', e);
+    return null;
   }
-  return null;
 }
 
 export async function deleteContact(contactId: string): Promise<boolean> {
-  const index = MOCK_CONTACTS.findIndex(c => c.contactId === contactId);
-  if (index >= 0) {
-    MOCK_CONTACTS.splice(index, 1);
-    return true;
+  try {
+    const response = await fetch(`${API_BASE}/contacts/${contactId}`, {
+      method: 'DELETE',
+    });
+    return response.ok;
+  } catch (e) {
+    console.error('API error deleting contact:', e);
+    return false;
   }
-  return false;
+}
+
+function normalizeContact(item: any): Contact {
+  return {
+    id: item.id || item.contactId || '',
+    contactId: item.contactId || item.id || '',
+    name: item.name || '',
+    phone: item.phone || '',
+    email: item.email || '',
+    optInWhatsApp: item.optInWhatsApp || false,
+    optInSms: item.optInSms || false,
+    optInEmail: item.optInEmail || false,
+    lastInboundMessageAt: item.lastInboundMessageAt ? new Date(Number(item.lastInboundMessageAt) * 1000).toISOString() : undefined,
+    createdAt: item.createdAt ? new Date(Number(item.createdAt) * 1000).toISOString() : new Date().toISOString(),
+    updatedAt: item.updatedAt ? new Date(Number(item.updatedAt) * 1000).toISOString() : new Date().toISOString(),
+    deletedAt: item.deletedAt,
+  };
 }
 
 // ============================================================================
@@ -152,66 +142,26 @@ export interface Message {
   senderPhone?: string;
 }
 
-// Mock messages based on actual DynamoDB content (base-wecare-digital-WhatsAppInboundTable)
-const MOCK_MESSAGES: Message[] = [
-  {
-    id: 'cf03d6dd-126b-4758-8c5d-dfb0b5002318',
-    messageId: 'cf03d6dd-126b-4758-8c5d-dfb0b5002318',
-    contactId: '61004f7e-43b2-4a80-b247-7eeab58077bc',
-    channel: 'WHATSAPP',
-    direction: 'INBOUND',
-    content: 'Hello from UK test',
-    timestamp: '2026-01-19T14:30:00Z',
-    status: 'PENDING',
-    whatsappMessageId: 'wamid.uktest001',
-    senderPhone: '+447123456789',
-  },
-  {
-    id: 'msg-test-customer-001',
-    messageId: 'msg-test-customer-001',
-    contactId: 'test-customer-001',
-    channel: 'WHATSAPP',
-    direction: 'INBOUND',
-    content: 'Hello!',
-    timestamp: '2026-01-19T15:00:00Z',
-    status: 'PENDING',
-    whatsappMessageId: 'wamid.testcust001',
-    senderPhone: '+919876543210',
-  },
-  {
-    id: 'msg-test-customer-002',
-    messageId: 'msg-test-customer-002',
-    contactId: 'test-customer-001',
-    channel: 'WHATSAPP',
-    direction: 'INBOUND',
-    content: 'Are you there?',
-    timestamp: '2026-01-19T15:05:00Z',
-    status: 'PENDING',
-    whatsappMessageId: 'wamid.testcust002',
-    senderPhone: '+919876543210',
-  }
-];
-
 export async function listMessages(contactId?: string, channel?: string): Promise<Message[]> {
-  if (API_BASE) {
-    try {
-      let url = `${API_BASE}/messages`;
-      const params = new URLSearchParams();
-      if (contactId) params.append('contactId', contactId);
-      if (channel) params.append('channel', channel);
-      if (params.toString()) url += `?${params}`;
-      
-      const response = await fetch(url);
-      if (response.ok) return response.json();
-    } catch (e) {
-      console.error('API error:', e);
+  try {
+    let url = `${API_BASE}/messages`;
+    const params = new URLSearchParams();
+    if (contactId) params.append('contactId', contactId);
+    if (channel) params.append('channel', channel);
+    if (params.toString()) url += `?${params}`;
+    
+    const response = await fetch(url);
+    if (response.ok) {
+      const data = await response.json();
+      const messages = Array.isArray(data) ? data : (data.messages || []);
+      return messages.map(normalizeMessage);
     }
+    console.error('Failed to fetch messages:', response.status);
+    return [];
+  } catch (e) {
+    console.error('API error fetching messages:', e);
+    return [];
   }
-  
-  let messages = [...MOCK_MESSAGES];
-  if (contactId) messages = messages.filter(m => m.contactId === contactId);
-  if (channel) messages = messages.filter(m => m.channel === channel.toUpperCase());
-  return messages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 export async function getMessage(messageId: string): Promise<Message | null> {
@@ -220,12 +170,26 @@ export async function getMessage(messageId: string): Promise<Message | null> {
 }
 
 export async function deleteMessage(messageId: string): Promise<boolean> {
-  const index = MOCK_MESSAGES.findIndex(m => m.messageId === messageId);
-  if (index >= 0) {
-    MOCK_MESSAGES.splice(index, 1);
-    return true;
-  }
+  // Not implemented in backend yet
   return false;
+}
+
+function normalizeMessage(item: any): Message {
+  const timestamp = item.timestamp || item.createdAt;
+  return {
+    id: item.id || item.messageId || '',
+    messageId: item.messageId || item.id || '',
+    contactId: item.contactId || '',
+    channel: (item.channel || 'WHATSAPP').toUpperCase() as 'WHATSAPP' | 'SMS' | 'EMAIL',
+    direction: (item.direction || 'INBOUND').toUpperCase() as 'INBOUND' | 'OUTBOUND',
+    content: item.content || item.text || '',
+    timestamp: timestamp ? (typeof timestamp === 'number' ? new Date(timestamp * 1000).toISOString() : timestamp) : new Date().toISOString(),
+    status: item.status || 'received',
+    whatsappMessageId: item.whatsappMessageId,
+    mediaId: item.mediaId,
+    s3Key: item.s3Key,
+    senderPhone: item.senderPhone,
+  };
 }
 
 // Send WhatsApp message via Lambda
@@ -241,70 +205,33 @@ export interface SendMessageRequest {
 }
 
 export async function sendWhatsAppMessage(request: SendMessageRequest): Promise<{ messageId: string; status: string } | null> {
-  const messageId = crypto.randomUUID();
-  const contact = await getContact(request.contactId);
-  
-  const newMessage: Message = {
-    id: messageId,
-    messageId,
-    contactId: request.contactId,
-    channel: 'WHATSAPP',
-    direction: 'OUTBOUND',
-    content: request.content,
-    timestamp: new Date().toISOString(),
-    status: 'sent',
-    senderPhone: contact?.phone,
-  };
-  
-  if (API_BASE) {
-    try {
-      const response = await fetch(`${API_BASE}/whatsapp/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-      });
-      if (response.ok) return response.json();
-    } catch (e) {
-      console.error('API error:', e);
+  try {
+    const response = await fetch(`${API_BASE}/whatsapp/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    if (response.ok) {
+      return response.json();
     }
+    console.error('Failed to send WhatsApp message:', response.status);
+    return null;
+  } catch (e) {
+    console.error('API error sending WhatsApp:', e);
+    return null;
   }
-  
-  MOCK_MESSAGES.push(newMessage);
-  return { messageId, status: 'sent' };
 }
 
 export async function sendSmsMessage(contactId: string, content: string): Promise<{ messageId: string; status: string } | null> {
-  const messageId = crypto.randomUUID();
-  const newMessage: Message = {
-    id: messageId,
-    messageId,
-    contactId,
-    channel: 'SMS',
-    direction: 'OUTBOUND',
-    content,
-    timestamp: new Date().toISOString(),
-    status: 'sent',
-  };
-  
-  MOCK_MESSAGES.push(newMessage);
-  return { messageId, status: 'sent' };
+  // SMS endpoint not yet configured
+  console.log('SMS sending not yet implemented');
+  return null;
 }
 
 export async function sendEmailMessage(contactId: string, subject: string, content: string): Promise<{ messageId: string; status: string } | null> {
-  const messageId = crypto.randomUUID();
-  const newMessage: Message = {
-    id: messageId,
-    messageId,
-    contactId,
-    channel: 'EMAIL',
-    direction: 'OUTBOUND',
-    content: `Subject: ${subject}\n\n${content}`,
-    timestamp: new Date().toISOString(),
-    status: 'sent',
-  };
-  
-  MOCK_MESSAGES.push(newMessage);
-  return { messageId, status: 'sent' };
+  // Email endpoint not yet configured
+  console.log('Email sending not yet implemented');
+  return null;
 }
 
 // ============================================================================
@@ -324,47 +251,20 @@ export interface BulkJob {
   updatedAt: string;
 }
 
-const MOCK_BULK_JOBS: BulkJob[] = [];
-
 export async function listBulkJobs(channel?: string): Promise<BulkJob[]> {
-  let jobs = [...MOCK_BULK_JOBS];
-  if (channel) jobs = jobs.filter(j => j.channel === channel.toUpperCase());
-  return jobs;
+  // Bulk jobs endpoint not yet configured
+  return [];
 }
 
 export async function createBulkJob(job: Partial<BulkJob>): Promise<BulkJob | null> {
-  const newJob: BulkJob = {
-    id: crypto.randomUUID(),
-    jobId: crypto.randomUUID(),
-    createdBy: 'admin',
-    channel: (job.channel as any) || 'WHATSAPP',
-    totalRecipients: job.totalRecipients || 0,
-    sentCount: 0,
-    failedCount: 0,
-    status: 'PENDING',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  MOCK_BULK_JOBS.push(newJob);
-  return newJob;
+  return null;
 }
 
 export async function updateBulkJobStatus(jobId: string, status: string): Promise<boolean> {
-  const job = MOCK_BULK_JOBS.find(j => j.jobId === jobId);
-  if (job) {
-    job.status = status as any;
-    job.updatedAt = new Date().toISOString();
-    return true;
-  }
   return false;
 }
 
 export async function deleteBulkJob(jobId: string): Promise<boolean> {
-  const index = MOCK_BULK_JOBS.findIndex(j => j.jobId === jobId);
-  if (index >= 0) {
-    MOCK_BULK_JOBS.splice(index, 1);
-    return true;
-  }
   return false;
 }
 
@@ -391,59 +291,24 @@ const DEFAULT_AI_CONFIG: AIConfig = {
   agentAliasId: 'TSTALIASID',
   maxTokens: 1024,
   temperature: 0.7,
-  systemPrompt: 'You are a helpful customer service assistant for WECARE.DIGITAL. Be friendly, professional, and concise.',
+  systemPrompt: 'You are a helpful customer service assistant for WECARE.DIGITAL.',
 };
 
 let currentAIConfig = { ...DEFAULT_AI_CONFIG };
 
 export async function getAIConfig(): Promise<AIConfig> {
-  if (API_BASE) {
-    try {
-      const response = await fetch(`${API_BASE}/ai/config`);
-      if (response.ok) return response.json();
-    } catch (e) {
-      console.error('API error:', e);
-    }
-  }
   return currentAIConfig;
 }
 
 export async function updateAIConfig(updates: Partial<AIConfig>): Promise<AIConfig> {
   currentAIConfig = { ...currentAIConfig, ...updates };
-  
-  if (API_BASE) {
-    try {
-      const response = await fetch(`${API_BASE}/ai/config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentAIConfig),
-      });
-      if (response.ok) return response.json();
-    } catch (e) {
-      console.error('API error:', e);
-    }
-  }
   return currentAIConfig;
 }
 
 export async function testAIResponse(message: string): Promise<{ response: string; sources?: string[] }> {
-  if (API_BASE) {
-    try {
-      const response = await fetch(`${API_BASE}/ai/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
-      });
-      if (response.ok) return response.json();
-    } catch (e) {
-      console.error('API error:', e);
-    }
-  }
-  
-  // Mock AI response
   return {
-    response: `Thank you for your message: "${message}". This is a test response from the AI assistant. In production, this would query the Bedrock Knowledge Base and generate a contextual response.`,
-    sources: ['Knowledge Base Document 1', 'FAQ Section 3'],
+    response: `AI response for: "${message}"`,
+    sources: ['Knowledge Base'],
   };
 }
 
@@ -462,36 +327,28 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  if (API_BASE) {
-    try {
-      const response = await fetch(`${API_BASE}/dashboard/stats`);
-      if (response.ok) return response.json();
-    } catch (e) {
-      console.error('API error:', e);
-    }
-  }
+  // Fetch real data from contacts and messages
+  const [contacts, messages] = await Promise.all([
+    listContacts(),
+    listMessages()
+  ]);
   
-  // Calculate stats from mock data
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const weekStart = todayStart - 7 * 24 * 60 * 60 * 1000;
   
-  const messagesToday = MOCK_MESSAGES.filter(m => new Date(m.timestamp).getTime() >= todayStart).length;
-  const messagesWeek = MOCK_MESSAGES.filter(m => new Date(m.timestamp).getTime() >= weekStart).length;
-  const activeContacts = MOCK_CONTACTS.filter(c => !c.deletedAt).length;
-  const bulkJobs = MOCK_BULK_JOBS.filter(j => j.status === 'IN_PROGRESS' || j.status === 'PENDING').length;
-  const deliveredCount = MOCK_MESSAGES.filter(m => m.direction === 'OUTBOUND' && (m.status === 'delivered' || m.status === 'read' || m.status === 'sent')).length;
-  const totalOutbound = MOCK_MESSAGES.filter(m => m.direction === 'OUTBOUND').length;
-  const deliveryRate = totalOutbound > 0 ? Math.round((deliveredCount / totalOutbound) * 100) : 100;
+  const messagesToday = messages.filter(m => new Date(m.timestamp).getTime() >= todayStart).length;
+  const messagesWeek = messages.filter(m => new Date(m.timestamp).getTime() >= weekStart).length;
+  const activeContacts = contacts.filter(c => !c.deletedAt).length;
   
   return {
     messagesToday,
     messagesWeek,
     activeContacts,
-    bulkJobs,
-    deliveryRate,
-    aiResponses: 0,  // Would come from AI response logs
-    dlqDepth: 0,     // Would come from SQS DLQ
+    bulkJobs: 0,
+    deliveryRate: 100,
+    aiResponses: 0,
+    dlqDepth: 0,
   };
 }
 
@@ -508,15 +365,6 @@ export interface SystemHealth {
 }
 
 export async function getSystemHealth(): Promise<SystemHealth> {
-  if (API_BASE) {
-    try {
-      const response = await fetch(`${API_BASE}/system/health`);
-      if (response.ok) return response.json();
-    } catch (e) {
-      console.error('API error:', e);
-    }
-  }
-  
   return {
     whatsapp: { status: 'active', phoneNumbers: 2, qualityRating: 'GREEN' },
     sms: { status: 'active', poolId: 'pool-wecare-sms' },
