@@ -429,18 +429,287 @@ Status values from WhatsApp:
 
 ---
 
-## WhatsApp API Reference URLs
+## WhatsApp API Reference URLs — Complete Index
 
+### User Guide (All Pages)
 | Resource | URL |
 |----------|-----|
 | Service Overview | https://docs.aws.amazon.com/social-messaging/latest/userguide/what-is-service.html |
-| Send Messages | https://docs.aws.amazon.com/social-messaging/latest/userguide/send-message.html |
-| Receive Messages | https://docs.aws.amazon.com/social-messaging/latest/userguide/whatsapp-receive-message.html |
-| Event Format | https://docs.aws.amazon.com/social-messaging/latest/userguide/managing-event-destination-dlrs.html |
-| Media Files | https://docs.aws.amazon.com/social-messaging/latest/userguide/managing-media-files-s3.html |
-| Quotas | https://docs.aws.amazon.com/social-messaging/latest/userguide/quotas.html |
-| CLI Reference | https://docs.aws.amazon.com/cli/latest/reference/socialmessaging/ |
+| Getting Started | https://docs.aws.amazon.com/social-messaging/latest/userguide/getting-started.html |
+| WABA Management | https://docs.aws.amazon.com/social-messaging/latest/userguide/waba.html |
+| Phone Numbers | https://docs.aws.amazon.com/social-messaging/latest/userguide/phone-numbers.html |
+| Sending Messages | https://docs.aws.amazon.com/social-messaging/latest/userguide/whatsapp-send-message.html |
+| Receiving Messages | https://docs.aws.amazon.com/social-messaging/latest/userguide/receiving-messages.html |
+| Message Types | https://docs.aws.amazon.com/social-messaging/latest/userguide/message-types.html |
+| Supported Media Types | https://docs.aws.amazon.com/social-messaging/latest/userguide/supported-media-types.html |
+| Templates | https://docs.aws.amazon.com/social-messaging/latest/userguide/managing-templates.html |
+| Event Destinations | https://docs.aws.amazon.com/social-messaging/latest/userguide/event-destinations.html |
+| Media Files S3 | https://docs.aws.amazon.com/social-messaging/latest/userguide/managing-media-files-s3.html |
+| Quotas | https://docs.aws.amazon.com/social-messaging/latest/userguide/load-balancer-limits.html |
+| Security | https://docs.aws.amazon.com/social-messaging/latest/userguide/security.html |
+| Monitoring | https://docs.aws.amazon.com/social-messaging/latest/userguide/monitoring.html |
+| Pricing | https://docs.aws.amazon.com/social-messaging/latest/userguide/pricing.html |
+
+### API Reference (All 13 Endpoints)
+
+#### Messaging APIs
+| API | Method | Endpoint | Rate Limit | URL |
+|-----|--------|----------|------------|-----|
+| SendWhatsAppMessage | POST | /v1/whatsapp/send | 1,000/sec | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_SendWhatsAppMessage.html |
+| PostWhatsAppMessageMedia | POST | /v1/whatsapp/media | 100/sec | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_PostWhatsAppMessageMedia.html |
+| GetWhatsAppMessageMedia | POST | /v1/whatsapp/media/get | 100/sec | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_GetWhatsAppMessageMedia.html |
+| DeleteWhatsAppMessageMedia | DELETE | /v1/whatsapp/media | 100/sec | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_DeleteWhatsAppMessageMedia.html |
+
+#### WABA Management APIs
+| API | Method | Endpoint | Rate Limit | URL |
+|-----|--------|----------|------------|-----|
+| AssociateWhatsAppBusinessAccount | POST | /v1/whatsapp/signup | Console only | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_AssociateWhatsAppBusinessAccount.html |
+| DisassociateWhatsAppBusinessAccount | DELETE | /v1/whatsapp/waba/disassociate | 10/sec | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_DisassociateWhatsAppBusinessAccount.html |
+| GetLinkedWhatsAppBusinessAccount | GET | /v1/whatsapp/waba/details | 10/sec | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_GetLinkedWhatsAppBusinessAccount.html |
+| ListLinkedWhatsAppBusinessAccounts | GET | /v1/whatsapp/waba/list | 10/sec | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_ListLinkedWhatsAppBusinessAccounts.html |
+| PutWhatsAppBusinessAccountEventDestinations | PUT | /v1/whatsapp/waba/eventdestinations | 10/sec | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_PutWhatsAppBusinessAccountEventDestinations.html |
+
+#### Resource Tagging APIs
+| API | Method | Endpoint | Rate Limit | URL |
+|-----|--------|----------|------------|-----|
+| TagResource | POST | /v1/tags/tag-resource | 10/sec | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_TagResource.html |
+| UntagResource | POST | /v1/tags/untag-resource | 10/sec | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_UntagResource.html |
+| ListTagsForResource | GET | /v1/tags/list?resourceArn= | 10/sec | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_ListTagsForResource.html |
+
+#### Reference
+| Resource | URL |
+|----------|-----|
+| Common Errors | https://docs.aws.amazon.com/social-messaging/latest/APIReference/CommonErrors.html |
+| API Operations Index | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_Operations.html |
+| Data Types | https://docs.aws.amazon.com/social-messaging/latest/APIReference/API_Types.html |
+
+### External References
+| Resource | URL |
+|----------|-----|
+| AWS CLI Reference | https://docs.aws.amazon.com/cli/latest/reference/socialmessaging/ |
 | WhatsApp Cloud API | https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages |
+| WhatsApp Business Terms | https://www.whatsapp.com/legal/business-terms |
+| WhatsApp Messaging Guidelines | https://www.whatsapp.com/legal/messaging-guidelines |
+| Meta Conversation Pricing | https://developers.facebook.com/docs/whatsapp/pricing |
+| AWS Service Endpoints | https://docs.aws.amazon.com/general/latest/gr/social-messaging.html |
+
+---
+
+## AWS End User Messaging Social API Reference
+
+### SendWhatsAppMessage API
+
+**Endpoint**: `POST /v1/whatsapp/send`
+
+**Request Body**:
+```json
+{
+  "message": "<base64-encoded-message>",
+  "metaApiVersion": "v20.0",
+  "originationPhoneNumberId": "phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54"
+}
+```
+
+**Parameters**:
+- `message` (required): Base64-encoded WhatsApp message object (max 2MB)
+- `metaApiVersion` (required): API version (e.g., "v20.0")
+- `originationPhoneNumberId` (required): Phone number ID to send from
+
+**Response**:
+```json
+{
+  "messageId": "wamid.xxx"
+}
+```
+
+**Rate Limit**: 1,000 requests/second
+
+---
+
+### PostWhatsAppMessageMedia API
+
+**Endpoint**: `POST /v1/whatsapp/media`
+
+**Purpose**: Upload media file to WhatsApp for sending
+
+**Request Body**:
+```json
+{
+  "originationPhoneNumberId": "phone-number-id-xxx",
+  "sourceS3File": {
+    "bucketName": "auth.wecare.digital",
+    "key": "whatsapp-media/whatsapp-media-outgoing/image.jpg"
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "mediaId": "abc123xyz"
+}
+```
+
+**Note**: Only the phone number used to upload can send the media file.
+
+**Rate Limit**: 100 requests/second
+
+---
+
+### GetWhatsAppMessageMedia API
+
+**Endpoint**: `POST /v1/whatsapp/media/get`
+
+**Purpose**: Download received media from WhatsApp to S3
+
+**Request Body**:
+```json
+{
+  "mediaId": "MEDIA_ID_FROM_WEBHOOK",
+  "originationPhoneNumberId": "phone-number-id-xxx",
+  "destinationS3File": {
+    "bucketName": "auth.wecare.digital",
+    "key": "whatsapp-media/whatsapp-media-incoming/received.jpg"
+  },
+  "metadataOnly": false
+}
+```
+
+**Response**:
+```json
+{
+  "fileSize": 12345,
+  "mimeType": "image/jpeg"
+}
+```
+
+**Rate Limit**: 100 requests/second
+
+---
+
+### DeleteWhatsAppMessageMedia API
+
+**Endpoint**: `DELETE /v1/whatsapp/media?mediaId=xxx&originationPhoneNumberId=xxx`
+
+**Purpose**: Delete media from WhatsApp service
+
+**Response**:
+```json
+{
+  "success": true
+}
+```
+
+**Rate Limit**: 100 requests/second
+
+---
+
+## Supported Media File Types
+
+### Audio (Max 16 MB)
+| Type | Extension | MIME Type |
+|------|-----------|-----------|
+| AAC | .aac | audio/aac |
+| AMR | .amr | audio/amr |
+| MP3 | .mp3 | audio/mpeg |
+| MP4 Audio | .m4a | audio/mp4 |
+| OGG | .ogg | audio/ogg |
+
+### Documents (Max 100 MB)
+| Type | Extension | MIME Type |
+|------|-----------|-----------|
+| Text | .txt | text/plain |
+| Excel | .xls, .xlsx | application/vnd.ms-excel |
+| Word | .doc, .docx | application/msword |
+| PowerPoint | .ppt, .pptx | application/vnd.ms-powerpoint |
+| PDF | .pdf | application/pdf |
+
+### Images (Max 5 MB)
+| Type | Extension | MIME Type |
+|------|-----------|-----------|
+| JPEG | .jpeg, .jpg | image/jpeg |
+| PNG | .png | image/png |
+
+### Stickers
+| Type | Extension | MIME Type | Max Size |
+|------|-----------|-----------|----------|
+| Animated | .webp | image/webp | 500 KB |
+| Static | .webp | image/webp | 100 KB |
+
+### Video (Max 16 MB)
+| Type | Extension | MIME Type |
+|------|-----------|-----------|
+| 3GPP | .3gp | video/3gp |
+| MP4 | .mp4 | video/mp4 |
+
+---
+
+## WhatsApp Message Types
+
+| Type | Description | 24h Window Required |
+|------|-------------|---------------------|
+| Text | Plain text or URL | Yes |
+| Media | Audio, document, image, sticker, video | Yes |
+| Reaction | Emoji reaction to a message | Yes |
+| Template | Pre-approved message templates | **No** |
+| Location | GPS coordinates with name/address | Yes |
+| Contacts | Contact card (vCard) | Yes |
+| Interactive | Buttons or list menus | Yes |
+
+---
+
+## Message Templates
+
+### Template Types
+- Text-based templates
+- Media-based templates (with header image/video/document)
+- Interactive message templates (with buttons)
+- Location-based templates
+- Authentication templates (OTP buttons)
+- Multi-Product Message templates
+
+### Template Management
+- Create/manage in AWS Console: https://console.aws.amazon.com/social-messaging/
+- Templates must be approved by Meta (up to 24 hours)
+- Templates are associated with your WABA
+
+### Important Note
+> Starting 4/1/2025, Meta will block marketing message templates sent to US country code (+1).
+
+### Template Variables
+Use `{{1}}`, `{{2}}`, etc. for dynamic content:
+```json
+{
+  "template": {
+    "name": "order_confirmation",
+    "language": { "code": "en_US" },
+    "components": [
+      {
+        "type": "body",
+        "parameters": [
+          { "type": "text", "text": "John" },
+          { "type": "text", "text": "ORD-12345" },
+          { "type": "text", "text": "₹1,500" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 24-Hour Customer Service Window
+
+When a customer messages you:
+1. A 24-hour window opens
+2. During window: Send any message type (text, media, interactive)
+3. Window refreshes with each customer message
+4. Outside window: Only template messages allowed
+
+**Check Window Status**:
+- Store `lastInboundMessageAt` timestamp for each contact
+- Window open if: `(current_time - lastInboundMessageAt) < 24 hours`
 
 ---
 
@@ -611,23 +880,30 @@ aws socialmessaging list-linked-whats-app-business-accounts --region us-east-1
 
 ---
 
-## Region Availability
+## Region Availability — Complete List
 
-AWS End User Messaging Social is available in the following regions:
+AWS End User Messaging Social is available in 17 regions:
 
-| Region | Endpoint | WhatsApp API Version |
-|--------|----------|---------------------|
-| US East (N. Virginia) | social-messaging.us-east-1.amazonaws.com | v20+ |
-| US East (Ohio) | social-messaging.us-east-2.amazonaws.com | v20+ |
-| US West (Oregon) | social-messaging.us-west-2.amazonaws.com | v20+ |
-| Canada (Central) | social-messaging.ca-central-1.amazonaws.com | v20+ |
-| Europe (Frankfurt) | social-messaging.eu-central-1.amazonaws.com | v20+ |
-| Europe (Ireland) | social-messaging.eu-west-1.amazonaws.com | v20+ |
-| Europe (London) | social-messaging.eu-west-2.amazonaws.com | v20+ |
-| Asia Pacific (Mumbai) | social-messaging.ap-south-1.amazonaws.com | v20+ |
-| Asia Pacific (Singapore) | social-messaging.ap-southeast-1.amazonaws.com | v20+ |
-| Asia Pacific (Sydney) | social-messaging.ap-southeast-2.amazonaws.com | v20+ |
-| Asia Pacific (Tokyo) | social-messaging.ap-northeast-1.amazonaws.com | v20+ |
+| Region Name | Region Code | Standard Endpoint | FIPS Endpoint |
+|-------------|-------------|-------------------|---------------|
+| US East (N. Virginia) | us-east-1 | social-messaging.us-east-1.amazonaws.com | social-messaging-fips.us-east-1.amazonaws.com |
+| US East (Ohio) | us-east-2 | social-messaging.us-east-2.amazonaws.com | social-messaging-fips.us-east-2.amazonaws.com |
+| US West (Oregon) | us-west-2 | social-messaging.us-west-2.amazonaws.com | social-messaging-fips.us-west-2.amazonaws.com |
+| Canada (Central) | ca-central-1 | social-messaging.ca-central-1.amazonaws.com | social-messaging-fips.ca-central-1.amazonaws.com |
+| Africa (Cape Town) | af-south-1 | social-messaging.af-south-1.amazonaws.com | - |
+| Asia Pacific (Tokyo) | ap-northeast-1 | social-messaging.ap-northeast-1.amazonaws.com | - |
+| Asia Pacific (Seoul) | ap-northeast-2 | social-messaging.ap-northeast-2.amazonaws.com | - |
+| Asia Pacific (Mumbai) | ap-south-1 | social-messaging.ap-south-1.amazonaws.com | - |
+| Asia Pacific (Hyderabad) | ap-south-2 | social-messaging.ap-south-2.amazonaws.com | - |
+| Asia Pacific (Singapore) | ap-southeast-1 | social-messaging.ap-southeast-1.amazonaws.com | - |
+| Asia Pacific (Sydney) | ap-southeast-2 | social-messaging.ap-southeast-2.amazonaws.com | - |
+| Europe (Frankfurt) | eu-central-1 | social-messaging.eu-central-1.amazonaws.com | - |
+| Europe (Spain) | eu-south-2 | social-messaging.eu-south-2.amazonaws.com | - |
+| Europe (Ireland) | eu-west-1 | social-messaging.eu-west-1.amazonaws.com | - |
+| Europe (London) | eu-west-2 | social-messaging.eu-west-2.amazonaws.com | - |
+| South America (São Paulo) | sa-east-1 | social-messaging.sa-east-1.amazonaws.com | - |
+
+**All regions support WhatsApp API Version 20 and later**
 
 **WECARE.DIGITAL Region**: us-east-1 (US East - N. Virginia)
 

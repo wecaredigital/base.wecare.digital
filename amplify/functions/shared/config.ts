@@ -143,3 +143,118 @@ export const TIER_CONFIG = {
   TIER_1_LIMIT: 250, // conversations per 24 hours
   ALERT_THRESHOLD: 0.8, // 80%
 };
+
+// AWS End User Messaging Social API Configuration
+export const EUM_SOCIAL_API = {
+  // Service Endpoint
+  ENDPOINT: 'social-messaging.us-east-1.amazonaws.com',
+  FIPS_ENDPOINT: 'social-messaging-fips.us-east-1.amazonaws.com',
+  
+  // API Rate Limits (requests per second)
+  RATE_LIMITS: {
+    SendWhatsAppMessage: 1000,
+    PostWhatsAppMessageMedia: 100,
+    GetWhatsAppMessageMedia: 100,
+    DeleteWhatsAppMessageMedia: 100,
+    CreateWhatsAppMessageTemplate: 10,
+    DeleteWhatsAppMessageTemplate: 10,
+    GetWhatsAppMessageTemplate: 10,
+    ListWhatsAppMessageTemplates: 10,
+    UpdateWhatsAppMessageTemplate: 10,
+    ListWhatsAppTemplateLibrary: 10,
+    AssociateWhatsAppBusinessAccount: 10,
+    DisassociateWhatsAppBusinessAccount: 10,
+    GetLinkedWhatsAppBusinessAccount: 10,
+    ListLinkedWhatsAppBusinessAccounts: 10,
+    PutWhatsAppBusinessAccountEventDestinations: 10,
+    TagResource: 10,
+    UntagResource: 10,
+    ListTagsForResource: 10,
+  },
+  
+  // Service Quotas
+  QUOTAS: {
+    WABAS_PER_REGION: 25,
+    MESSAGE_PAYLOAD_MAX_SIZE: 2048000, // 2MB in bytes
+  },
+};
+
+// WhatsApp Message Types
+export const MESSAGE_TYPES = {
+  TEXT: 'text',
+  TEMPLATE: 'template',
+  IMAGE: 'image',
+  VIDEO: 'video',
+  AUDIO: 'audio',
+  DOCUMENT: 'document',
+  STICKER: 'sticker',
+  LOCATION: 'location',
+  CONTACTS: 'contacts',
+  INTERACTIVE: 'interactive',
+  REACTION: 'reaction',
+};
+
+// Media File Limits (in bytes)
+export const MEDIA_LIMITS = {
+  IMAGE: 5 * 1024 * 1024, // 5MB
+  VIDEO: 16 * 1024 * 1024, // 16MB
+  AUDIO: 16 * 1024 * 1024, // 16MB
+  DOCUMENT: 100 * 1024 * 1024, // 100MB
+  STICKER_STATIC: 100 * 1024, // 100KB
+  STICKER_ANIMATED: 500 * 1024, // 500KB
+};
+
+// Supported Media MIME Types
+export const SUPPORTED_MEDIA = {
+  IMAGE: ['image/jpeg', 'image/png'],
+  VIDEO: ['video/mp4', 'video/3gpp'],
+  AUDIO: ['audio/aac', 'audio/amr', 'audio/mpeg', 'audio/mp4', 'audio/ogg'],
+  DOCUMENT: [
+    'text/plain',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  ],
+  STICKER: ['image/webp'],
+};
+
+// 24-Hour Customer Service Window
+export const SERVICE_WINDOW = {
+  DURATION_HOURS: 24,
+  DURATION_SECONDS: 24 * 60 * 60, // 86400 seconds
+};
+
+// Template Configuration
+export const TEMPLATE_CONFIG = {
+  // Template types
+  TYPES: ['TEXT', 'MEDIA', 'INTERACTIVE', 'LOCATION', 'AUTHENTICATION', 'MULTI_PRODUCT'],
+  // Template categories
+  CATEGORIES: ['MARKETING', 'UTILITY', 'AUTHENTICATION'],
+  // Template status values
+  STATUS: ['APPROVED', 'PENDING', 'REJECTED', 'PAUSED', 'DISABLED'],
+  // Meta review time (up to 24 hours)
+  REVIEW_TIME_HOURS: 24,
+  // US Marketing block (effective 4/1/2025)
+  US_MARKETING_BLOCKED: true,
+};
+
+// Interactive Message Limits
+export const INTERACTIVE_LIMITS = {
+  BUTTON_MAX: 3,
+  BUTTON_TITLE_MAX_LENGTH: 20,
+  LIST_ROWS_MAX: 10,
+  LIST_ROW_TITLE_MAX_LENGTH: 24,
+  LIST_ROW_DESCRIPTION_MAX_LENGTH: 72,
+  LIST_BUTTON_TEXT_MAX_LENGTH: 20,
+};
+
+// Documentation URLs
+export const DOCS = {
+  USER_GUIDE: 'https://docs.aws.amazon.com/social-messaging/latest/userguide/',
+  API_REFERENCE: 'https://docs.aws.amazon.com/social-messaging/latest/APIReference/',
+  WHATSAPP_CLOUD_API: 'https://developers.facebook.com/docs/whatsapp/cloud-api/',
+};
