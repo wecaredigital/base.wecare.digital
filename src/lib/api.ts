@@ -33,7 +33,7 @@ export interface Contact {
   deletedAt?: string;
 }
 
-// Mock data based on actual DynamoDB content
+// Mock data based on actual DynamoDB content (base-wecare-digital-ContactsTable)
 const MOCK_CONTACTS: Contact[] = [
   {
     id: '61004f7e-43b2-4a80-b247-7eeab58077bc',
@@ -47,6 +47,19 @@ const MOCK_CONTACTS: Contact[] = [
     lastInboundMessageAt: '2026-01-18T10:30:00Z',
     createdAt: '2026-01-18T10:30:00Z',
     updatedAt: '2026-01-18T10:30:00Z',
+  },
+  {
+    id: 'test-customer-001',
+    contactId: 'test-customer-001',
+    name: 'Test Customer',
+    phone: '+919876543210',
+    email: 'test@example.com',
+    optInWhatsApp: true,
+    optInSms: false,
+    optInEmail: false,
+    lastInboundMessageAt: '2026-01-19T08:00:00Z',
+    createdAt: '2026-01-19T08:00:00Z',
+    updatedAt: '2026-01-19T08:00:00Z',
   }
 ];
 
@@ -139,7 +152,7 @@ export interface Message {
   senderPhone?: string;
 }
 
-// Mock messages based on actual DynamoDB content
+// Mock messages based on actual DynamoDB content (base-wecare-digital-WhatsAppInboundTable)
 const MOCK_MESSAGES: Message[] = [
   {
     id: 'cf03d6dd-126b-4758-8c5d-dfb0b5002318',
@@ -152,6 +165,30 @@ const MOCK_MESSAGES: Message[] = [
     status: 'received',
     whatsappMessageId: 'wamid.uktest001',
     senderPhone: '+447123456789',
+  },
+  {
+    id: 'msg-test-customer-001',
+    messageId: 'msg-test-customer-001',
+    contactId: 'test-customer-001',
+    channel: 'WHATSAPP',
+    direction: 'INBOUND',
+    content: 'Hello!',
+    timestamp: '2026-01-19T08:00:00Z',
+    status: 'received',
+    whatsappMessageId: 'wamid.testcust001',
+    senderPhone: '+919876543210',
+  },
+  {
+    id: 'msg-test-customer-002',
+    messageId: 'msg-test-customer-002',
+    contactId: 'test-customer-001',
+    channel: 'WHATSAPP',
+    direction: 'INBOUND',
+    content: 'Hello!',
+    timestamp: '2026-01-19T08:05:00Z',
+    status: 'received',
+    whatsappMessageId: 'wamid.testcust002',
+    senderPhone: '+919876543210',
   }
 ];
 
