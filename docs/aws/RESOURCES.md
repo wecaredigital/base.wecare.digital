@@ -24,6 +24,135 @@
 **Custom Attributes**:
 - `custom:role` (String, mutable)
 
+---
+
+## AUTH — Cognito Hosted UI (SSO Domain Required)
+
+### Cognito Hosted UI Domain (Production SSO)
+Authentication MUST use **Cognito Hosted UI** with the custom domain:
+
+- **SSO Domain**: https://sso.wecare.digital
+- **User Pool ID**: us-east-1_CC9u1fYh6
+- **User Pool Name**: WECARE.DIGITAL
+- **App Client ID (Public/PKCE)**: `390cro53nf7gerev44gnq7felt`
+- **App Client ID (With Secret)**: `1l9hpie81e1ia7u0cslak2p9tf` (for backend use only)
+
+### Required Auth Flow
+Use **OAuth2 Authorization Code Flow + PKCE** (recommended for secure web + WebView compatibility).
+- ✅ Authorization code grant
+- ✅ PKCE enabled
+- ❌ Avoid implicit flow
+- ❌ Client secret NOT required for public clients with PKCE
+
+### Hosted UI Endpoints (Reference)
+- **Authorize**: `https://sso.wecare.digital/oauth2/authorize`
+- **Token**: `https://sso.wecare.digital/oauth2/token`
+- **Logout**: `https://sso.wecare.digital/logout`
+- **JWKS**: `https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks.json`
+
+### App Behavior (UI)
+- `/login` must NOT be a username/password form
+- `/login` must show **"Continue with SSO"** → redirects to Hosted UI authorize endpoint
+- After login, Hosted UI redirects back to the application callback URL
+
+### Callback & Sign-out URLs (Hard Requirement)
+Production must support:
+- **Callback URL**: `https://base.wecare.digital/auth/callback`
+- **Sign-out URL**: `https://base.wecare.digital/logout`
+- **Amplify Preview**: `https://base.dtiq7il2x5c5g.amplifyapp.com/auth/callback`
+
+Rules:
+- Callback URLs must be exact matches (no wildcards)
+- If preview/staging environments must login too, their callback URLs must also be explicitly added
+
+### Token Handling Rules (Production Safe)
+- Tokens MUST be validated using JWKS on every request
+- Store session/tokens using **Secure HttpOnly cookies** (recommended)
+- DO NOT store tokens in localStorage (WebView risk)
+- Enforce:
+  - issuer check
+  - audience/client-id check
+  - expiration check
+  - token_use check
+
+### RBAC Mapping (Required)
+Use Cognito user groups:
+- `Viewer` - Read-only access
+- `Operator` - Contact management and messaging
+- `Admin` - Full access including user management
+
+Roles must be enforced server-side.
+
+### OAuth Scopes
+- `openid` (required)
+- `email` (required)
+- `profile` (required)
+
+---
+
+## ✅ Deep Check Checklist — SSO Production Readiness
+
+### A) Domain + SSL
+- [ ] `sso.wecare.digital` is configured as Cognito User Pool Domain
+- [ ] SSL Certificate is Issued + Attached
+- [ ] DNS record exists (Alias/CNAME points to Cognito domain target)
+- [ ] Browser test: `https://sso.wecare.digital` loads with valid cert
+
+### B) App Client Settings
+- [ ] Authorization code grant enabled
+- [ ] PKCE enabled
+- [ ] Implicit flow disabled
+- [ ] Scopes: openid, email, profile
+- [ ] Cognito user pool provider enabled
+
+### C) Callback URL Correctness
+Must include:
+- [ ] `https://base.wecare.digital/auth/callback`
+- [ ] `https://base.wecare.digital/logout`
+- [ ] `https://base.dtiq7il2x5c5g.amplifyapp.com/auth/callback` (Amplify)
+
+### D) Token Validation (Server-side)
+- [ ] Signature verified using JWKS
+- [ ] `iss` matches user pool issuer
+- [ ] `aud` (or client_id) matches app client
+- [ ] `exp` not expired
+- [ ] `token_use` check (access vs id token)
+- [ ] Group claims map to RBAC roles
+
+### E) Cookie Security (WebView-safe)
+- [ ] Cookies are Secure
+- [ ] Cookies are HttpOnly
+- [ ] SameSite properly configured (Lax or None+Secure)
+- [ ] NO localStorage token storage
+
+### F) Logout Behavior
+- [ ] Clear cookies on base.wecare.digital
+- [ ] Redirect to: `https://sso.wecare.digital/logout?client_id=...&logout_uri=...`
+- [ ] User fully signed out (back button doesn't restore session)
+
+### G) Hosted UI UX Requirements
+- [ ] `/login` shows WECARE.DIGITAL branding
+- [ ] Single SSO button: "Continue with SSO"
+- [ ] Fallback message: "Session expired, please login again."
+- [ ] No manual password forms
+
+---
+
+## Environment Variables (Amplify)
+
+```bash
+COGNITO_HOSTED_UI_DOMAIN=https://sso.wecare.digital
+COGNITO_REDIRECT_URI=https://base.wecare.digital/auth/callback
+COGNITO_LOGOUT_URI=https://base.wecare.digital/logout
+COGNITO_SCOPES=openid,email,profile
+COGNITO_APP_CLIENT_ID=390cro53nf7gerev44gnq7felt
+COGNITO_USER_POOL_ID=us-east-1_CC9u1fYh6
+```
+
+**Note**: Use the public client ID (`390cro53nf7gerev44gnq7felt`) for web apps with PKCE. The client with secret (`1l9hpie81e1ia7u0cslak2p9tf`) should only be used for backend/server-side authentication.
+
+---
+
 ### 2. S3 Buckets (4 Active)
 
 | Bucket Name | Status | Created | Purpose |

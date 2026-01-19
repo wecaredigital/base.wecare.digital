@@ -2,8 +2,15 @@
   "version": "1",
   "auth": {
     "user_pool_id": "us-east-1_CC9u1fYh6",
-    "user_pool_client_id": "1l9hpie81e1ia7u0cslak2p9tf",
-    "aws_region": "us-east-1"
+    "user_pool_client_id": "390cro53nf7gerev44gnq7felt",
+    "aws_region": "us-east-1",
+    "oauth": {
+      "domain": "sso.wecare.digital",
+      "scopes": ["openid", "email", "profile"],
+      "redirect_sign_in_uri": ["https://base.dtiq7il2x5c5g.amplifyapp.com/"],
+      "redirect_sign_out_uri": ["https://base.dtiq7il2x5c5g.amplifyapp.com/"],
+      "response_type": "code"
+    }
   },
   "storage": {
     "bucket_name": "auth.wecare.digital",
