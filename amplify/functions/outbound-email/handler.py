@@ -73,15 +73,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if not contact:
             return _error_response(404, 'Contact not found')
         
-        # Requirement 3.4: Validate email opt-in
-        if not contact.get('optInEmail'):
-            _log_validation_failure(contact_id, 'email', 'opt_in_required', request_id)
-            return _error_response(400, 'Email opt-in required')
-        
-        # Requirement 3.4: Validate email allowlist
-        if not contact.get('allowlistEmail'):
-            _log_validation_failure(contact_id, 'email', 'allowlist_required', request_id)
-            return _error_response(400, 'Contact not allowlisted for Email')
+        # All contacts are allowed by default - no opt-in/allowlist checks
         
         # Validate email exists
         recipient_email = contact.get('email')

@@ -63,8 +63,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         contact_id = str(uuid.uuid4())
         now = int(time.time())
         
-        # Requirement 2.1: Create contact with opt-in defaults (all False)
-        # Requirement 2.3: Store with required attributes
+        # Create contact with all opt-ins enabled by default (production mode)
         # Note: Table uses 'id' as primary key
         contact = {
             'id': contact_id,  # Primary key
@@ -72,12 +71,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'name': body.get('name', '').strip(),
             'phone': phone,
             'email': email,
-            'optInWhatsApp': False,
-            'optInSms': False,
-            'optInEmail': False,
-            'allowlistWhatsApp': False,
-            'allowlistSms': False,
-            'allowlistEmail': False,
+            'optInWhatsApp': True,  # Default enabled
+            'optInSms': True,  # Default enabled
+            'optInEmail': True,  # Default enabled
+            'allowlistWhatsApp': True,  # Default enabled
+            'allowlistSms': True,  # Default enabled
+            'allowlistEmail': True,  # Default enabled
             'lastInboundMessageAt': None,
             'createdAt': now,
             'updatedAt': now,

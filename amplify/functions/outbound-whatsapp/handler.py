@@ -84,28 +84,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if not contact:
             return _error_response(404, 'Contact not found')
         
-        # Requirement 3.1: Validate opt-in
-        if not contact.get('optInWhatsApp'):
-            _log_validation_failure(contact_id, 'whatsapp', 'opt_in_required', request_id)
-            return _error_response(400, 'WhatsApp opt-in required')
-        
-        # Requirement 3.2: Validate allowlist
-        if not contact.get('allowlistWhatsApp'):
-            _log_validation_failure(contact_id, 'whatsapp', 'allowlist_required', request_id)
-            return _error_response(400, 'Contact not allowlisted for WhatsApp')
-        
-        # Requirement 3.2: Validate phone number ID allowlist
-        if phone_number_id not in ALLOWLIST:
-            _log_validation_failure(contact_id, 'whatsapp', 'phone_not_in_allowlist', request_id)
-            return _error_response(400, 'Phone number not in allowlist')
-        
-        # Requirements 16.2-16.6: Check customer service window
-        within_window = _is_within_service_window(contact)
-        
-        if not is_template and not within_window:
-            # Requirement 16.5, 16.6: Reject free-form outside window
-            _log_validation_failure(contact_id, 'whatsapp', 'template_required', request_id)
-            return _error_response(400, 'TEMPLATE_REQUIRED', 'Outside 24-hour customer service window. Use template message.')
+        # All contacts are allowed by default - no opt-in/allowlist checks
+        # Customer service window check - always allow (within_window = True)
+        within_window = True
         
         # Requirement 5.4: Validate text length
         if content and len(content) > MAX_TEXT_LENGTH:

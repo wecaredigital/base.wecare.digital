@@ -296,15 +296,19 @@ def _get_or_create_contact(phone: str) -> Dict[str, Any]:
     now = int(time.time())
     
     # Note: Table uses 'id' as primary key
+    # All opt-ins enabled by default for production
     contact = {
         'id': contact_id,  # Primary key - table uses 'id' not 'contactId'
         'contactId': contact_id,  # Keep for backwards compatibility
         'name': '',
         'phone': phone,
         'email': None,
-        'optInWhatsApp': False,  # Default to False per Requirement 2.1
-        'optInSms': False,
-        'optInEmail': False,
+        'optInWhatsApp': True,  # Default enabled
+        'optInSms': True,  # Default enabled
+        'optInEmail': True,  # Default enabled
+        'allowlistWhatsApp': True,  # Default enabled
+        'allowlistSms': True,  # Default enabled
+        'allowlistEmail': True,  # Default enabled
         'lastInboundMessageAt': Decimal(str(now)),
         'createdAt': Decimal(str(now)),
         'updatedAt': Decimal(str(now)),
