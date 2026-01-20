@@ -310,6 +310,7 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
     try:
         whatsapp_media_id = None
         s3_key = None
+        stored_filename = None
         
         # Requirements 5.5, 5.6, 5.7: Handle media upload
         if media_file and media_type:
@@ -325,7 +326,7 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         # Build WhatsApp message payload
         message_payload = _build_message_payload(
             recipient_phone, content, media_type, whatsapp_media_id,
-            is_template, template_name, template_params
+            is_template, template_name, template_params, stored_filename
         )
         
         logger.info(json.dumps({
@@ -591,6 +592,68 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
         return None, None, None
 
 
+def _sanitize_filename(filename: str, max_length: int = 240) -> str:
+    """
+    Sanitize filename for WhatsApp document messages.
+    
+    WhatsApp filename requirements:
+    - Maximum 240 characters
+    - Remove invalid characters
+    - Preserve file extension
+    
+    Args:
+        filename: Original filename
+        max_length: Maximum allowed length (default 240 for WhatsApp)
+    
+    Returns:
+        Sanitized filename
+    """
+    if not filename:
+        return 'document'
+    
+    # Remove path separators if present
+    filename = filename.split('/')[-1].split('\\')[-1]
+    
+    # Remove invalid characters but keep dots for extension
+    # Valid characters: alphanumeric, dots, hyphens, underscores, spaces
+    import re
+    sanitized = re.sub(r'[^\w\s.-]', '', filename)
+    
+    # Replace multiple spaces with single space
+    sanitized = re.sub(r'\s+', ' ', sanitized)
+    
+    # If filename is too long, truncate while preserving extension
+    if len(sanitized) > max_length:
+        # Split filename and extension
+        if '.' in sanitized:
+            name_parts = sanitized.rsplit('.', 1)
+            name = name_parts[0]
+            ext = '.' + name_parts[1]
+        else:
+            name = sanitized
+            ext = ''
+        
+        # Calculate how much space we have for the name
+        available_length = max_length - len(ext)
+        
+        # Truncate name and reconstruct
+        sanitized = name[:available_length] + ext
+    
+    # Ensure we have a valid filename
+    if not sanitized or sanitized.isspace():
+        sanitized = 'document'
+    
+    logger.info(json.dumps({
+        'event': 'filename_sanitized',
+        'original': filename,
+        'sanitized': sanitized,
+        'length': len(sanitized),
+        'maxLength': max_length
+    }))
+    
+    return sanitized
+
+
 def _normalize_phone_number(phone: str) -> str:
     """
     Normalize phone number to WhatsApp-compatible E.164 format.
@@ -635,7 +698,7 @@ def _normalize_phone_number(phone: str) -> str:
 
 def _build_message_payload(recipient_phone: str, content: str, media_type: Optional[str],
                            media_id: Optional[str], is_template: bool, template_name: Optional[str],
-                           template_params: list) -> Dict[str, Any]:
+                           template_params: list, filename: Optional[str] = None) -> Dict[str, Any]:
     """Build WhatsApp Cloud API message payload."""
     # Normalize phone number - WhatsApp API expects digits only without + prefix for normalization
     formatted_phone = _normalize_phone_number(recipient_phone)
@@ -685,9 +748,17 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             payload[msg_type]['caption'] = content
         
         # For documents, add filename if available
-        if msg_type == 'document' and hasattr(content, '__len__'):
-            # Try to extract filename from content or use default
-            pass
+        # WhatsApp filename limit: 240 characters
+        if msg_type == 'document' and filename:
+            # Sanitize and truncate filename to 240 characters
+            sanitized_filename = _sanitize_filename(filename, max_length=240)
+            payload[msg_type]['filename'] = sanitized_filename
+            logger.info(json.dumps({
+                'event': 'document_filename_added',
+                'originalFilename': filename,
+                'sanitizedFilename': sanitized_filename,
+                'length': len(sanitized_filename)
+            }))
     else:
         # Text message
         payload['type'] = 'text'
