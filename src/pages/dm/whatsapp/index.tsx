@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '../../../components/Layout';
 import RichTextEditor from '../../../components/RichTextEditor';
+import Toast, { useToast } from '../../../components/Toast';
 import * as api from '../../../lib/api';
 
 interface PageProps {
@@ -59,8 +60,6 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [selectedWaba, setSelectedWaba] = useState<string>('phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -69,6 +68,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -144,7 +144,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
         }
       }
     } catch (err) {
-      setError('Failed to load data');
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -175,8 +175,6 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
   const handleSend = async () => {
     if (!selectedContact || (!messageText.trim() && !mediaFile) || sending) return;
     setSending(true);
-    setError(null);
-    setSuccess(null);
 
     try {
       const result = await api.sendWhatsAppMessage({
@@ -188,17 +186,16 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
       });
 
       if (result) {
-        setSuccess(`Sent via ${WABA_CONFIG[selectedWaba as keyof typeof WABA_CONFIG]?.name || 'WhatsApp'}`);
+        toast.success(`Sent via ${WABA_CONFIG[selectedWaba as keyof typeof WABA_CONFIG]?.name || 'WhatsApp'}`);
         setMessageText('');
         setMediaFile(null);
         setMediaPreview(null);
         await loadData();
-        setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError('Failed to send. Check if 24h window is open or use a template.');
+        toast.error('Failed to send. Check if 24h window is open or use a template.');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to send message');
+      toast.error(err.message || 'Failed to send message');
     } finally {
       setSending(false);
     }
@@ -211,7 +208,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     // Validate file size (5MB for images, 16MB for video/audio)
     const maxSize = file.type.startsWith('image/') ? 5 * 1024 * 1024 : 16 * 1024 * 1024;
     if (file.size > maxSize) {
-      setError(`File too large. Max size: ${file.type.startsWith('image/') ? '5MB' : '16MB'}`);
+      toast.error(`File too large. Max size: ${file.type.startsWith('image/') ? '5MB' : '16MB'}`);
       return;
     }
     
@@ -254,12 +251,13 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
       const direction = msg.direction === 'inbound' ? 'INBOUND' : 'OUTBOUND';
       const success = await api.deleteMessage(msg.id, direction);
       if (success) {
+        toast.success('Message deleted');
         await loadData();
       } else {
-        setError('Failed to delete message');
+        toast.error('Failed to delete message');
       }
     } catch (err) {
-      setError('Delete error occurred');
+      toast.error('Delete error occurred');
     } finally {
       setDeleting(null);
     }
@@ -271,13 +269,14 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     try {
       const success = await api.deleteContact(contact.id);
       if (success) {
+        toast.success('Contact deleted');
         setSelectedContact(null);
         await loadData();
       } else {
-        setError('Failed to delete contact');
+        toast.error('Failed to delete contact');
       }
     } catch (err) {
-      setError('Delete error occurred');
+      toast.error('Delete error occurred');
     } finally {
       setDeleting(null);
     }
@@ -303,6 +302,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
 
   return (
     <Layout user={user} onSignOut={signOut}>
+      <Toast toasts={toast.toasts} onRemove={toast.removeToast} />
       <div className="whatsapp-inbox">
         {/* Contacts Sidebar */}
         <div className="contacts-sidebar">
@@ -402,20 +402,6 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                   </select>
                 </div>
               </div>
-
-              {/* Alerts */}
-              {error && (
-                <div className="alert alert-error">
-                  <span>{error}</span>
-                  <button onClick={() => setError(null)}>✕</button>
-                </div>
-              )}
-              {success && (
-                <div className="alert alert-success">
-                  <span>{success}</span>
-                  <button onClick={() => setSuccess(null)}>✕</button>
-                </div>
-              )}
 
               {/* Messages */}
               <div className="messages-area">
