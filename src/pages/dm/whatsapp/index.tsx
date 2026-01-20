@@ -22,10 +22,10 @@ interface Message {
   timestamp: string;
   status: string;
   contactId: string;
-  whatsappMessageId?: string;
-  mediaUrl?: string;
-  receivingPhone?: string;
-  awsPhoneNumberId?: string;
+  whatsappMessageId?: string | null;
+  mediaUrl?: string | null;
+  receivingPhone?: string | null;
+  awsPhoneNumberId?: string | null;
 }
 
 interface Contact {
