@@ -311,7 +311,7 @@ const WhatsAppDM: React.FC<PageProps> = ({ signOut, user }) => {
                       onChange={e => setMessageText(e.target.value)}
                       placeholder={!selectedContact.windowOpen ? 'Window closed - select a template' : 'Type a message...'}
                       disabled={!canSend().allowed && !selectedTemplate}
-                      onKeyPress={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
                     />
                     <button className="btn-send" onClick={handleSend} disabled={!canSend().allowed || sending}>
                       {sending ? '...' : 'Send'}
