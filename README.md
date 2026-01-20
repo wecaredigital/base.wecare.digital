@@ -1,75 +1,34 @@
 # WECARE.DIGITAL Admin Platform
 
-Multi-channel messaging system for WhatsApp, SMS, and Email with AI-powered automation.
-
-**Status**: ✓ DEPLOYED | **Environment**: Production | **Last Updated**: 2026-01-18
-
-## Quick Links
-
-📚 [Full Documentation](docs/README.md) | 🚀 [Deployment Guide](docs/deployment/GUIDE.md) | ☁️ [AWS Resources](docs/aws/RESOURCES.md)
+**Status:** ✅ Production Ready  
+**Latest Version:** 1.0.0  
+**Last Updated:** January 20, 2026
 
 ---
 
-## Overview
+## 📋 Project Overview
 
-WECARE.DIGITAL is a comprehensive admin platform for managing multi-channel communications with contacts.
+WECARE.DIGITAL is a multi-channel messaging admin platform built with Next.js and AWS Amplify. It enables businesses to send and receive messages across WhatsApp, SMS, Email, and Voice channels with a unified inbox interface.
 
-### Supported Channels
-- **WhatsApp**: AWS End User Messaging Social (2 phone numbers, GREEN rating)
-- **SMS**: AWS Pinpoint SMS service
-- **Email**: Amazon SES
-- **AI Automation**: Amazon Bedrock with Knowledge Base
+### Key Features
 
-### Tech Stack
-- **Frontend**: React 18 + Next.js 14 + TypeScript
-- **Backend**: AWS Amplify Gen 2
-- **Database**: DynamoDB (11 tables, PAY_PER_REQUEST)
-- **Functions**: AWS Lambda (16 functions, Python 3.12)
-- **Authentication**: Amazon Cognito
-- **Storage**: Amazon S3 (4 buckets)
-- **Messaging**: SQS (5 queues), SNS
-- **AI**: Amazon Bedrock (Nova Pro)
-- **Monitoring**: CloudWatch
-
-### AWS Configuration
-- **Account**: 809904170947
-- **Region**: us-east-1
-- **Branch**: base (production)
+- **Unified Inbox** - Single interface for all messaging channels
+- **WhatsApp Integration** - Full WhatsApp Cloud API support with media handling
+- **Multi-Channel Support** - SMS, Email, Voice, RCS messaging
+- **Contact Management** - Create, update, delete, and search contacts
+- **Media Support** - Images, videos, audio, documents with proper display
+- **Bulk Messaging** - Send messages to multiple contacts
+- **Message History** - Complete message tracking and storage
+- **Real-time Updates** - Live message synchronization
 
 ---
 
-## Active Deployment
-
-### Resources Summary
-
-| Resource Type | Count | Status |
-|--------------|-------|--------|
-| Lambda Functions | 16 | ✓ ACTIVE |
-| DynamoDB Tables | 11 | ✓ ACTIVE |
-| SQS Queues | 5 | ✓ ACTIVE |
-| S3 Buckets | 4 | ✓ ACTIVE |
-| WhatsApp Phone Numbers | 2 | ✓ GREEN RATING |
-| WhatsApp Business Accounts | 2 | ✓ COMPLETE |
-| Bedrock Agents | 2 | ✓ CONFIGURED |
-| Cognito User Pool | 1 | ✓ ACTIVE |
-| Bedrock Knowledge Base | 1 | ✓ ACTIVE |
-| SNS Topic | 1 | ✓ ACTIVE |
-| SES Identity | 1 | ✓ VERIFIED |
-| Pinpoint SMS Pool | 1 | ✓ ACTIVE |
-| IAM Role | 1 | ✓ ACTIVE |
-
-**Total Active Resources**: 60+
-
-See [AWS Resources Inventory](docs/aws/RESOURCES.md) for complete details.
-
----
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js >= 18.0.0
-- AWS CLI configured
-- AWS Amplify CLI
+- Node.js 18+
+- AWS Account with Amplify configured
+- WhatsApp Business Account (for WhatsApp features)
 
 ### Installation
 
@@ -77,92 +36,376 @@ See [AWS Resources Inventory](docs/aws/RESOURCES.md) for complete details.
 # Install dependencies
 npm install
 
-# Start local development
+# Start development server
 npm run dev
 
-# Start Amplify sandbox
-npm run amplify
+# Build for production
+npm run build
+
+# Start production server
+npm run start
 ```
+
+### Access Dashboard
+- **Development:** http://localhost:3000
+- **Production:** https://base.wecare.digital
+
+---
+
+## 📊 Architecture
+
+### Frontend
+- **Framework:** Next.js 14
+- **Language:** TypeScript
+- **Styling:** CSS with responsive design
+- **Components:** React with hooks
+
+### Backend
+- **Platform:** AWS Amplify Gen 2
+- **Compute:** Lambda functions
+- **Database:** DynamoDB
+- **Storage:** S3
+- **Messaging:** AWS Social Messaging API
+
+### Infrastructure
+- **Region:** us-east-1
+- **Auth:** Cognito User Pools
+- **API:** HTTP API Gateway
+- **Monitoring:** CloudWatch
+
+---
+
+## 📁 Project Structure
+
+```
+.
+├── src/                          # Frontend source code
+│   ├── components/               # React components
+│   ├── lib/                      # Utilities and API client
+│   └── pages/                    # Next.js pages
+├── amplify/                      # AWS Amplify backend
+│   ├── backend.ts                # Backend configuration
+│   ├── auth/                     # Authentication resources
+│   ├── data/                     # Data resources
+│   ├── functions/                # Lambda functions
+│   ├── monitoring/               # CloudWatch alarms
+│   └── storage/                  # S3 storage resources
+├── docs/                         # Documentation
+│   ├── aws/                      # AWS API reference
+│   └── deployment/               # Deployment guides
+├── temp/                         # Test scripts
+├── tests/                        # Test suite
+└── public/                       # Static files
+```
+
+---
+
+## 🔧 Configuration
 
 ### Environment Variables
 
-Create `.env.local`:
+**Frontend (.env.local):**
+```
+NEXT_PUBLIC_API_ENDPOINT=https://api.wecare.digital
+NEXT_PUBLIC_AUTH_DOMAIN=sso.wecare.digital
+```
 
-```env
-AWS_REGION=us-east-1
-AWS_ACCOUNT_ID=809904170947
-SEND_MODE=DRY_RUN
-LOG_LEVEL=DEBUG
+**Backend (amplify/backend.ts):**
+```typescript
+SEND_MODE=LIVE              # LIVE or DRY_RUN
+LOG_LEVEL=INFO              # DEBUG, INFO, WARN, ERROR
+MEDIA_BUCKET=auth.wecare.digital
 ```
 
 ---
 
-## Deployment
+## 📱 Supported Channels
 
-### Branch Strategy
-- **base**: Production (SEND_MODE=LIVE) ← Current
-- **feature/***: Preview (SEND_MODE=DRY_RUN)
-- **release/***: Staging (SEND_MODE=DRY_RUN)
-- **hotfix/***: Production (SEND_MODE=LIVE)
+### WhatsApp
+- ✅ Text messages
+- ✅ Media (images, videos, audio, documents)
+- ✅ Templates
+- ✅ Reactions
+- ✅ Multiple WABAs
 
-### Deploy to Production
+### SMS
+- ✅ AWS SNS
+- ✅ Airtel SMS
+
+### Email
+- ✅ AWS SES
+
+### Voice
+- ✅ AWS Connect
+- ✅ Airtel Voice
+
+---
+
+## 📊 Media Support
+
+### Supported Formats
+
+**Images (Max 5MB)**
+- JPEG, PNG, WebP
+
+**Videos (Max 16MB)**
+- MP4, 3GP
+
+**Audio (Max 16MB)**
+- MP3, OGG, AAC, AMR, MP4
+
+**Documents (Max 100MB)**
+- PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT
+
+**Stickers (Max 500KB)**
+- WebP
+
+---
+
+## 🧪 Testing
+
+### Test Scripts
+
+Located in `temp/` directory:
 
 ```bash
-# Via Git push (recommended)
-git checkout base
-git push origin base
+# Test media sending
+node temp/send-test-media.js
 
-# Via Amplify CLI
-npm run amplify:deploy
+# Test PDF sending
+node temp/send-test-pdf.js
+
+# Test text sending
+node temp/test-send-text.js
+
+# Check media in database
+node temp/check-media-in-db.js
+
+# Test S3 upload
+node temp/test-s3-upload.js
 ```
 
-See [Deployment Guide](docs/deployment/GUIDE.md) for detailed instructions.
+### Running Tests
+
+```bash
+# Run test suite
+npm test
+
+# Run with coverage
+npm test -- --coverage
+
+# Watch mode
+npm test -- --watch
+```
 
 ---
 
-## Features
+## 📚 Documentation
 
-### 1. Contact Management
-- Full CRUD operations
-- Search and filter
-- Opt-in/opt-out tracking per channel
+### Essential Docs
+- **EXECUTIVE_SUMMARY.md** - High-level feature overview
+- **MEDIA_TYPE_FIX_REPORT.md** - Media type support details
+- **CHANGELOG.md** - Version history and changes
 
-### 2. Multi-Channel Messaging
-- **WhatsApp**: Text, media, templates (80 msg/sec per phone)
-- **SMS**: Text messages (5 msg/sec)
-- **Email**: HTML/text emails (10 msg/sec)
+### AWS Documentation
+- **docs/aws/WHATSAPP-API-REFERENCE.md** - WhatsApp API reference
+- **docs/aws/RESOURCES.md** - AWS resources documentation
 
-### 3. Bulk Messaging
-- Queue-based processing (SQS)
-- Chunked delivery (100 recipients/chunk)
-- Pause/resume/cancel controls
-
-### 4. AI Automation
-- Knowledge Base query (Bedrock)
-- Auto-response generation (Nova Pro)
-- Human approval workflow
-
-### 5. Role-Based Access Control
-- **Viewer**: Read-only access
-- **Operator**: Contact management + messaging
-- **Admin**: Full system access
+### Deployment
+- **docs/deployment/GUIDE.md** - Deployment procedures
 
 ---
 
-## Documentation
+## 🔐 Security
 
-- 📚 [Full Documentation](docs/README.md)
-- ☁️ [AWS Resources Inventory](docs/aws/RESOURCES.md)
-- 🚀 [Deployment Guide](docs/deployment/GUIDE.md)
-- 🔐 [IAM Policies](amplify/iam-policies.ts)
-- ⚙️ [Backend Configuration](amplify/backend.ts)
+### Authentication
+- AWS Cognito User Pools
+- OAuth 2.0 with PKCE
+- JWT tokens
+
+### Authorization
+- Role-based access control
+- IAM policies for AWS resources
+- API Gateway authorization
+
+### Data Protection
+- Encryption at rest (DynamoDB, S3)
+- Encryption in transit (HTTPS/TLS)
+- Secure credential management
 
 ---
 
-## License
+## 📈 Performance
+
+### Optimization
+- Server-side rendering (Next.js)
+- Static site generation where applicable
+- Image optimization
+- Code splitting
+- Lazy loading
+
+### Monitoring
+- CloudWatch metrics
+- CloudWatch logs
+- Lambda performance tracking
+- API response times
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Media not displaying:**
+1. Check S3 bucket permissions
+2. Verify pre-signed URL generation
+3. Check CloudWatch logs
+4. Verify CORS settings
+
+**Messages not sending:**
+1. Check Lambda logs
+2. Verify phone number format
+3. Check rate limits
+4. Verify API credentials
+
+**Dashboard not loading:**
+1. Clear browser cache
+2. Check authentication
+3. Verify API endpoint
+4. Check network connectivity
+
+---
+
+## 📞 Support
+
+### Resources
+- AWS Amplify Documentation: https://docs.amplify.aws
+- Next.js Documentation: https://nextjs.org/docs
+- WhatsApp Cloud API: https://developers.facebook.com/docs/whatsapp/cloud-api
+
+### Logs
+- **Frontend:** Browser console (F12)
+- **Backend:** CloudWatch logs
+- **API:** API Gateway logs
+
+---
+
+## 📝 Recent Changes
+
+### Latest Fix (January 20, 2026)
+- ✅ Fixed media type support - all file types now supported
+- ✅ Expanded file input accept attribute
+- ✅ Added support for PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, WebP, 3GP, AAC, AMR
+
+### Previous Updates
+- ✅ Media display for all types (images, videos, audio, documents)
+- ✅ Sender name capture and display
+- ✅ Pre-signed URL generation for S3 media
+- ✅ Enhanced logging and error handling
+
+See **CHANGELOG.md** for complete version history.
+
+---
+
+## 🚀 Deployment
+
+### Development
+```bash
+npm run dev
+```
+
+### Production
+```bash
+npm run build
+npm run start
+```
+
+### AWS Amplify
+```bash
+# Deploy backend
+npx ampx pipeline-deploy --branch base --app-id <app-id>
+
+# Deploy frontend
+amplify push --only hosting --yes
+```
+
+---
+
+## 📊 Project Stats
+
+- **Frontend:** TypeScript, React, Next.js
+- **Backend:** Python, AWS Lambda
+- **Database:** DynamoDB
+- **Storage:** S3
+- **API:** HTTP API Gateway
+- **Monitoring:** CloudWatch
+
+---
+
+## ✨ Features Implemented
+
+### Core Features
+- ✅ Multi-channel messaging
+- ✅ Unified inbox
+- ✅ Contact management
+- ✅ Message history
+- ✅ Media support
+
+### WhatsApp Features
+- ✅ Text messages
+- ✅ Media messages (all types)
+- ✅ Template messages
+- ✅ Reactions
+- ✅ Multiple WABAs
+- ✅ Sender name display
+- ✅ Message status tracking
+
+### Admin Features
+- ✅ Bulk messaging
+- ✅ Message templates
+- ✅ Contact search
+- ✅ Message filtering
+- ✅ Activity logs
+
+---
+
+## 🎯 Next Steps
+
+1. **Deploy to Production**
+   - Run Amplify deployment
+   - Verify all features working
+   - Monitor CloudWatch logs
+
+2. **Test All Features**
+   - Send messages across all channels
+   - Test media sending
+   - Verify message display
+
+3. **Monitor Performance**
+   - Check CloudWatch metrics
+   - Monitor error rates
+   - Track response times
+
+4. **Gather Feedback**
+   - User testing
+   - Performance optimization
+   - Feature enhancements
+
+---
+
+## 📄 License
 
 Proprietary - WECARE.DIGITAL
 
 ---
 
-**Last Updated**: 2026-01-18
+## 👥 Team
+
+**Development:** WECARE.DIGITAL Team  
+**Last Updated:** January 20, 2026  
+**Status:** ✅ Production Ready
+
+---
+
+**For more information, see EXECUTIVE_SUMMARY.md or CHANGELOG.md**
+
