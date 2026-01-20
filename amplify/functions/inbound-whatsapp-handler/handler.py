@@ -221,6 +221,14 @@ def _process_message(message: Dict, metadata: Dict, request_id: str) -> None:
         'requestId': request_id
     }))
     
+    # Auto-react with thumbs up to every inbound message (skip reactions to avoid loops)
+    if msg_type != 'reaction':
+        _send_auto_reaction(
+            contact_id=contact_id,
+            whatsapp_message_id=whatsapp_message_id,
+            request_id=request_id
+        )
+    
     # Requirements 15.4, 15.7: Process AI automation if enabled
     # Only process text messages for AI (skip media-only messages)
     if msg_type == 'text' and content:
@@ -497,6 +505,70 @@ def _send_to_dlq(record: Dict, error: str, request_id: str) -> None:
     except Exception as e:
         logger.error(json.dumps({
             'event': 'dlq_send_error',
+            'error': str(e),
+            'requestId': request_id
+        }))
+
+
+# ============================================================================
+# AUTO-REACTION FEATURE
+# Send thumbs up reaction to every inbound message
+# ============================================================================
+
+# Outbound WhatsApp Lambda function name
+OUTBOUND_WHATSAPP_FUNCTION = os.environ.get('OUTBOUND_WHATSAPP_FUNCTION', 'wecare-outbound-whatsapp')
+
+# Default phone number ID for reactions
+DEFAULT_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID_1', 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54')
+
+
+def _send_auto_reaction(contact_id: str, whatsapp_message_id: str, request_id: str) -> None:
+    """
+    Send automatic thumbs up reaction to inbound message.
+    Calls outbound-whatsapp Lambda with reaction parameters.
+    """
+    if not whatsapp_message_id:
+        logger.warning(json.dumps({
+            'event': 'auto_reaction_skipped',
+            'reason': 'no_whatsapp_message_id',
+            'contactId': contact_id,
+            'requestId': request_id
+        }))
+        return
+    
+    try:
+        # Build reaction request payload
+        reaction_payload = {
+            'body': json.dumps({
+                'contactId': contact_id,
+                'isReaction': True,
+                'reactionMessageId': whatsapp_message_id,
+                'reactionEmoji': '\U0001F44D',  # Thumbs up emoji
+                'phoneNumberId': DEFAULT_PHONE_NUMBER_ID
+            })
+        }
+        
+        # Invoke outbound-whatsapp Lambda asynchronously
+        response = lambda_client.invoke(
+            FunctionName=OUTBOUND_WHATSAPP_FUNCTION,
+            InvocationType='Event',  # Async invocation
+            Payload=json.dumps(reaction_payload)
+        )
+        
+        logger.info(json.dumps({
+            'event': 'auto_reaction_triggered',
+            'contactId': contact_id,
+            'whatsappMessageId': whatsapp_message_id,
+            'statusCode': response.get('StatusCode'),
+            'requestId': request_id
+        }))
+        
+    except Exception as e:
+        # Log error but don't fail the message processing
+        logger.error(json.dumps({
+            'event': 'auto_reaction_error',
+            'contactId': contact_id,
+            'whatsappMessageId': whatsapp_message_id,
             'error': str(e),
             'requestId': request_id
         }))
