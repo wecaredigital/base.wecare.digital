@@ -13,5 +13,7 @@ export const aiGenerateResponse = defineFunction({
     BEDROCK_AGENT_ID: 'HQNT0JXN8G',
     BEDROCK_AGENT_ALIAS_ID: 'TSTALIASID',
     BEDROCK_AGENTCORE_RUNTIME_ID: 'base_bedrock_agentcore-1XHDxj2o3Q',
+    AI_AUTO_SEND: 'true',
+    OUTBOUND_WHATSAPP_FUNCTION: 'wecare-outbound-whatsapp',
   },
 });

@@ -6,7 +6,7 @@ Requirements: 15.2, 15.3, 15.7
 
 Generates response suggestions using Bedrock Agent HQNT0JXN8G.
 Runtime ID: base_bedrock_agentcore-1XHDxj2o3Q
-Responses require operator approval before sending.
+Auto-sends responses when AI_AUTO_SEND is enabled.
 """
 
 import os
@@ -25,12 +25,15 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 # AWS clients
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 bedrock_agent_runtime = boto3.client('bedrock-agent-runtime', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+lambda_client = boto3.client('lambda', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Environment variables
 SEND_MODE = os.environ.get('SEND_MODE', 'LIVE')
 AI_INTERACTIONS_TABLE = os.environ.get('AI_INTERACTIONS_TABLE', 'AIInteractions')
 BEDROCK_AGENT_ID = os.environ.get('BEDROCK_AGENT_ID', 'HQNT0JXN8G')
 BEDROCK_AGENT_ALIAS_ID = os.environ.get('BEDROCK_AGENT_ALIAS_ID', 'TSTALIASID')
+AI_AUTO_SEND = os.environ.get('AI_AUTO_SEND', 'true').lower() == 'true'
+OUTBOUND_WHATSAPP_FUNCTION = os.environ.get('OUTBOUND_WHATSAPP_FUNCTION', 'wecare-outbound-whatsapp')
 # Bedrock Agent Core Runtime ID for internal admin automation
 BEDROCK_AGENTCORE_RUNTIME_ID = os.environ.get('BEDROCK_AGENTCORE_RUNTIME_ID', 'base_bedrock_agentcore-1XHDxj2o3Q')
 
@@ -92,12 +95,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             logger.error(f"Bedrock Agent invoke error: {str(e)}")
             suggested_response = f"[AI generation failed: {str(e)}]"
         
-        # Requirement 15.3: Store suggestion with approved=False (requires operator approval)
+        # Requirement 15.3: Store suggestion
         suggestion = {
             'interactionId': interaction_id,
             'suggestedResponse': suggested_response,
-            'approved': False,
-            'requiresApproval': True,
+            'approved': AI_AUTO_SEND,  # Auto-approve if auto-send enabled
+            'requiresApproval': not AI_AUTO_SEND,
             'contactId': contact_id,
             'originalMessage': message_content,
         }
@@ -116,10 +119,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             UpdateExpression='SET suggestedResponse = :response, approved = :approved, updatedAt = :now',
             ExpressionAttributeValues={
                 ':response': suggested_response,
-                ':approved': False,
+                ':approved': AI_AUTO_SEND,
                 ':now': Decimal(str(now))
             }
         )
+        
+        # Auto-send response if enabled and we have a valid response
+        if AI_AUTO_SEND and SEND_MODE == 'LIVE' and contact_id and suggested_response and not suggested_response.startswith('[AI generation failed'):
+            _send_ai_response(contact_id, suggested_response, request_id)
+            suggestion['autoSent'] = True
         
         logger.info(json.dumps({
             'event': 'ai_generate_complete',
@@ -189,3 +197,36 @@ def _error_response(status_code: int, message: str) -> Dict[str, Any]:
         },
         'body': json.dumps({'error': message})
     }
+
+
+def _send_ai_response(contact_id: str, response_text: str, request_id: str) -> None:
+    """Auto-send AI response via WhatsApp."""
+    try:
+        payload = {
+            'body': json.dumps({
+                'contactId': contact_id,
+                'content': response_text,
+            })
+        }
+        
+        result = lambda_client.invoke(
+            FunctionName=OUTBOUND_WHATSAPP_FUNCTION,
+            InvocationType='Event',  # Async
+            Payload=json.dumps(payload)
+        )
+        
+        logger.info(json.dumps({
+            'event': 'ai_auto_send_triggered',
+            'contactId': contact_id,
+            'responseLength': len(response_text),
+            'statusCode': result.get('StatusCode'),
+            'requestId': request_id
+        }))
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'ai_auto_send_error',
+            'contactId': contact_id,
+            'error': str(e),
+            'requestId': request_id
+        }))

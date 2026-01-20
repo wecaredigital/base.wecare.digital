@@ -131,7 +131,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
         status: m.status?.toLowerCase() || 'sent',
         contactId: m.contactId,
         whatsappMessageId: m.whatsappMessageId,
-        mediaUrl: m.s3Key ? `https://auth.wecare.digital/${m.s3Key}` : undefined,
+        mediaUrl: m.mediaUrl,  // Use pre-signed URL from API
         receivingPhone: m.receivingPhone,
         awsPhoneNumberId: m.awsPhoneNumberId,
       })));

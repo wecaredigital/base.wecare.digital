@@ -202,6 +202,7 @@ export interface Message {
   whatsappMessageId?: string;
   mediaId?: string;
   s3Key?: string;
+  mediaUrl?: string;
   senderPhone?: string;
   receivingPhone?: string;
   awsPhoneNumberId?: string;
@@ -248,6 +249,7 @@ function normalizeMessage(item: any): Message {
     whatsappMessageId: item.whatsappMessageId,
     mediaId: item.mediaId,
     s3Key: item.s3Key,
+    mediaUrl: item.mediaUrl,  // Use pre-signed URL from API
     senderPhone: item.senderPhone,
     receivingPhone: item.receivingPhone,
     awsPhoneNumberId: item.awsPhoneNumberId,

@@ -4,6 +4,7 @@ Messages Read Lambda Function
 Purpose: Read messages from WhatsApp Inbound/Outbound tables
 Returns combined inbound and outbound messages for dashboard/messaging views.
 Supports filtering by contactId, channel, and direction.
+Generates pre-signed URLs for media files.
 
 DynamoDB Tables (actual names):
 - base-wecare-digital-WhatsAppInboundTable
@@ -23,14 +24,17 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 # DynamoDB client
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+s3_client = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Actual DynamoDB table names (not Amplify Gen 2 schema tables)
 INBOUND_TABLE = os.environ.get('INBOUND_TABLE', 'base-wecare-digital-WhatsAppInboundTable')
 OUTBOUND_TABLE = os.environ.get('OUTBOUND_TABLE', 'base-wecare-digital-WhatsAppOutboundTable')
+MEDIA_BUCKET = os.environ.get('MEDIA_BUCKET', 'auth.wecare.digital')
 
 # Pagination defaults
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 100
+PRESIGNED_URL_EXPIRY = 3600  # 1 hour
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -182,5 +186,31 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
         result['channel'] = result['channel'].upper()
     if 'direction' in result:
         result['direction'] = result['direction'].upper()
+    
+    # Generate pre-signed URL for media files
+    if result.get('s3Key'):
+        try:
+            # Find actual file in S3 (may have different extension)
+            s3_key = result['s3Key']
+            prefix = s3_key.rsplit('.', 1)[0] if '.' in s3_key else s3_key
+            
+            # List objects with this prefix to find actual file
+            response = s3_client.list_objects_v2(
+                Bucket=MEDIA_BUCKET,
+                Prefix=prefix,
+                MaxKeys=1
+            )
+            
+            if response.get('Contents'):
+                actual_key = response['Contents'][0]['Key']
+                presigned_url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': MEDIA_BUCKET, 'Key': actual_key},
+                    ExpiresIn=PRESIGNED_URL_EXPIRY
+                )
+                result['mediaUrl'] = presigned_url
+                result['s3Key'] = actual_key  # Update to actual key
+        except Exception as e:
+            logger.warning(f"Failed to generate presigned URL for {result.get('s3Key')}: {str(e)}")
     
     return result
