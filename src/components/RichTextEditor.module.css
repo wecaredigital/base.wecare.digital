@@ -59,6 +59,17 @@
   cursor: not-allowed;
 }
 
+.toolbar-btn.ai-btn.error {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
 .toolbar-spacer {
   flex: 1;
 }

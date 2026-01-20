@@ -2226,6 +2226,58 @@ input, textarea, select { font-size: 16px !important; }
 .whatsapp-inbox .send-btn:hover:not(:disabled) { background: #00c49a; }
 .whatsapp-inbox .send-btn:disabled { background: #3b4a54; cursor: not-allowed; }
 
+/* Media Upload */
+.whatsapp-inbox .attach-btn {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.whatsapp-inbox .attach-btn:hover { opacity: 1; }
+.whatsapp-inbox .attach-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.whatsapp-inbox .media-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #2a3942;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.whatsapp-inbox .media-preview img {
+  max-width: 100px;
+  max-height: 80px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.whatsapp-inbox .file-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e9edef;
+  font-size: 14px;
+}
+
+.whatsapp-inbox .clear-media-btn {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: #e9edef;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.whatsapp-inbox .clear-media-btn:hover { background: rgba(255,255,255,0.2); }
+
 /* WhatsApp Empty State */
 .whatsapp-inbox .empty-chat {
   flex: 1;

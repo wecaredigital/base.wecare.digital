@@ -8,7 +8,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '../../../components/Layout';
 import RichTextEditor from '../../../components/RichTextEditor';
 import * as api from '../../../lib/api';
-import '../../Pages.css';
 
 interface PageProps {
   signOut?: () => void;
@@ -65,7 +64,11 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
   const [selectedWaba, setSelectedWaba] = useState<string>('phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -170,7 +173,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
   );
 
   const handleSend = async () => {
-    if (!selectedContact || !messageText.trim() || sending) return;
+    if (!selectedContact || (!messageText.trim() && !mediaFile) || sending) return;
     setSending(true);
     setError(null);
     setSuccess(null);
@@ -180,11 +183,15 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
         contactId: selectedContact.id,
         content: messageText,
         phoneNumberId: selectedWaba,
+        mediaFile: mediaPreview || undefined,
+        mediaType: mediaFile?.type,
       });
 
       if (result) {
         setSuccess(`Sent via ${WABA_CONFIG[selectedWaba as keyof typeof WABA_CONFIG]?.name || 'WhatsApp'}`);
         setMessageText('');
+        setMediaFile(null);
+        setMediaPreview(null);
         await loadData();
         setTimeout(() => setSuccess(null), 3000);
       } else {
@@ -195,6 +202,35 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file size (5MB for images, 16MB for video/audio)
+    const maxSize = file.type.startsWith('image/') ? 5 * 1024 * 1024 : 16 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError(`File too large. Max size: ${file.type.startsWith('image/') ? '5MB' : '16MB'}`);
+      return;
+    }
+    
+    setMediaFile(file);
+    
+    // Create preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setMediaPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setMediaPreview(file.name);
+    }
+  };
+
+  const clearMedia = () => {
+    setMediaFile(null);
+    setMediaPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleReaction = async (whatsappMessageId: string, wabaId?: string) => {
@@ -472,7 +508,39 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
 
               {/* Input Area */}
               <div className="input-area">
+                {/* Media Preview */}
+                {mediaPreview && (
+                  <div className="media-preview">
+                    {mediaFile?.type.startsWith('image/') ? (
+                      <img src={mediaPreview} alt="Preview" />
+                    ) : (
+                      <div className="file-preview">
+                        <span>📎</span>
+                        <span>{mediaFile?.name}</span>
+                      </div>
+                    )}
+                    <button className="clear-media-btn" onClick={clearMedia}>✕</button>
+                  </div>
+                )}
+                
                 <div className="input-wrapper">
+                  {/* Media Upload Button */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleMediaSelect}
+                    accept="image/jpeg,image/png,video/mp4,audio/mp3,audio/ogg,application/pdf"
+                    style={{ display: 'none' }}
+                  />
+                  <button 
+                    className="attach-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingMedia}
+                    title="Attach media"
+                  >
+                    📎
+                  </button>
+                  
                   <div className="input-box">
                     <RichTextEditor
                       value={messageText}
@@ -486,7 +554,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                   <button 
                     className="send-btn"
                     onClick={handleSend}
-                    disabled={!messageText.trim() || sending}
+                    disabled={(!messageText.trim() && !mediaFile) || sending}
                   >
                     {sending ? '...' : '→'}
                   </button>

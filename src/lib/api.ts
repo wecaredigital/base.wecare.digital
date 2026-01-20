@@ -410,6 +410,30 @@ export async function testAIResponse(message: string): Promise<{ response: strin
   return { response: 'AI service unavailable', sources: [] };
 }
 
+// Get AI suggestions for message replies
+export async function getAISuggestions(message: string, channel?: string, context?: string): Promise<string[]> {
+  const data = await apiCall<any>(`${API_BASE}/ai/suggest`, {
+    method: 'POST',
+    body: JSON.stringify({ 
+      messageContent: message,
+      channel: channel || 'whatsapp',
+      context,
+      type: 'reply_suggestions',
+    }),
+  });
+  
+  if (data && data.suggestions) {
+    return data.suggestions;
+  }
+  
+  // Fallback suggestions if API fails
+  return [
+    'Thank you for reaching out! How can I help you today?',
+    'I\'ll look into this and get back to you shortly.',
+    'Is there anything else I can assist you with?',
+  ];
+}
+
 // ============================================================================
 // DASHBOARD STATS API
 // ============================================================================

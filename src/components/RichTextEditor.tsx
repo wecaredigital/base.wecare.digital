@@ -6,6 +6,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import styles from './RichTextEditor.module.css';
+import * as api from '../lib/api';
 
 interface RichTextEditorProps {
   value: string;
@@ -30,8 +31,6 @@ const EMOJI_CATEGORIES = {
   business: ['💰', '💵', '💴', '💶', '💷', '💸', '💳', '🧾', '💹', '📊', '📈', '📉', '🏦', '🏢', '🏬', '🏭', '🏗️', '🏛️', '⚖️', '🔒', '🔓', '🔐', '🔑', '🗝️'],
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
-
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
@@ -49,6 +48,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [loadingAI, setLoadingAI] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
@@ -88,31 +88,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   };
 
   const fetchAISuggestions = async () => {
-    if (!value.trim() || value.length < 3) return;
+    if (!value.trim() || value.length < 3) {
+      setAiError('Type at least 3 characters');
+      setTimeout(() => setAiError(null), 2000);
+      return;
+    }
     
     setLoadingAI(true);
+    setAiError(null);
     try {
-      const response = await fetch(`${API_BASE}/ai/suggest`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messageContent: value,
-          channel,
-          context: contactContext,
-          type: 'reply_suggestions',
-        }),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAiSuggestions(data.suggestions || [
-          `Thank you for your message. ${value.length > 20 ? 'I understand your concern.' : 'How can I help you today?'}`,
-          `I'll look into this and get back to you shortly.`,
-          `Is there anything else I can assist you with?`,
-        ]);
-        setShowSuggestions(true);
-      }
+      const suggestions = await api.getAISuggestions(value, channel, contactContext);
+      setAiSuggestions(suggestions);
+      setShowSuggestions(true);
     } catch (error) {
+      console.error('AI suggestions error:', error);
       // Fallback suggestions
       setAiSuggestions([
         'Thank you for reaching out!',
@@ -174,10 +163,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {showAISuggestions && (
           <button
             type="button"
-            className={`${styles['toolbar-btn']} ${styles['ai-btn']}`}
+            className={`${styles['toolbar-btn']} ${styles['ai-btn']} ${aiError ? styles['error'] : ''}`}
             onClick={fetchAISuggestions}
-            disabled={loadingAI || !value.trim()}
-            title="Get AI Suggestions"
+            disabled={loadingAI}
+            title={aiError || "Get AI Suggestions"}
           >
             {loadingAI ? '...' : '✨ AI'}
           </button>
