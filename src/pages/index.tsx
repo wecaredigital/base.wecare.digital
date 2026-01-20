@@ -1,9 +1,7 @@
 /**
- * Dashboard Page (Home)
- * WECARE.DIGITAL Admin Platform
- * Live dashboard with real-time stats from API
- * Design: No emoji - Unicode symbols only
- * NO MOCK DATA - All data from real AWS resources
+ * Dashboard Page - WECARE.DIGITAL
+ * Functional dashboard with real API data and quick compose
+ * NO FAKE DATA - All from real AWS resources
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -16,284 +14,238 @@ interface PageProps {
   user?: any;
 }
 
-interface RecentMessage {
-  id: string;
-  direction: 'inbound' | 'outbound';
-  channel: 'whatsapp' | 'sms' | 'email';
-  content: string;
-  contactName: string;
-  contactPhone: string;
-  timestamp: string;
-  status: string;
-  mediaUrl?: string;
-}
-
-interface SystemHealth {
-  whatsapp: { status: 'active' | 'warning' | 'error'; detail: string };
-  sms: { status: 'active' | 'warning' | 'error'; detail: string };
-  email: { status: 'active' | 'warning' | 'error'; detail: string };
-  ai: { status: 'active' | 'warning' | 'error'; detail: string };
-  dlq: { depth: number; status: 'active' | 'warning' | 'error' };
-  api: { status: 'active' | 'warning' | 'error'; detail: string };
-}
-
 const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<api.DashboardStats>({
-    messagesToday: 0,
-    messagesWeek: 0,
-    activeContacts: 0,
-    bulkJobs: 0,
-    deliveryRate: 100,
-    aiResponses: 0,
-    dlqDepth: 0
-  });
+  const [apiConnected, setApiConnected] = useState(false);
+  const [apiLatency, setApiLatency] = useState<number | null>(null);
   
-  const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
-  const [systemHealth, setSystemHealth] = useState<SystemHealth>({
-    whatsapp: { status: 'active', detail: 'Loading...' },
-    sms: { status: 'active', detail: 'Loading...' },
-    email: { status: 'active', detail: 'Loading...' },
-    ai: { status: 'active', detail: 'Loading...' },
-    dlq: { depth: 0, status: 'active' },
-    api: { status: 'active', detail: 'Checking...' }
-  });
+  // Real data from API
+  const [contacts, setContacts] = useState<api.Contact[]>([]);
+  const [messages, setMessages] = useState<api.Message[]>([]);
+  
+  // Quick compose state
+  const [showCompose, setShowCompose] = useState(false);
+  const [composeChannel, setComposeChannel] = useState<'whatsapp' | 'sms' | 'email'>('whatsapp');
+  const [selectedContact, setSelectedContact] = useState('');
+  const [composeMessage, setComposeMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  const loadDashboardData = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
-    // First test API connection
     const connectionTest = await api.testConnection();
-    const apiStatus = connectionTest.success ? 'active' : 'error';
-    const apiDetail = connectionTest.success 
-      ? `Connected ${connectionTest.latency}ms` 
-      : connectionTest.message;
+    setApiConnected(connectionTest.success);
+    setApiLatency(connectionTest.latency || null);
     
     if (!connectionTest.success) {
-      setError(`API Connection Error: ${connectionTest.message}`);
-      setSystemHealth(prev => ({
-        ...prev,
-        api: { status: 'error', detail: apiDetail }
-      }));
+      setError(connectionTest.message);
       setLoading(false);
       return;
     }
     
     try {
-      // Load stats from API
-      const dashboardStats = await api.getDashboardStats();
-      setStats(dashboardStats);
-      
-      // Load system health
-      const health = await api.getSystemHealth();
-      setSystemHealth({
-        whatsapp: { 
-          status: health.whatsapp.status, 
-          detail: `${health.whatsapp.phoneNumbers} Phone Numbers • ${health.whatsapp.qualityRating} Rating` 
-        },
-        sms: { 
-          status: health.sms.status, 
-          detail: `Pool: ${health.sms.poolId.substring(0, 20)}...` 
-        },
-        email: { 
-          status: health.email.status, 
-          detail: health.email.verified ? 'SES Verified • 10 msg/sec' : 'Not Verified' 
-        },
-        ai: { 
-          status: health.ai.status, 
-          detail: `KB: ${health.ai.kbId} • Nova Pro` 
-        },
-        dlq: { 
-          depth: health.dlq.depth, 
-          status: health.dlq.depth > 10 ? 'error' : health.dlq.depth > 0 ? 'warning' : 'active' 
-        },
-        api: { status: apiStatus as 'active' | 'warning' | 'error', detail: apiDetail }
-      });
-      
-      // Load recent messages
-      const messages = await api.listMessages();
-      const contacts = await api.listContacts();
-      
-      const recent: RecentMessage[] = messages.slice(0, 10).map(m => {
-        const contact = contacts.find(c => c.contactId === m.contactId);
-        return {
-          id: m.messageId,
-          direction: m.direction.toLowerCase() as 'inbound' | 'outbound',
-          channel: m.channel.toLowerCase() as 'whatsapp' | 'sms' | 'email',
-          content: m.content || '',
-          contactName: contact?.name || contact?.phone || 'Unknown',
-          contactPhone: contact?.phone || '',
-          timestamp: m.timestamp || new Date().toISOString(),
-          status: m.status?.toLowerCase() || 'sent',
-          mediaUrl: m.s3Key ? `https://auth.wecare.digital/${m.s3Key}` : undefined
-        };
-      });
-      setRecentMessages(recent);
-      
+      const [contactsData, messagesData] = await Promise.all([
+        api.listContacts(),
+        api.listMessages()
+      ]);
+      setContacts(contactsData);
+      setMessages(messagesData);
     } catch (err) {
-      console.error('Dashboard load error:', err);
-      setError('Failed to load dashboard data. Please try again.');
+      console.error('Load error:', err);
+      setError('Failed to load data');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+    loadData();
+  }, [loadData]);
 
-  // Auto-refresh every 60 seconds
+  // Auto-refresh every 30 seconds
   useEffect(() => {
-    const interval = setInterval(loadDashboardData, 60000);
+    const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
-  }, [loadDashboardData]);
+  }, [loadData]);
 
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case 'active': return 'status-green';
-      case 'warning': return 'status-yellow';
-      case 'error': return 'status-red';
-      default: return 'status-gray';
+  const handleSend = async () => {
+    if (!selectedContact || !composeMessage.trim()) return;
+    
+    setSending(true);
+    setSendResult(null);
+    
+    try {
+      let result = null;
+      if (composeChannel === 'whatsapp') {
+        result = await api.sendWhatsAppMessage({
+          contactId: selectedContact,
+          content: composeMessage,
+          phoneNumberId: 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54'
+        });
+      } else if (composeChannel === 'sms') {
+        result = await api.sendSmsMessage(selectedContact, composeMessage);
+      } else {
+        result = await api.sendEmailMessage(selectedContact, 'Message from WECARE.DIGITAL', composeMessage);
+      }
+      
+      if (result) {
+        setSendResult({ success: true, message: `Message sent! ID: ${result.messageId}` });
+        setComposeMessage('');
+        await loadData();
+      } else {
+        setSendResult({ success: false, message: 'Failed to send message' });
+      }
+    } catch (err) {
+      setSendResult({ success: false, message: 'Send error occurred' });
+    } finally {
+      setSending(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active': return '✓';
-      case 'warning': return '⚠';
-      case 'error': return '✕';
-      default: return '?';
-    }
-  };
+  const todayMessages = messages.filter(m => {
+    const msgDate = new Date(m.timestamp);
+    const today = new Date();
+    return msgDate.toDateString() === today.toDateString();
+  });
+
+  const inboundCount = messages.filter(m => m.direction === 'INBOUND').length;
+  const outboundCount = messages.filter(m => m.direction === 'OUTBOUND').length;
 
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
+        {/* Header */}
         <div className="dashboard-header">
           <h1 className="page-title">Dashboard</h1>
           <div className="header-actions">
-            <button className="btn-secondary" onClick={loadDashboardData} disabled={loading}>
+            <button className="btn-secondary" onClick={loadData} disabled={loading}>
               ↻ {loading ? 'Loading...' : 'Refresh'}
             </button>
-            <Link href="/dm/whatsapp" className="btn-primary">✉ Send Message</Link>
-            <Link href="/bulk-messaging" className="btn-secondary">⧉ Bulk Job</Link>
+            <button className="btn-primary" onClick={() => setShowCompose(!showCompose)}>
+              + Quick Send
+            </button>
           </div>
         </div>
 
-        {error && <div className="error-banner">{error} <button onClick={() => setError(null)}>✕</button></div>}
-        
-        {/* Stats Grid */}
+        {error && (
+          <div className="error-banner">
+            {error}
+            <button onClick={() => setError(null)}>✕</button>
+          </div>
+        )}
+
+        {/* API Status */}
+        <div className="api-status-bar">
+          <span className={`status-dot ${apiConnected ? 'connected' : 'disconnected'}`}></span>
+          <span>API: {apiConnected ? `Connected (${apiLatency}ms)` : 'Disconnected'}</span>
+        </div>
+
+        {/* Quick Compose Panel */}
+        {showCompose && (
+          <div className="section compose-panel">
+            <h2 className="section-title">Quick Send Message</h2>
+            
+            {sendResult && (
+              <div className={`send-result ${sendResult.success ? 'success' : 'error'}`}>
+                {sendResult.message}
+              </div>
+            )}
+            
+            <div className="compose-form">
+              <div className="channel-selector">
+                <button 
+                  className={`channel-btn ${composeChannel === 'whatsapp' ? 'active' : ''}`}
+                  onClick={() => setComposeChannel('whatsapp')}
+                >
+                  ✉ WhatsApp
+                </button>
+                <button 
+                  className={`channel-btn ${composeChannel === 'sms' ? 'active' : ''}`}
+                  onClick={() => setComposeChannel('sms')}
+                >
+                  ☎ SMS
+                </button>
+                <button 
+                  className={`channel-btn ${composeChannel === 'email' ? 'active' : ''}`}
+                  onClick={() => setComposeChannel('email')}
+                >
+                  @ Email
+                </button>
+              </div>
+              
+              <div className="form-group">
+                <label>To Contact</label>
+                <select 
+                  value={selectedContact} 
+                  onChange={e => setSelectedContact(e.target.value)}
+                >
+                  <option value="">Select contact...</option>
+                  {contacts.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name || c.phone || c.email} ({c.phone || c.email})
+                    </option>
+                  ))}
+                </select>
+                {contacts.length === 0 && (
+                  <div className="help-text">
+                    No contacts yet. <Link href="/contacts">Add a contact first</Link>
+                  </div>
+                )}
+              </div>
+              
+              <div className="form-group">
+                <label>Message</label>
+                <textarea 
+                  value={composeMessage}
+                  onChange={e => setComposeMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  rows={3}
+                />
+              </div>
+              
+              <div className="form-actions">
+                <button 
+                  className="btn-secondary" 
+                  onClick={() => setShowCompose(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn-primary"
+                  onClick={handleSend}
+                  disabled={!selectedContact || !composeMessage.trim() || sending}
+                >
+                  {sending ? 'Sending...' : `Send ${composeChannel.toUpperCase()}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stats */}
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-icon">✉</div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.messagesToday}</div>
-              <div className="stat-label">Messages Today</div>
-            </div>
+            <div className="stat-value">{contacts.length}</div>
+            <div className="stat-label">Contacts</div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">⌂</div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.messagesWeek}</div>
-              <div className="stat-label">This Week</div>
-            </div>
+            <div className="stat-value">{messages.length}</div>
+            <div className="stat-label">Total Messages</div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">☎</div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.activeContacts}</div>
-              <div className="stat-label">Active Contacts</div>
-            </div>
+            <div className="stat-value">{todayMessages.length}</div>
+            <div className="stat-label">Today</div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">⌘</div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.aiResponses}</div>
-              <div className="stat-label">AI Responses</div>
-            </div>
+            <div className="stat-value">{inboundCount}</div>
+            <div className="stat-label">Inbound</div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">⧉</div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.bulkJobs}</div>
-              <div className="stat-label">Bulk Jobs</div>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon">✓</div>
-            <div className="stat-content">
-              <div className="stat-value">{stats.deliveryRate}%</div>
-              <div className="stat-label">Delivery Rate</div>
-            </div>
-          </div>
-        </div>
-        
-        {/* System Status */}
-        <div className="section">
-          <h2 className="section-title">System Status</h2>
-          <div className="status-grid">
-            <div className="status-card">
-              <div className="status-header">
-                <span className="status-icon">⚡</span>
-                <span className="status-name">API Gateway</span>
-              </div>
-              <div className={`status-badge ${getStatusClass(systemHealth.api.status)}`}>
-                {getStatusIcon(systemHealth.api.status)} {systemHealth.api.status === 'active' ? 'Connected' : 'Error'}
-              </div>
-              <div className="status-detail">{systemHealth.api.detail}</div>
-            </div>
-            <div className="status-card">
-              <div className="status-header">
-                <span className="status-icon">✉</span>
-                <span className="status-name">WhatsApp</span>
-              </div>
-              <div className={`status-badge ${getStatusClass(systemHealth.whatsapp.status)}`}>
-                {getStatusIcon(systemHealth.whatsapp.status)} {systemHealth.whatsapp.status === 'active' ? 'Active' : systemHealth.whatsapp.status}
-              </div>
-              <div className="status-detail">{systemHealth.whatsapp.detail}</div>
-            </div>
-            <div className="status-card">
-              <div className="status-header">
-                <span className="status-icon">☎</span>
-                <span className="status-name">SMS</span>
-              </div>
-              <div className={`status-badge ${getStatusClass(systemHealth.sms.status)}`}>
-                {getStatusIcon(systemHealth.sms.status)} {systemHealth.sms.status === 'active' ? 'Active' : systemHealth.sms.status}
-              </div>
-              <div className="status-detail">{systemHealth.sms.detail}</div>
-            </div>
-            <div className="status-card">
-              <div className="status-header">
-                <span className="status-icon">@</span>
-                <span className="status-name">Email</span>
-              </div>
-              <div className={`status-badge ${getStatusClass(systemHealth.email.status)}`}>
-                {getStatusIcon(systemHealth.email.status)} {systemHealth.email.status === 'active' ? 'Active' : systemHealth.email.status}
-              </div>
-              <div className="status-detail">{systemHealth.email.detail}</div>
-            </div>
-            <div className="status-card">
-              <div className="status-header">
-                <span className="status-icon">⌘</span>
-                <span className="status-name">AI Agent</span>
-              </div>
-              <div className={`status-badge ${getStatusClass(systemHealth.ai.status)}`}>
-                {getStatusIcon(systemHealth.ai.status)} Enabled
-              </div>
-              <div className="status-detail">{systemHealth.ai.detail}</div>
-            </div>
-            <div className="status-card">
-              <div className="status-header">
-                <span className="status-icon">!</span>
-                <span className="status-name">DLQ Depth</span>
-              </div>
-              <div className={`status-badge ${systemHealth.dlq.depth > 10 ? 'status-red' : systemHealth.dlq.depth > 0 ? 'status-yellow' : 'status-green'}`}>
-                {systemHealth.dlq.depth} messages
-              </div>
-              <div className="status-detail">Failed message queue</div>
-            </div>
+            <div className="stat-value">{outboundCount}</div>
+            <div className="stat-label">Outbound</div>
           </div>
         </div>
 
@@ -304,39 +256,107 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
             <Link href="/dm/whatsapp" className="quick-action-card">
               <span className="qa-icon">✉</span>
               <span className="qa-title">WhatsApp</span>
-              <span className="qa-desc">Send & receive</span>
             </Link>
             <Link href="/dm/sms" className="quick-action-card">
               <span className="qa-icon">☎</span>
               <span className="qa-title">SMS</span>
-              <span className="qa-desc">Text messages</span>
             </Link>
             <Link href="/dm/email" className="quick-action-card">
               <span className="qa-icon">@</span>
               <span className="qa-title">Email</span>
-              <span className="qa-desc">Send emails</span>
+            </Link>
+            <Link href="/contacts" className="quick-action-card">
+              <span className="qa-icon">+</span>
+              <span className="qa-title">Add Contact</span>
             </Link>
             <Link href="/bulk-messaging" className="quick-action-card">
               <span className="qa-icon">⧉</span>
-              <span className="qa-title">Bulk Job</span>
-              <span className="qa-desc">Mass messaging</span>
-            </Link>
-            <Link href="/contacts" className="quick-action-card">
-              <span className="qa-icon">☎</span>
-              <span className="qa-title">Contacts</span>
-              <span className="qa-desc">Manage contacts</span>
+              <span className="qa-title">Bulk Send</span>
             </Link>
             <Link href="/agent" className="quick-action-card">
               <span className="qa-icon">⌘</span>
-              <span className="qa-title">AI Settings</span>
-              <span className="qa-desc">Configure AI</span>
+              <span className="qa-title">AI Agent</span>
             </Link>
           </div>
         </div>
 
-        {/* WhatsApp Phone Numbers */}
+        {/* Recent Messages */}
         <div className="section">
-          <h2 className="section-title">WhatsApp Phone Numbers</h2>
+          <div className="section-header">
+            <h2 className="section-title">Recent Messages</h2>
+            <Link href="/messaging" className="view-all-link">View All →</Link>
+          </div>
+          
+          {messages.length > 0 ? (
+            <div className="messages-list">
+              {messages.slice(0, 5).map(msg => {
+                const contact = contacts.find(c => c.id === msg.contactId || c.contactId === msg.contactId);
+                return (
+                  <div key={msg.id} className={`message-row ${msg.direction.toLowerCase()}`}>
+                    <div className="message-direction">
+                      {msg.direction === 'INBOUND' ? '↓' : '↑'}
+                    </div>
+                    <div className="message-info">
+                      <div className="message-contact">
+                        {contact?.name || contact?.phone || msg.contactId?.substring(0, 8)}
+                      </div>
+                      <div className="message-preview">
+                        {msg.content?.substring(0, 50) || '(no content)'}
+                        {(msg.content?.length || 0) > 50 ? '...' : ''}
+                      </div>
+                    </div>
+                    <div className="message-meta">
+                      <span className="message-channel">{msg.channel}</span>
+                      <span className="message-time">
+                        {new Date(msg.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>No messages yet</p>
+              <button className="btn-primary" onClick={() => setShowCompose(true)}>
+                Send First Message
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Contacts List */}
+        <div className="section">
+          <div className="section-header">
+            <h2 className="section-title">Contacts ({contacts.length})</h2>
+            <Link href="/contacts" className="view-all-link">Manage →</Link>
+          </div>
+          
+          {contacts.length > 0 ? (
+            <div className="contacts-grid">
+              {contacts.slice(0, 6).map(contact => (
+                <div key={contact.id} className="contact-card-mini">
+                  <div className="contact-avatar-mini">
+                    {(contact.name || contact.phone || '?').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="contact-details-mini">
+                    <div className="contact-name-mini">{contact.name || 'No name'}</div>
+                    <div className="contact-phone-mini">{contact.phone || contact.email}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>No contacts yet</p>
+              <Link href="/contacts" className="btn-primary">Add Contact</Link>
+            </div>
+          )}
+        </div>
+
+        {/* WhatsApp Numbers */}
+        <div className="section">
+          <h2 className="section-title">WhatsApp Numbers</h2>
           <div className="phone-cards">
             <div className="phone-card">
               <div className="phone-header">
@@ -344,12 +364,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                 <span className="badge badge-green">GREEN</span>
               </div>
               <div className="phone-number">+91 93309 94400</div>
-              <div className="phone-details">
-                <span>80 msg/sec</span>
-                <span>•</span>
-                <span>Primary</span>
-              </div>
-              <div className="phone-id">phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54</div>
+              <div className="phone-id">Primary</div>
             </div>
             <div className="phone-card">
               <div className="phone-header">
@@ -357,87 +372,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                 <span className="badge badge-green">GREEN</span>
               </div>
               <div className="phone-number">+91 99033 00044</div>
-              <div className="phone-details">
-                <span>80 msg/sec</span>
-                <span>•</span>
-                <span>Secondary</span>
-              </div>
-              <div className="phone-id">phone-number-id-1447bc72d1b040f4bf2341c9e04b2e06</div>
-            </div>
-          </div>
-        </div>
-
-        {/* AWS Resources Summary */}
-        <div className="section">
-          <h2 className="section-title">AWS Resources (60+ Active)</h2>
-          <div className="resources-grid">
-            <div className="resource-item"><div className="resource-count">16</div><div className="resource-name">Lambda</div></div>
-            <div className="resource-item"><div className="resource-count">11</div><div className="resource-name">DynamoDB</div></div>
-            <div className="resource-item"><div className="resource-count">5</div><div className="resource-name">SQS</div></div>
-            <div className="resource-item"><div className="resource-count">4</div><div className="resource-name">S3</div></div>
-            <div className="resource-item"><div className="resource-count">2</div><div className="resource-name">WABA</div></div>
-            <div className="resource-item"><div className="resource-count">2</div><div className="resource-name">Agents</div></div>
-            <div className="resource-item"><div className="resource-count">1</div><div className="resource-name">KB</div></div>
-            <div className="resource-item"><div className="resource-count">1</div><div className="resource-name">Cognito</div></div>
-          </div>
-        </div>
-        
-        {/* Recent Activity */}
-        <div className="section">
-          <div className="section-header">
-            <h2 className="section-title">Recent Messages</h2>
-            <Link href="/messaging" className="view-all-link">View All →</Link>
-          </div>
-          <div className="activity-list">
-            {recentMessages.length > 0 ? recentMessages.map(msg => (
-              <div key={msg.id} className="activity-item">
-                <div className={`activity-icon ${msg.direction}`}>
-                  {msg.direction === 'inbound' ? '↓' : '↑'}
-                </div>
-                <div className="activity-content">
-                  <div className="activity-text">
-                    <strong>{msg.contactName}</strong> 
-                    {msg.direction === 'inbound' ? ' sent' : ' received'} a {msg.channel} message
-                  </div>
-                  <div className="activity-detail">
-                    {msg.mediaUrl && '⊕ '}
-                    {msg.content.substring(0, 60)}{msg.content.length > 60 ? '...' : ''}
-                  </div>
-                </div>
-                <div className="activity-meta">
-                  <div className="activity-time">{new Date(msg.timestamp).toLocaleTimeString()}</div>
-                  <div className={`activity-status status-${msg.status}`}>
-                    {msg.status === 'delivered' || msg.status === 'read' ? '✓✓' : msg.status === 'sent' ? '✓' : '●'}
-                  </div>
-                </div>
-              </div>
-            )) : (
-              <div className="empty-state">
-                <p>No recent messages</p>
-                <Link href="/messaging" className="btn-primary">Send First Message</Link>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* API Quotas */}
-        <div className="section">
-          <h2 className="section-title">API Rate Limits</h2>
-          <div className="quota-grid">
-            <div className="quota-item">
-              <div className="quota-name">SendWhatsAppMessage</div>
-              <div className="quota-bar"><div className="quota-fill" style={{ width: '5%' }}></div></div>
-              <div className="quota-value">50 / 1,000 per sec</div>
-            </div>
-            <div className="quota-item">
-              <div className="quota-name">PostWhatsAppMessageMedia</div>
-              <div className="quota-bar"><div className="quota-fill" style={{ width: '2%' }}></div></div>
-              <div className="quota-value">2 / 100 per sec</div>
-            </div>
-            <div className="quota-item">
-              <div className="quota-name">GetWhatsAppMessageMedia</div>
-              <div className="quota-bar"><div className="quota-fill" style={{ width: '3%' }}></div></div>
-              <div className="quota-value">3 / 100 per sec</div>
+              <div className="phone-id">Secondary</div>
             </div>
           </div>
         </div>
