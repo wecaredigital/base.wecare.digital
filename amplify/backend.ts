@@ -28,6 +28,7 @@ import { aiQueryKb } from './functions/ai-query-kb/resource';
 import { aiGenerateResponse } from './functions/ai-generate-response/resource';
 import { outboundVoice } from './functions/outbound-voice/resource';
 import { voiceCallsRead } from './functions/voice-calls-read/resource';
+import { messagesDelete } from './functions/messages-delete/resource';
 
 /**
  * WECARE.DIGITAL Admin Platform Backend
@@ -65,6 +66,7 @@ const backend = defineBackend({
   aiGenerateResponse,
   outboundVoice,
   voiceCallsRead,
+  messagesDelete,
 });
 
 // Create HTTP API for frontend to call Lambda functions
@@ -119,11 +121,18 @@ httpApi.addRoutes({
 
 // Messages API routes
 const messagesReadIntegration = new HttpLambdaIntegration('MessagesReadIntegration', backend.messagesRead.resources.lambda);
+const messagesDeleteIntegration = new HttpLambdaIntegration('MessagesDeleteIntegration', backend.messagesDelete.resources.lambda);
 
 httpApi.addRoutes({
   path: '/messages',
   methods: [HttpMethod.GET],
   integration: messagesReadIntegration,
+});
+
+httpApi.addRoutes({
+  path: '/messages/{messageId}',
+  methods: [HttpMethod.DELETE],
+  integration: messagesDeleteIntegration,
 });
 
 // WhatsApp API routes

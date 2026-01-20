@@ -15,7 +15,6 @@ import logging
 import boto3
 from typing import Dict, Any
 from decimal import Decimal
-from boto3.dynamodb.conditions import Attr
 
 # Configure logging
 logger = logging.getLogger()
@@ -48,8 +47,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         table = dynamodb.Table(CONTACTS_TABLE)
         
         try:
+            # First check if contact exists
+            get_response = table.get_item(Key={'id': contact_id})
+            item = get_response.get('Item')
+            
+            if not item:
+                return _error_response(404, 'Contact not found')
+            
+            if item.get('deletedAt') is not None:
+                return _error_response(404, 'Contact already deleted')
+            
+            # Perform soft delete
             response = table.update_item(
-                Key={'id': contact_id},  # Table uses 'id' as primary key
+                Key={'id': contact_id},
                 UpdateExpression='SET #deletedAt = :deletedAt, #updatedAt = :updatedAt',
                 ExpressionAttributeNames={
                     '#deletedAt': 'deletedAt',
@@ -59,7 +69,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     ':deletedAt': Decimal(str(deleted_at)),
                     ':updatedAt': Decimal(str(deleted_at))
                 },
-                ConditionExpression=Attr('id').exists() & Attr('deletedAt').not_exists(),
                 ReturnValues='ALL_NEW'
             )
         except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
