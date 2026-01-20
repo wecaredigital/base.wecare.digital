@@ -325,6 +325,13 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         
         logger.info(json.dumps({
             'event': 'message_payload_built',
+            'messageId': message_id,
+            'contactId': contact_id,
+            'recipientPhone': recipient_phone,
+            'normalizedPhone': message_payload.get('to'),
+            'payloadType': message_payload.get('type'),
+            'hasMedia': bool(whatsapp_media_id),
+            'mediaId': whatsapp_media_id,
             'payload': message_payload,
             'requestId': request_id
         }))
@@ -396,23 +403,30 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         
     except Exception as e:
         # Requirement 5.10: Store error details
+        error_msg = str(e)
+        error_type = type(e).__name__
+        
+        logger.error(json.dumps({
+            'event': 'send_api_error',
+            'messageId': message_id,
+            'error': error_msg,
+            'errorType': error_type,
+            'recipientPhone': recipient_phone,
+            'normalizedPhone': message_payload.get('to') if 'message_payload' in locals() else 'unknown',
+            'requestId': request_id
+        }))
+        
         _store_message_record(
             message_id=message_id,
             contact_id=contact_id,
             content=content,
             status='failed',
-            error_details={'type': 'api_error', 'message': str(e)},
+            error_details={'type': error_type, 'message': error_msg},
             phone_number_id=phone_number_id
         )
         # Emit failure metric
         _emit_delivery_metric('failed', is_template)
-        logger.error(json.dumps({
-            'event': 'send_api_error',
-            'messageId': message_id,
-            'error': str(e),
-            'requestId': request_id
-        }))
-        return _error_response(500, f'Failed to send message: {str(e)}')
+        return _error_response(500, f'Failed to send message: {error_msg}')
 
 
 def _upload_media(media_file: str, media_type: str, message_id: str, phone_number_id: str, request_id: str) -> Tuple[Optional[str], Optional[str]]:
@@ -482,6 +496,13 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
                 ContentType=_get_content_type(media_type)
             )
         
+        logger.info(json.dumps({
+            'event': 'media_uploaded_to_s3',
+            's3Key': s3_key,
+            'mediaType': media_type,
+            'requestId': request_id
+        }))
+        
         # Requirement 5.6: Call PostWhatsAppMessageMedia to get mediaId
         # Use boto3 with correct parameter format
         try:
@@ -494,10 +515,21 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
             )
             whatsapp_media_id = response.get('mediaId', '')
             
+            if not whatsapp_media_id:
+                logger.error(json.dumps({
+                    'event': 'media_registration_no_id',
+                    's3Key': s3_key,
+                    'response': response,
+                    'requestId': request_id
+                }))
+                return None, None
+            
             logger.info(json.dumps({
-                'event': 'media_registered',
+                'event': 'media_registered_with_whatsapp',
                 's3Key': s3_key,
                 'mediaId': whatsapp_media_id,
+                'mediaType': media_type,
+                'phoneNumberId': phone_number_id,
                 'requestId': request_id
             }))
             
@@ -507,17 +539,17 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
                 'error': str(e),
                 'errorType': type(e).__name__,
                 's3Key': s3_key,
+                'phoneNumberId': phone_number_id,
                 'requestId': request_id
             }))
             # Media registration failed - cannot send media without mediaId
             return None, None
         
         logger.info(json.dumps({
-            'event': 'media_uploaded',
+            'event': 'media_upload_complete',
             's3Key': s3_key,
             'mediaId': whatsapp_media_id,
             'mediaType': media_type,
-            'fileSize': file_size,
             'requestId': request_id
         }))
         
@@ -527,6 +559,8 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
         logger.error(json.dumps({
             'event': 'media_upload_error',
             'error': str(e),
+            'errorType': type(e).__name__,
+            'mediaType': media_type,
             'requestId': request_id
         }))
         return None, None
@@ -543,11 +577,15 @@ def _normalize_phone_number(phone: str) -> str:
     - "+91 98765 43210" -> "919876543210"
     - "9876543210" -> "919876543210" (assumes India)
     - "447447840003" -> "447447840003"
+    - "+44 7447 840003" -> "447447840003"
     """
+    if not phone:
+        return phone
+    
     # Remove all non-digit characters (spaces, dashes, +, etc.)
     digits_only = ''.join(c for c in phone if c.isdigit())
     
-    # If empty, return as-is
+    # If empty after removing non-digits, return original
     if not digits_only:
         return phone
     
@@ -559,6 +597,10 @@ def _normalize_phone_number(phone: str) -> str:
     if len(digits_only) == 11 and digits_only[0] == '0':
         digits_only = '91' + digits_only[1:]
     
+    # If 12 digits starting with 0091, remove leading 00
+    if len(digits_only) == 12 and digits_only.startswith('0091'):
+        digits_only = digits_only[2:]
+    
     return digits_only
 
 
@@ -568,6 +610,10 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
     """Build WhatsApp Cloud API message payload."""
     # Normalize phone number - WhatsApp API expects digits only without + prefix
     formatted_phone = _normalize_phone_number(recipient_phone)
+    
+    # Validate phone number format
+    if not formatted_phone or not formatted_phone.isdigit() or len(formatted_phone) < 10:
+        logger.warning(f"Invalid phone number after normalization: {recipient_phone} -> {formatted_phone}")
     
     payload = {
         'messaging_product': 'whatsapp',
@@ -592,6 +638,13 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
         # Media message - extract message type from media_type
         # media_type is like 'image/jpeg', we need just 'image'
         msg_type = media_type.split('/')[0] if '/' in media_type else media_type
+        
+        # Validate media type
+        valid_types = ['image', 'video', 'audio', 'document', 'sticker']
+        if msg_type not in valid_types:
+            logger.warning(f"Invalid media type: {media_type} -> {msg_type}, using 'document' as fallback")
+            msg_type = 'document'
+        
         payload['type'] = msg_type
         payload[msg_type] = {'id': media_id}
         if content:
