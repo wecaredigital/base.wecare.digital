@@ -224,17 +224,28 @@ def _handle_reaction_send(message_id: str, contact_id: str, recipient_phone: str
     Uses AWS EUM Social SendWhatsAppMessage API with reaction type.
     """
     try:
+        # Format phone number with + prefix if not present
+        formatted_phone = recipient_phone if recipient_phone.startswith('+') else f'+{recipient_phone}'
+        
         # Build reaction payload per WhatsApp Cloud API spec
         reaction_payload = {
             'messaging_product': 'whatsapp',
             'recipient_type': 'individual',
-            'to': recipient_phone,
+            'to': formatted_phone,
             'type': 'reaction',
             'reaction': {
                 'message_id': reaction_message_id,
                 'emoji': reaction_emoji
             }
         }
+        
+        logger.info(json.dumps({
+            'event': 'reaction_payload',
+            'to': formatted_phone,
+            'reactionMessageId': reaction_message_id,
+            'emoji': reaction_emoji,
+            'requestId': request_id
+        }))
         
         # Call SendWhatsAppMessage API
         response = social_messaging.send_whatsapp_message(
