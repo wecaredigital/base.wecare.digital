@@ -98,7 +98,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setAiError(null);
     try {
       const suggestions = await api.getAISuggestions(value, channel, contactContext);
-      setAiSuggestions(suggestions);
+      // Add some quick reply templates along with AI suggestion
+      const allSuggestions = [
+        ...suggestions,
+        'Thank you for your message. I\'ll get back to you shortly.',
+        'Is there anything else I can help you with?',
+      ].slice(0, 4); // Limit to 4 suggestions
+      setAiSuggestions(allSuggestions);
       setShowSuggestions(true);
     } catch (error) {
       console.error('AI suggestions error:', error);

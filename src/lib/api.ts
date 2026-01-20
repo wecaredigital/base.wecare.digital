@@ -159,7 +159,8 @@ export async function deleteContact(contactId: string): Promise<boolean> {
   const data = await apiCall<any>(`${API_BASE}/contacts/${contactId}`, {
     method: 'DELETE',
   });
-  return data !== null;
+  // Check if response indicates success (not an error)
+  return data !== null && !data.error;
 }
 
 function normalizeContact(item: any): Contact {
@@ -412,18 +413,21 @@ export async function testAIResponse(message: string): Promise<{ response: strin
 
 // Get AI suggestions for message replies
 export async function getAISuggestions(message: string, channel?: string, context?: string): Promise<string[]> {
-  const data = await apiCall<any>(`${API_BASE}/ai/suggest`, {
+  // First try the AI generate endpoint
+  const data = await apiCall<any>(`${API_BASE}/ai/generate`, {
     method: 'POST',
     body: JSON.stringify({ 
       messageContent: message,
-      channel: channel || 'whatsapp',
-      context,
-      type: 'reply_suggestions',
+      context: {
+        channel: channel || 'whatsapp',
+        contactName: context,
+      },
     }),
   });
   
-  if (data && data.suggestions) {
-    return data.suggestions;
+  if (data && data.suggestedResponse) {
+    // Return the AI-generated response as a suggestion
+    return [data.suggestedResponse];
   }
   
   // Fallback suggestions if API fails
