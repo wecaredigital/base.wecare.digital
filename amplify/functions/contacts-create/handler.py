@@ -23,6 +23,14 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
 
+# CORS headers
+CORS_HEADERS = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+}
+
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Create a new contact record."""
@@ -84,12 +92,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         return {
             'statusCode': 201,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
-            },
+            'headers': CORS_HEADERS,
             'body': json.dumps(_convert_from_dynamodb(contact)),
         }
         
@@ -105,9 +108,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 
 def _validate_phone(phone: str) -> bool:
-    """Validate phone number format."""
-    pattern = r'^\+?[\d\s\-\(\)]{7,20}$'
-    return bool(re.match(pattern, phone))
+    """Validate phone number format - accepts international formats."""
+    # Allow: +919330994400, +91 93309 94400, (91) 93309-94400, etc.
+    pattern = r'^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}[-\s\.]?[0-9]{0,9}$'
+    return bool(re.match(pattern, phone.replace(' ', '')))
 
 
 def _validate_email(email: str) -> bool:
@@ -143,14 +147,9 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _error_response(status_code: int, message: str) -> Dict[str, Any]:
-    """Return error response."""
+    """Return error response with CORS headers."""
     return {
         'statusCode': status_code,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-            'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
-        },
+        'headers': CORS_HEADERS,
         'body': json.dumps({'error': message}),
     }

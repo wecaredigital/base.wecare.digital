@@ -149,7 +149,12 @@ def _handle_dry_run(message_id: str, contact_id: str, recipient_phone: str,
     
     return {
         'statusCode': 200,
-        'headers': {'Content-Type': 'application/json'},
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+            'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+        },
         'body': json.dumps({
             'messageId': message_id,
             'status': 'dry_run',
@@ -219,7 +224,12 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         
         return {
             'statusCode': 200,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
             'body': json.dumps({
                 'messageId': message_id,
                 'whatsappMessageId': whatsapp_message_id,
@@ -499,13 +509,18 @@ def _get_content_type(media_type: str) -> str:
 
 
 def _error_response(status_code: int, error: str, message: str = None) -> Dict[str, Any]:
-    """Return error response."""
+    """Return error response with CORS headers."""
     body = {'error': error}
     if message:
         body['message'] = message
     return {
         'statusCode': status_code,
-        'headers': {'Content-Type': 'application/json'},
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+            'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+        },
         'body': json.dumps(body)
     }
 
