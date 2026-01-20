@@ -102,8 +102,7 @@ const SmsDM: React.FC<PageProps> = ({ signOut, user }) => {
 
   const canSend = () => {
     if (!selectedContact) return { allowed: false, reason: 'Select a contact' };
-    if (!selectedContact.optIn) return { allowed: false, reason: 'Contact has not opted in to SMS' };
-    if (!selectedContact.allowlist) return { allowed: false, reason: 'Contact is not allowlisted for SMS' };
+    // All contacts can receive messages - no opt-in/allowlist restrictions
     return { allowed: true, reason: '' };
   };
 

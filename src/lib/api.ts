@@ -3,10 +3,10 @@
  * Connects to API Gateway -> Lambda -> DynamoDB
  * NO MOCK DATA - All data fetched from real AWS resources
  * 
- * API Endpoint: https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod
+ * API Endpoint: Uses NEXT_PUBLIC_API_BASE or defaults to production
  */
 
-const API_BASE = 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
 
 // ============================================================================
 // CONTACTS API
@@ -234,15 +234,39 @@ export async function sendWhatsAppMessage(request: SendMessageRequest): Promise<
 }
 
 export async function sendSmsMessage(contactId: string, content: string): Promise<{ messageId: string; status: string } | null> {
-  // SMS endpoint not yet configured
-  console.log('SMS sending not yet implemented');
-  return null;
+  try {
+    const response = await fetch(`${API_BASE}/sms/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contactId, content }),
+    });
+    if (response.ok) {
+      return response.json();
+    }
+    console.error('Failed to send SMS:', response.status);
+    return null;
+  } catch (e) {
+    console.error('API error sending SMS:', e);
+    return null;
+  }
 }
 
-export async function sendEmailMessage(contactId: string, subject: string, content: string): Promise<{ messageId: string; status: string } | null> {
-  // Email endpoint not yet configured
-  console.log('Email sending not yet implemented');
-  return null;
+export async function sendEmailMessage(contactId: string, subject: string, content: string, htmlContent?: string): Promise<{ messageId: string; status: string } | null> {
+  try {
+    const response = await fetch(`${API_BASE}/email/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contactId, subject, content, htmlContent }),
+    });
+    if (response.ok) {
+      return response.json();
+    }
+    console.error('Failed to send email:', response.status);
+    return null;
+  } catch (e) {
+    console.error('API error sending email:', e);
+    return null;
+  }
 }
 
 // ============================================================================

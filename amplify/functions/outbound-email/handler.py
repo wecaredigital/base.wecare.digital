@@ -242,7 +242,8 @@ def _get_contact(contact_id: str) -> Optional[Dict[str, Any]]:
     """Retrieve contact from DynamoDB."""
     try:
         contacts_table = dynamodb.Table(CONTACTS_TABLE)
-        response = contacts_table.get_item(Key={'contactId': contact_id})
+        # Table uses 'id' as primary key
+        response = contacts_table.get_item(Key={'id': contact_id})
         item = response.get('Item')
         if item and item.get('deletedAt') is not None:
             return None
@@ -282,7 +283,8 @@ def _store_message_record(message_id: str, contact_id: str, subject: str, conten
     expires_at = now + MESSAGE_TTL_SECONDS
     
     record = {
-        'messageId': message_id,
+        'id': message_id,  # Primary key - table uses 'id'
+        'messageId': message_id,  # Keep for backwards compatibility
         'contactId': contact_id,
         'channel': 'email',
         'direction': 'outbound',

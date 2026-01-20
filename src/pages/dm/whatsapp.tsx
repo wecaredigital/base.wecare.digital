@@ -136,9 +136,7 @@ const WhatsAppDM: React.FC<PageProps> = ({ signOut, user }) => {
 
   const canSend = () => {
     if (!selectedContact) return { allowed: false, reason: 'Select a contact' };
-    if (!selectedContact.optIn) return { allowed: false, reason: 'Contact has not opted in to WhatsApp' };
-    if (!selectedContact.allowlist) return { allowed: false, reason: 'Contact is not allowlisted' };
-    if (!selectedContact.windowOpen && !selectedTemplate) return { allowed: false, reason: '24h window closed - use template' };
+    // All contacts can receive messages - no opt-in/allowlist restrictions
     return { allowed: true, reason: '' };
   };
 
