@@ -10,5 +10,6 @@ export const aiQueryKb = defineFunction({
     AWS_REGION: 'us-east-1',
     LOG_LEVEL: 'INFO',
     BEDROCK_KB_ID: 'FZBPKGTOYE',
+    BEDROCK_FOUNDATION_MODEL: 'amazon.nova-pro-v1:0',
   },
 });

@@ -3,7 +3,12 @@
  * WECARE.DIGITAL Admin Platform
  * 
  * CAS (Conversational AI System) for internal task automation
- * Bedrock Agent Core Runtime ID: base_bedrock_agentcore-1XHDxj2o3Q
+ * 
+ * Bedrock Resources:
+ * - Knowledge Base ID: FZBPKGTOYE
+ * - Agent ID: HQNT0JXN8G (WhatsApp Customer Interaction)
+ * - Agent Core Runtime ID: base_bedrock_agentcore-1XHDxj2o3Q (Internal Admin)
+ * - Foundation Model: amazon.nova-pro-v1:0
  * 
  * Capabilities:
  * - Send WhatsApp/SMS/Email messages
