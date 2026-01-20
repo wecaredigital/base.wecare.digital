@@ -13,6 +13,19 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
+interface SubItem {
+  path: string;
+  label: string;
+}
+
+interface MenuItem {
+  path: string;
+  label: string;
+  icon: string;
+  subItems?: SubItem[];
+  adminOnly?: boolean;
+}
+
 interface LayoutProps {
   children: ReactNode;
   user?: any;
@@ -25,16 +38,17 @@ const SEND_MODE = process.env.NEXT_PUBLIC_SEND_MODE || 'DRY_RUN';
 const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   
   // Navigation items per Requirement 20.3 - Updated order
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/pay', label: 'Pay', icon: '💳' },
     { path: '/link', label: 'Link', icon: '🔗' },
     { path: '/forms', label: 'Forms', icon: '📝' },
     { path: '/docs', label: 'Docs', icon: '📄' },
     { path: '/invoice', label: 'Invoice', icon: '🧾' },
-    { path: '/messaging', label: 'DM', icon: '💬', subItems: [
+    { path: '/dm', label: 'DM', icon: '💬', subItems: [
       { path: '/dm/whatsapp', label: 'WhatsApp' },
       { path: '/dm/sms', label: 'SMS' },
       { path: '/dm/email', label: 'Email (SES)' },
@@ -45,10 +59,29 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
     { path: '/admin', label: 'Admin Tools', icon: '⚙️', adminOnly: true },
   ];
 
+  // Auto-expand DM menu if on a DM page
+  useEffect(() => {
+    if (router.pathname.startsWith('/dm')) {
+      setExpandedMenus(prev => prev.includes('/dm') ? prev : [...prev, '/dm']);
+    }
+  }, [router.pathname]);
+
   // Close mobile menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [router.pathname]);
+
+  const toggleSubmenu = (path: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path]
+    );
+  };
+
+  const isActive = (item: MenuItem) => {
+    if (item.path === '/') return router.pathname === '/';
+    if (item.subItems) return router.pathname.startsWith(item.path);
+    return router.pathname === item.path || router.pathname.startsWith(item.path + '/');
+  };
 
   return (
     <>
@@ -75,14 +108,41 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
           
           <nav className="sidebar-nav">
             {menuItems.map((item) => (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={`nav-item ${router.pathname === item.path || (item.path !== '/' && router.pathname.startsWith(item.path.split('?')[0])) ? 'nav-item-active' : ''}`}
-              >
-                <span className="nav-icon">{item.icon}</span>
-                <span className="nav-label">{item.label}</span>
-              </Link>
+              <div key={item.path} className="nav-group">
+                {item.subItems ? (
+                  <>
+                    <button
+                      className={`nav-item nav-item-expandable ${isActive(item) ? 'nav-item-active' : ''}`}
+                      onClick={() => toggleSubmenu(item.path)}
+                    >
+                      <span className="nav-icon">{item.icon}</span>
+                      <span className="nav-label">{item.label}</span>
+                      <span className={`nav-arrow ${expandedMenus.includes(item.path) ? 'expanded' : ''}`}>▸</span>
+                    </button>
+                    {expandedMenus.includes(item.path) && (
+                      <div className="nav-subitems">
+                        {item.subItems.map(sub => (
+                          <Link
+                            key={sub.path}
+                            href={sub.path}
+                            className={`nav-subitem ${router.pathname === sub.path ? 'nav-subitem-active' : ''}`}
+                          >
+                            {sub.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Link
+                    href={item.path}
+                    className={`nav-item ${isActive(item) ? 'nav-item-active' : ''}`}
+                  >
+                    <span className="nav-icon">{item.icon}</span>
+                    <span className="nav-label">{item.label}</span>
+                  </Link>
+                )}
+              </div>
             ))}
           </nav>
           
