@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import Layout from '../components/Layout';
-import * as api from '../lib/api';
+import Layout from '../../components/Layout';
+import * as api from '../../lib/api';
 
 interface PageProps {
   signOut?: () => void;
