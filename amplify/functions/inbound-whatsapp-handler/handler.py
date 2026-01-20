@@ -211,6 +211,11 @@ def _process_message(
     msg_type = message.get('type', 'text')
     timestamp = int(message.get('timestamp', time.time()))
     
+    # Extract sender name from profile if available
+    sender_name = ''
+    if 'profile' in message:
+        sender_name = message.get('profile', {}).get('name', '')
+    
     # Deduplicate using whatsappMessageId
     if _message_exists(whatsapp_message_id):
         logger.info(json.dumps({
@@ -220,8 +225,8 @@ def _process_message(
         }))
         return
     
-    # Lookup or create contact
-    contact = _get_or_create_contact(sender_phone)
+    # Lookup or create contact with sender name
+    contact = _get_or_create_contact(sender_phone, sender_name)
     contact_id = contact.get('contactId') or contact.get('id')
     
     # Extract message content based on type
@@ -243,7 +248,7 @@ def _process_message(
             if s3_key:
                 media_id = _store_media_record(message_id, s3_key, media_data, whatsapp_media_id)
     
-    # Store message in DynamoDB with WABA info
+    # Store message in DynamoDB with WABA info and sender name
     message_record = {
         'id': message_id,
         'messageId': message_id,
@@ -258,6 +263,7 @@ def _process_message(
         'mediaId': media_id,
         's3Key': s3_key,
         'senderPhone': sender_phone,
+        'senderName': sender_name,  # Sender's WhatsApp profile name
         # WABA tracking - which number received this message
         'receivingPhone': receiving_phone,
         'awsPhoneNumberId': aws_phone_number_id,
@@ -276,6 +282,8 @@ def _process_message(
         'event': 'message_stored',
         'messageId': message_id,
         'contactId': contact_id,
+        'senderPhone': sender_phone,
+        'senderName': sender_name,
         'whatsappMessageId': whatsapp_message_id,
         'type': msg_type,
         'hasMedia': bool(media_id),
@@ -289,6 +297,13 @@ def _process_message(
     if msg_type != 'reaction':
         _send_auto_reaction(
             contact_id=contact_id,
+            whatsapp_message_id=whatsapp_message_id,
+            phone_number_id=aws_phone_number_id,
+            request_id=request_id
+        )
+        
+        # Send read receipt to show message was received
+        _send_read_receipt(
             whatsapp_message_id=whatsapp_message_id,
             phone_number_id=aws_phone_number_id,
             request_id=request_id
@@ -346,7 +361,7 @@ def _message_exists(whatsapp_message_id: str) -> bool:
         return False
 
 
-def _get_or_create_contact(phone: str) -> Dict[str, Any]:
+def _get_or_create_contact(phone: str, sender_name: str = '') -> Dict[str, Any]:
     """Get existing contact or create new one."""
     contacts_table = dynamodb.Table(CONTACTS_TABLE)
     
@@ -358,7 +373,17 @@ def _get_or_create_contact(phone: str) -> Dict[str, Any]:
     
     items = response.get('Items', [])
     if items:
-        return items[0]
+        contact = items[0]
+        # Update name if sender provided a name and contact doesn't have one
+        if sender_name and not contact.get('name'):
+            contacts_table.update_item(
+                Key={'id': contact.get('id')},
+                UpdateExpression='SET #name = :name',
+                ExpressionAttributeNames={'#name': 'name'},
+                ExpressionAttributeValues={':name': sender_name}
+            )
+            contact['name'] = sender_name
+        return contact
     
     # Create new contact
     contact_id = str(uuid.uuid4())
@@ -367,7 +392,7 @@ def _get_or_create_contact(phone: str) -> Dict[str, Any]:
     contact = {
         'id': contact_id,
         'contactId': contact_id,
-        'name': '',
+        'name': sender_name or '',
         'phone': phone,
         'email': None,
         'optInWhatsApp': True,
@@ -386,7 +411,8 @@ def _get_or_create_contact(phone: str) -> Dict[str, Any]:
     logger.info(json.dumps({
         'event': 'contact_auto_created',
         'contactId': contact_id,
-        'phone': phone
+        'phone': phone,
+        'name': sender_name
     }))
     
     return contact
@@ -407,11 +433,26 @@ def _update_contact_timestamp(contact_id: str, timestamp: int) -> None:
 
 def _download_media(whatsapp_media_id: str, message_id: str, media_type: str, 
                     phone_number_id: str, request_id: str) -> Optional[str]:
-    """Download media file from WhatsApp using AWS EUM Social API."""
+    """
+    Download media file from WhatsApp using AWS EUM Social API.
+    Per AWS docs: get_whatsapp_message_media downloads to S3 and returns mimeType + fileSize.
+    The API handles the S3 upload, we just need to find the actual key.
+    """
     try:
+        # Build S3 key - AWS may append metadata, so we use a prefix
         extension = _get_media_extension(media_type)
-        s3_key = f"{MEDIA_PREFIX}{message_id}{extension}"
+        s3_key_prefix = f"{MEDIA_PREFIX}{message_id}"
+        s3_key = f"{s3_key_prefix}{extension}"
         
+        logger.info(json.dumps({
+            'event': 'media_download_start',
+            'mediaId': whatsapp_media_id,
+            'requestedS3Key': s3_key,
+            'phoneNumberId': phone_number_id,
+            'requestId': request_id
+        }))
+        
+        # Call AWS Social Messaging API to download media to S3
         response = social_messaging.get_whatsapp_message_media(
             mediaId=whatsapp_media_id,
             originationPhoneNumberId=phone_number_id,
@@ -421,17 +462,57 @@ def _download_media(whatsapp_media_id: str, message_id: str, media_type: str,
             }
         )
         
+        # Response contains mimeType and fileSize
+        mime_type = response.get('mimeType', '')
+        file_size = response.get('fileSize', 0)
+        
+        logger.info(json.dumps({
+            'event': 'media_download_response',
+            'mediaId': whatsapp_media_id,
+            'mimeType': mime_type,
+            'fileSize': file_size,
+            'requestId': request_id
+        }))
+        
+        # AWS EUM Social API may append metadata to the S3 key
+        # List S3 with prefix to find the actual file that was created
+        actual_s3_key = s3_key
+        try:
+            s3_response = s3.list_objects_v2(
+                Bucket=MEDIA_BUCKET,
+                Prefix=s3_key_prefix,
+                MaxKeys=1
+            )
+            if s3_response.get('Contents'):
+                actual_s3_key = s3_response['Contents'][0]['Key']
+                logger.info(json.dumps({
+                    'event': 'media_s3_key_found',
+                    'requestedPrefix': s3_key_prefix,
+                    'actualS3Key': actual_s3_key,
+                    'requestId': request_id
+                }))
+        except Exception as list_err:
+            logger.warning(json.dumps({
+                'event': 'media_s3_list_failed',
+                'prefix': s3_key_prefix,
+                'error': str(list_err),
+                'usingFallback': s3_key,
+                'requestId': request_id
+            }))
+            actual_s3_key = s3_key
+        
         logger.info(json.dumps({
             'event': 'media_downloaded',
             'mediaId': whatsapp_media_id,
-            's3Key': s3_key,
-            'mimeType': response.get('mimeType', ''),
-            'fileSize': response.get('fileSize', 0),
+            'requestedS3Key': s3_key,
+            'actualS3Key': actual_s3_key,
+            'mimeType': mime_type,
+            'fileSize': file_size,
             'phoneNumberId': phone_number_id,
             'requestId': request_id
         }))
         
-        return s3_key
+        return actual_s3_key
         
     except Exception as e:
         logger.error(json.dumps({
@@ -444,14 +525,47 @@ def _download_media(whatsapp_media_id: str, message_id: str, media_type: str,
 
 
 def _get_media_extension(media_type: str) -> str:
-    """Get file extension based on media type."""
-    return {
+    """Get file extension based on media type per AWS Social Messaging docs."""
+    extensions = {
+        # Image formats (max 5MB)
+        'image/jpeg': '.jpg',
+        'image/png': '.png',
         'image': '.jpg',
+        
+        # Video formats (max 16MB)
+        'video/mp4': '.mp4',
+        'video/3gp': '.3gp',
         'video': '.mp4',
+        
+        # Audio formats (max 16MB)
+        'audio/aac': '.aac',
+        'audio/amr': '.amr',
+        'audio/mpeg': '.mp3',
+        'audio/mp4': '.m4a',
+        'audio/ogg': '.ogg',
         'audio': '.ogg',
+        
+        # Document formats (max 100MB)
+        'application/pdf': '.pdf',
+        'text/plain': '.txt',
+        'application/msword': '.doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+        'application/vnd.ms-excel': '.xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+        'application/vnd.ms-powerpoint': '.ppt',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
         'document': '.pdf',
+        
+        # Sticker formats (max 500KB animated, 100KB static)
+        'image/webp': '.webp',
         'sticker': '.webp'
-    }.get(media_type, '')
+    }
+    
+    if media_type in extensions:
+        return extensions[media_type]
+    
+    prefix = media_type.split('/')[0] if '/' in media_type else media_type
+    return extensions.get(prefix, '.bin')
 
 
 def _store_media_record(message_id: str, s3_key: str, media_data: Dict, whatsapp_media_id: str) -> str:
@@ -476,7 +590,10 @@ def _store_media_record(message_id: str, s3_key: str, media_data: Dict, whatsapp
 
 
 def _process_status(status: Dict, request_id: str) -> None:
-    """Process message status update (sent|delivered|read|failed)."""
+    """
+    Process message status update (sent|delivered|read|failed).
+    Per AWS docs: Can also send status updates back to WhatsApp to mark as read.
+    """
     whatsapp_message_id = status.get('id')
     status_value = status.get('status')
     timestamp = int(status.get('timestamp', time.time()))
@@ -585,6 +702,53 @@ def _send_auto_reaction(contact_id: str, whatsapp_message_id: str,
         logger.error(json.dumps({
             'event': 'auto_reaction_error',
             'contactId': contact_id,
+            'error': str(e),
+            'requestId': request_id
+        }))
+
+
+def _send_read_receipt(whatsapp_message_id: str, phone_number_id: str, request_id: str) -> None:
+    """
+    Send read receipt to WhatsApp per AWS docs.
+    Per AWS: send-whatsapp-message with status='read' shows two blue check marks.
+    """
+    if not whatsapp_message_id:
+        return
+    
+    try:
+        # Build read receipt payload per AWS Social Messaging docs
+        read_receipt_payload = {
+            'messaging_product': 'whatsapp',
+            'message_id': whatsapp_message_id,
+            'status': 'read'
+        }
+        
+        logger.info(json.dumps({
+            'event': 'read_receipt_payload',
+            'messageId': whatsapp_message_id,
+            'status': 'read',
+            'requestId': request_id
+        }))
+        
+        # Call SendWhatsAppMessage API with read status
+        response = social_messaging.send_whatsapp_message(
+            originationPhoneNumberId=phone_number_id,
+            message=json.dumps(read_receipt_payload).encode('utf-8'),
+            metaApiVersion='v20.0'
+        )
+        
+        logger.info(json.dumps({
+            'event': 'read_receipt_sent',
+            'messageId': whatsapp_message_id,
+            'phoneNumberId': phone_number_id,
+            'statusCode': response.get('StatusCode', 200),
+            'requestId': request_id
+        }))
+        
+    except Exception as e:
+        logger.warning(json.dumps({
+            'event': 'read_receipt_error',
+            'messageId': whatsapp_message_id,
             'error': str(e),
             'requestId': request_id
         }))

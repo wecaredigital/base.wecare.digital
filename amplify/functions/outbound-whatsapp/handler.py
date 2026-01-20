@@ -412,20 +412,60 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
 def _upload_media(media_file: str, media_type: str, message_id: str, request_id: str) -> Tuple[Optional[str], Optional[str]]:
     """
     Upload media to S3 and register with WhatsApp.
+    Supports all AWS Social Messaging media types per documentation.
     Requirements 5.5, 5.6, 5.7
     """
     try:
-        # Generate S3 key
+        # Generate S3 key with proper extension
         extension = _get_media_extension(media_type)
         s3_key = f"{MEDIA_PREFIX}{message_id}{extension}"
         
         # If media_file is already an S3 key, use it directly
         if media_file.startswith('s3://') or media_file.startswith(MEDIA_PREFIX):
             s3_key = media_file.replace('s3://', '').replace(f'{MEDIA_BUCKET}/', '')
+            
+            # Get file size from S3 for validation
+            try:
+                head_response = s3.head_object(Bucket=MEDIA_BUCKET, Key=s3_key)
+                file_size = head_response.get('ContentLength', 0)
+                is_valid, error_msg = _validate_media_size(file_size, media_type)
+                if not is_valid:
+                    logger.error(json.dumps({
+                        'event': 'media_size_validation_failed',
+                        's3Key': s3_key,
+                        'fileSize': file_size,
+                        'error': error_msg,
+                        'requestId': request_id
+                    }))
+                    return None, None
+            except Exception as e:
+                logger.warning(f"Could not validate S3 file size: {str(e)}")
         else:
             # Assume base64 encoded - decode and upload
             import base64
-            file_content = base64.b64decode(media_file)
+            try:
+                file_content = base64.b64decode(media_file)
+            except Exception as e:
+                logger.error(json.dumps({
+                    'event': 'media_decode_error',
+                    'error': str(e),
+                    'requestId': request_id
+                }))
+                return None, None
+            
+            # Validate file size
+            file_size = len(file_content)
+            is_valid, error_msg = _validate_media_size(file_size, media_type)
+            if not is_valid:
+                logger.error(json.dumps({
+                    'event': 'media_size_validation_failed',
+                    'fileSize': file_size,
+                    'error': error_msg,
+                    'requestId': request_id
+                }))
+                return None, None
+            
+            # Upload to S3
             s3.put_object(
                 Bucket=MEDIA_BUCKET,
                 Key=s3_key,
@@ -434,7 +474,6 @@ def _upload_media(media_file: str, media_type: str, message_id: str, request_id:
             )
         
         # Requirement 5.6: Call PostWhatsAppMessageMedia to get mediaId
-        # Note: API requires bucketName/key (not s3BucketName/s3Key)
         response = social_messaging.post_whatsapp_message_media(
             originationPhoneNumberId=PHONE_NUMBER_ID_1,
             sourceS3File={
@@ -449,6 +488,8 @@ def _upload_media(media_file: str, media_type: str, message_id: str, request_id:
             'event': 'media_uploaded',
             's3Key': s3_key,
             'mediaId': whatsapp_media_id,
+            'mediaType': media_type,
+            'fileSize': file_size,
             'requestId': request_id
         }))
         
@@ -661,25 +702,126 @@ def _log_validation_failure(contact_id: str, channel: str, reason: str, request_
 
 
 def _get_media_extension(media_type: str) -> str:
-    """Get file extension based on media type."""
+    """Get file extension based on media type per AWS Social Messaging docs."""
     extensions = {
-        'image': '.jpg',
-        'video': '.mp4',
-        'audio': '.ogg',
-        'document': '.pdf'
+        # Image formats (max 5MB)
+        'image/jpeg': '.jpg',
+        'image/png': '.png',
+        'image': '.jpg',  # Default image
+        
+        # Video formats (max 16MB)
+        'video/mp4': '.mp4',
+        'video/3gp': '.3gp',
+        'video': '.mp4',  # Default video
+        
+        # Audio formats (max 16MB)
+        'audio/aac': '.aac',
+        'audio/amr': '.amr',
+        'audio/mpeg': '.mp3',
+        'audio/mp4': '.m4a',
+        'audio/ogg': '.ogg',
+        'audio': '.ogg',  # Default audio
+        
+        # Document formats (max 100MB)
+        'application/pdf': '.pdf',
+        'text/plain': '.txt',
+        'application/msword': '.doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+        'application/vnd.ms-excel': '.xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+        'application/vnd.ms-powerpoint': '.ppt',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+        'document': '.pdf',  # Default document
+        
+        # Sticker formats (max 500KB animated, 100KB static)
+        'image/webp': '.webp',
+        'sticker': '.webp'
     }
-    return extensions.get(media_type, '')
+    
+    # Try exact match first
+    if media_type in extensions:
+        return extensions[media_type]
+    
+    # Try prefix match (e.g., 'image' from 'image/jpeg')
+    prefix = media_type.split('/')[0] if '/' in media_type else media_type
+    return extensions.get(prefix, '.bin')
 
 
 def _get_content_type(media_type: str) -> str:
-    """Get content type based on media type."""
+    """Get content type based on media type per AWS Social Messaging docs."""
     content_types = {
+        # Image formats
+        'image/jpeg': 'image/jpeg',
+        'image/png': 'image/png',
         'image': 'image/jpeg',
+        
+        # Video formats
+        'video/mp4': 'video/mp4',
+        'video/3gp': 'video/3gp',
         'video': 'video/mp4',
+        
+        # Audio formats
+        'audio/aac': 'audio/aac',
+        'audio/amr': 'audio/amr',
+        'audio/mpeg': 'audio/mpeg',
+        'audio/mp4': 'audio/mp4',
+        'audio/ogg': 'audio/ogg',
         'audio': 'audio/ogg',
-        'document': 'application/pdf'
+        
+        # Document formats
+        'application/pdf': 'application/pdf',
+        'text/plain': 'text/plain',
+        'application/msword': 'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel': 'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint': 'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'document': 'application/pdf',
+        
+        # Sticker formats
+        'image/webp': 'image/webp',
+        'sticker': 'image/webp'
     }
-    return content_types.get(media_type, 'application/octet-stream')
+    
+    # Try exact match first
+    if media_type in content_types:
+        return content_types[media_type]
+    
+    # Try prefix match
+    prefix = media_type.split('/')[0] if '/' in media_type else media_type
+    if prefix in content_types:
+        return content_types[prefix]
+    
+    return 'application/octet-stream'
+
+
+def _validate_media_size(file_size: int, media_type: str) -> Tuple[bool, str]:
+    """
+    Validate media file size per AWS Social Messaging docs.
+    Returns (is_valid, error_message)
+    """
+    # Get media category
+    if media_type.startswith('image/') or media_type == 'image':
+        max_size = 5 * 1024 * 1024  # 5MB
+        category = 'Image'
+    elif media_type.startswith('video/') or media_type == 'video':
+        max_size = 16 * 1024 * 1024  # 16MB
+        category = 'Video'
+    elif media_type.startswith('audio/') or media_type == 'audio':
+        max_size = 16 * 1024 * 1024  # 16MB
+        category = 'Audio'
+    elif media_type == 'sticker' or media_type == 'image/webp':
+        max_size = 500 * 1024  # 500KB for animated, but we'll use this as max
+        category = 'Sticker'
+    else:
+        max_size = 100 * 1024 * 1024  # 100MB for documents
+        category = 'Document'
+    
+    if file_size > max_size:
+        return False, f'{category} file exceeds maximum size of {max_size / (1024*1024):.0f}MB'
+    
+    return True, ''
 
 
 def _error_response(status_code: int, error: str, message: str = None) -> Dict[str, Any]:

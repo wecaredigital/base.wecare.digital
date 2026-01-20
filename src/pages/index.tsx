@@ -336,8 +336,16 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                         {contact?.name || contact?.phone || msg.contactId?.substring(0, 8)}
                       </div>
                       <div className="message-preview">
-                        {msg.content?.substring(0, 50) || '(no content)'}
-                        {(msg.content?.length || 0) > 50 ? '...' : ''}
+                        {msg.mediaUrl ? (
+                          <span style={{ color: '#25D366', fontWeight: 'bold' }}>
+                            📎 Media: {msg.content?.substring(0, 30) || 'Image/Video/File'}
+                          </span>
+                        ) : (
+                          <>
+                            {msg.content?.substring(0, 50) || '(no content)'}
+                            {(msg.content?.length || 0) > 50 ? '...' : ''}
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="message-meta">

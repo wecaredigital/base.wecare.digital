@@ -204,6 +204,7 @@ export interface Message {
   s3Key?: string;
   mediaUrl?: string;
   senderPhone?: string;
+  senderName?: string;
   receivingPhone?: string;
   awsPhoneNumberId?: string;
 }
@@ -251,6 +252,7 @@ function normalizeMessage(item: any): Message {
     s3Key: item.s3Key,
     mediaUrl: item.mediaUrl,  // Use pre-signed URL from API
     senderPhone: item.senderPhone,
+    senderName: item.senderName,
     receivingPhone: item.receivingPhone,
     awsPhoneNumberId: item.awsPhoneNumberId,
   };
@@ -277,9 +279,16 @@ export interface SendReactionRequest {
 }
 
 export async function sendWhatsAppMessage(request: SendMessageRequest): Promise<{ messageId: string; status: string } | null> {
+  // Ensure mediaFile is properly formatted
+  const payload = {
+    ...request,
+    // If mediaFile is provided, ensure it's base64 encoded
+    mediaFile: request.mediaFile ? (typeof request.mediaFile === 'string' ? request.mediaFile : request.mediaFile) : undefined,
+  };
+  
   return apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
     method: 'POST',
-    body: JSON.stringify(request),
+    body: JSON.stringify(payload),
   });
 }
 

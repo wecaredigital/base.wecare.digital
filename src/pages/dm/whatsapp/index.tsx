@@ -177,11 +177,28 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     setSending(true);
 
     try {
+      let mediaBase64 = undefined;
+      
+      // Convert media file to base64 if present
+      if (mediaFile) {
+        mediaBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            // Extract base64 part (remove data:image/jpeg;base64, prefix)
+            const base64 = result.split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(mediaFile);
+        });
+      }
+
       const result = await api.sendWhatsAppMessage({
         contactId: selectedContact.id,
         content: messageText,
         phoneNumberId: selectedWaba,
-        mediaFile: mediaPreview || undefined,
+        mediaFile: mediaBase64,
         mediaType: mediaFile?.type,
       });
 
@@ -205,17 +222,29 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Validate file size (5MB for images, 16MB for video/audio)
-    const maxSize = file.type.startsWith('image/') ? 5 * 1024 * 1024 : 16 * 1024 * 1024;
+    // Validate file size based on type per AWS Social Messaging docs
+    let maxSize = 5 * 1024 * 1024; // Default 5MB for images
+    
+    if (file.type.startsWith('video/')) {
+      maxSize = 16 * 1024 * 1024; // 16MB for video
+    } else if (file.type.startsWith('audio/')) {
+      maxSize = 16 * 1024 * 1024; // 16MB for audio
+    } else if (file.type === 'application/pdf' || file.type.startsWith('application/')) {
+      maxSize = 100 * 1024 * 1024; // 100MB for documents
+    } else if (file.type === 'image/webp') {
+      maxSize = 500 * 1024; // 500KB for stickers
+    }
+    
     if (file.size > maxSize) {
-      toast.error(`File too large. Max size: ${file.type.startsWith('image/') ? '5MB' : '16MB'}`);
+      const maxSizeMB = maxSize / (1024 * 1024);
+      toast.error(`File too large. Max size: ${maxSizeMB.toFixed(0)}MB`);
       return;
     }
     
     setMediaFile(file);
     
-    // Create preview for images
-    if (file.type.startsWith('image/')) {
+    // Create preview for images and videos
+    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
       const reader = new FileReader();
       reader.onload = (e) => setMediaPreview(e.target?.result as string);
       reader.readAsDataURL(file);

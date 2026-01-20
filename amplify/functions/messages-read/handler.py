@@ -190,26 +190,37 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
     # Generate pre-signed URL for media files
     if result.get('s3Key'):
         try:
-            # Find actual file in S3 (may have different extension)
             s3_key = result['s3Key']
-            prefix = s3_key.rsplit('.', 1)[0] if '.' in s3_key else s3_key
             
-            # List objects with this prefix to find actual file
-            response = s3_client.list_objects_v2(
-                Bucket=MEDIA_BUCKET,
-                Prefix=prefix,
-                MaxKeys=1
-            )
-            
-            if response.get('Contents'):
-                actual_key = response['Contents'][0]['Key']
+            # First try the exact key
+            try:
                 presigned_url = s3_client.generate_presigned_url(
                     'get_object',
-                    Params={'Bucket': MEDIA_BUCKET, 'Key': actual_key},
+                    Params={'Bucket': MEDIA_BUCKET, 'Key': s3_key},
                     ExpiresIn=PRESIGNED_URL_EXPIRY
                 )
                 result['mediaUrl'] = presigned_url
-                result['s3Key'] = actual_key  # Update to actual key
+            except Exception:
+                # If exact key fails, try to find by prefix (AWS EUM may append metadata)
+                prefix = s3_key.rsplit('.', 1)[0] if '.' in s3_key else s3_key
+                
+                response = s3_client.list_objects_v2(
+                    Bucket=MEDIA_BUCKET,
+                    Prefix=prefix,
+                    MaxKeys=1
+                )
+                
+                if response.get('Contents'):
+                    actual_key = response['Contents'][0]['Key']
+                    presigned_url = s3_client.generate_presigned_url(
+                        'get_object',
+                        Params={'Bucket': MEDIA_BUCKET, 'Key': actual_key},
+                        ExpiresIn=PRESIGNED_URL_EXPIRY
+                    )
+                    result['mediaUrl'] = presigned_url
+                    result['s3Key'] = actual_key  # Update to actual key
+                else:
+                    logger.warning(f"No S3 object found for prefix: {prefix}")
         except Exception as e:
             logger.warning(f"Failed to generate presigned URL for {result.get('s3Key')}: {str(e)}")
     

@@ -89,8 +89,11 @@ const AgentPage: React.FC<PageProps> = ({ signOut, user }) => {
 
       if (response.ok) {
         const data = await response.json();
-        assistantContent = data.suggestion || data.response || assistantContent;
+        assistantContent = data.suggestion || data.response || data.suggestedResponse || assistantContent;
         sources = data.sources || [];
+      } else {
+        console.error('API error:', response.status, response.statusText);
+        assistantContent = `Error: ${response.status} ${response.statusText}. Please check your network connection.`;
       }
 
       // Replace loading message with actual response
@@ -101,9 +104,10 @@ const AgentPage: React.FC<PageProps> = ({ signOut, user }) => {
       ));
     } catch (error) {
       console.error('Agent error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       setMessages(prev => prev.map(m => 
         m.id === loadingId 
-          ? { ...m, content: 'I apologize, but I encountered a connection error. Please check your network and try again.', isLoading: false }
+          ? { ...m, content: `Connection error: ${errorMsg}. Please check your network and try again.`, isLoading: false }
           : m
       ));
     } finally {
