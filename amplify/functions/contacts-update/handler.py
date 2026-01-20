@@ -1,11 +1,7 @@
 """
 Contacts Update Lambda Function
 
-Purpose: Update contact information and opt-in status
-Requirements: 2.4
-
-Updates only provided fields and requires explicit opt-in changes.
-Uses DynamoDB UpdateItem with conditional expression.
+Purpose: Update contact information
 """
 
 import os
@@ -13,6 +9,7 @@ import json
 import time
 import logging
 import boto3
+import re
 from typing import Dict, Any, List
 from decimal import Decimal
 from boto3.dynamodb.conditions import Attr
@@ -31,10 +28,7 @@ OPT_IN_FIELDS = {'optInWhatsApp', 'optInSms', 'optInEmail', 'allowlistWhatsApp',
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """
-    Update contact record.
-    Requirement 2.4: Validate explicit opt-in changes, update only provided fields
-    """
+    """Update contact record."""
     request_id = context.aws_request_id if context else 'local'
     
     try:
@@ -57,7 +51,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if not updates:
             return _error_response(400, 'No valid fields to update')
         
-        # Requirement 2.4: Validate opt-in changes are explicit booleans
+        # Validate opt-in changes are explicit booleans
         for field in OPT_IN_FIELDS:
             if field in updates:
                 if not isinstance(updates[field], bool):
@@ -79,12 +73,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Build update expression
         update_expr, expr_names, expr_values = _build_update_expression(updates)
         
-        # Update in DynamoDB with condition that record exists and not deleted
+        # Update in DynamoDB
         table = dynamodb.Table(CONTACTS_TABLE)
         
         try:
             response = table.update_item(
-                Key={'id': contact_id},  # Table uses 'id' as primary key
+                Key={'id': contact_id},
                 UpdateExpression=update_expr,
                 ExpressionAttributeNames=expr_names,
                 ExpressionAttributeValues=expr_values,
@@ -105,7 +99,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         return {
             'statusCode': 200,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
             'body': json.dumps(_convert_from_dynamodb(updated_contact)),
         }
         
@@ -117,7 +114,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'error': str(e),
             'requestId': request_id
         }))
-        return _error_response(500, 'Internal server error')
+        return _error_response(500, f'Internal server error: {str(e)}')
 
 
 def _build_update_expression(updates: Dict[str, Any]) -> tuple:
@@ -133,7 +130,6 @@ def _build_update_expression(updates: Dict[str, Any]) -> tuple:
         set_parts.append(f'{name_placeholder} = {value_placeholder}')
         expr_names[name_placeholder] = key
         
-        # Convert to DynamoDB types
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             expr_values[value_placeholder] = Decimal(str(value))
         else:
@@ -145,14 +141,12 @@ def _build_update_expression(updates: Dict[str, Any]) -> tuple:
 
 def _validate_phone(phone: str) -> bool:
     """Validate phone number format."""
-    import re
     pattern = r'^\+?[\d\s\-\(\)]{7,20}$'
     return bool(re.match(pattern, phone))
 
 
 def _validate_email(email: str) -> bool:
     """Validate email format."""
-    import re
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return bool(re.match(pattern, email))
 
@@ -172,6 +166,9 @@ def _error_response(status_code: int, message: str) -> Dict[str, Any]:
     """Return error response."""
     return {
         'statusCode': status_code,
-        'headers': {'Content-Type': 'application/json'},
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
         'body': json.dumps({'error': message}),
     }

@@ -2,10 +2,7 @@
 Contacts Create Lambda Function
 
 Purpose: Create new contact with opt-in defaults
-Requirements: 2.1, 2.2, 2.3
-
-Creates a new contact record with all opt-in flags set to False by default.
-Requires at least one of phone or email to be provided.
+All opt-ins enabled by default for production.
 """
 
 import os
@@ -16,6 +13,7 @@ import logging
 import boto3
 from typing import Dict, Any
 from decimal import Decimal
+import re
 
 # Configure logging
 logger = logging.getLogger()
@@ -27,28 +25,18 @@ CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsT
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """
-    Create a new contact record.
-    Requirement 2.1: Set all opt-in flags to False by default
-    Requirement 2.2: Require at least one of phone or email
-    Requirement 2.3: Store in DynamoDB with required attributes
-    """
+    """Create a new contact record."""
     request_id = context.aws_request_id if context else 'local'
     
     try:
         # Parse request body
         body = json.loads(event.get('body', '{}'))
         
-        # Requirement 2.2: Validate at least phone or email
+        # Validate at least phone or email
         phone = body.get('phone', '').strip() if body.get('phone') else None
         email = body.get('email', '').strip().lower() if body.get('email') else None
         
         if not phone and not email:
-            logger.warning(json.dumps({
-                'event': 'contact_create_failed',
-                'reason': 'phone_or_email_required',
-                'requestId': request_id
-            }))
             return _error_response(400, 'At least one of phone or email is required')
         
         # Validate phone format if provided
@@ -63,20 +51,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         contact_id = str(uuid.uuid4())
         now = int(time.time())
         
-        # Create contact with all opt-ins enabled by default (production mode)
-        # Note: Table uses 'id' as primary key
+        # Create contact with all opt-ins enabled by default
         contact = {
-            'id': contact_id,  # Primary key
-            'contactId': contact_id,  # Keep for backwards compatibility
+            'id': contact_id,
+            'contactId': contact_id,
             'name': body.get('name', '').strip(),
             'phone': phone,
             'email': email,
-            'optInWhatsApp': True,  # Default enabled
-            'optInSms': True,  # Default enabled
-            'optInEmail': True,  # Default enabled
-            'allowlistWhatsApp': True,  # Default enabled
-            'allowlistSms': True,  # Default enabled
-            'allowlistEmail': True,  # Default enabled
+            'optInWhatsApp': True,
+            'optInSms': True,
+            'optInEmail': True,
+            'allowlistWhatsApp': True,
+            'allowlistSms': True,
+            'allowlistEmail': True,
             'lastInboundMessageAt': None,
             'createdAt': now,
             'updatedAt': now,
@@ -97,7 +84,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         return {
             'statusCode': 201,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
             'body': json.dumps(_convert_from_dynamodb(contact)),
         }
         
@@ -109,20 +99,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'error': str(e),
             'requestId': request_id
         }))
-        return _error_response(500, 'Internal server error')
+        return _error_response(500, f'Internal server error: {str(e)}')
 
 
 def _validate_phone(phone: str) -> bool:
-    """Validate phone number format (basic validation)."""
-    import re
-    # Allow digits, spaces, dashes, parentheses, and + prefix
+    """Validate phone number format."""
     pattern = r'^\+?[\d\s\-\(\)]{7,20}$'
     return bool(re.match(pattern, phone))
 
 
 def _validate_email(email: str) -> bool:
-    """Validate email format (basic validation)."""
-    import re
+    """Validate email format."""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return bool(re.match(pattern, email))
 
@@ -132,7 +119,7 @@ def _convert_to_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
     result = {}
     for key, value in item.items():
         if value is None:
-            continue  # Skip None values
+            continue
         elif isinstance(value, bool):
             result[key] = value
         elif isinstance(value, (int, float)):
@@ -157,6 +144,9 @@ def _error_response(status_code: int, message: str) -> Dict[str, Any]:
     """Return error response."""
     return {
         'statusCode': status_code,
-        'headers': {'Content-Type': 'application/json'},
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
         'body': json.dumps({'error': message}),
     }
