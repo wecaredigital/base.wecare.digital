@@ -460,3 +460,296 @@ input, textarea, select {
   background-color: #333333;
   color: #ffffff;
 }
+
+
+/* ============================================
+   FLOATING AGENT CHATBOT (CAS)
+   Bedrock Agent Core Runtime: base_bedrock_agentcore-1XHDxj2o3Q
+   ============================================ */
+
+.floating-agent-button {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.floating-agent-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+}
+
+.floating-agent-button .agent-icon {
+  font-size: 28px;
+}
+
+.floating-agent-button .agent-pulse {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  animation: pulse 2s infinite;
+  z-index: -1;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.floating-agent-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 380px;
+  max-width: calc(100vw - 48px);
+  height: 520px;
+  max-height: calc(100vh - 120px);
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: height 0.3s ease;
+}
+
+.floating-agent-container.minimized {
+  height: 56px;
+}
+
+.floating-agent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.agent-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.agent-avatar {
+  font-size: 24px;
+}
+
+.agent-name {
+  font-weight: 500;
+  font-size: 14px;
+  display: block;
+}
+
+.agent-status {
+  font-size: 11px;
+  opacity: 0.9;
+  color: #90EE90;
+}
+
+.agent-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.agent-header-actions button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: white;
+  transition: background 0.2s;
+}
+
+.agent-header-actions button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.floating-agent-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f9fafb;
+}
+
+.floating-message {
+  max-width: 85%;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.floating-message.user {
+  align-self: flex-end;
+}
+
+.floating-message.assistant {
+  align-self: flex-start;
+}
+
+.floating-message-content {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.floating-message.user .floating-message-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.floating-message.assistant .floating-message-content {
+  background: #ffffff;
+  color: #1a1a1a;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.floating-message-time {
+  font-size: 10px;
+  color: #999;
+  margin-top: 4px;
+  text-align: right;
+}
+
+.floating-message.assistant .floating-message-time {
+  text-align: left;
+}
+
+.floating-agent-quick-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-top: 1px solid #f0f0f0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.floating-agent-quick-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.floating-agent-quick-actions button {
+  flex-shrink: 0;
+  background: #f5f5f5;
+  border: 1px solid #e5e5e5;
+  padding: 6px 10px;
+  border-radius: 14px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.floating-agent-quick-actions button:hover {
+  background: #e5e5e5;
+  border-color: #667eea;
+}
+
+.floating-agent-input {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: #ffffff;
+  border-top: 1px solid #e5e5e5;
+}
+
+.floating-agent-input input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 20px;
+  font-size: 14px;
+  outline: none;
+  min-height: 44px;
+}
+
+.floating-agent-input input:focus {
+  border-color: #667eea;
+}
+
+.floating-agent-input button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.floating-agent-input button:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.floating-agent-input button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .floating-agent-button {
+    bottom: 16px;
+    right: 16px;
+    width: 54px;
+    height: 54px;
+  }
+  
+  .floating-agent-container {
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 70vh;
+    max-height: 70vh;
+    border-radius: 16px 16px 0 0;
+  }
+  
+  .floating-agent-container.minimized {
+    height: 56px;
+  }
+}
+
+/* Safe area for iOS */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .floating-agent-input {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  
+  .floating-agent-button {
+    bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+}

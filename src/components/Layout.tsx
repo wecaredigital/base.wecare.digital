@@ -12,6 +12,7 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import FloatingAgent from './FloatingAgent';
 
 interface SubItem {
   path: string;
@@ -171,6 +172,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
         <main className="main-content">
           {children}
         </main>
+        
+        {/* Floating Agent Chatbot (CAS) */}
+        <FloatingAgent />
       </div>
     </>
   );
