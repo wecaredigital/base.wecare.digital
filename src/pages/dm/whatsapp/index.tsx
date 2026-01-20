@@ -230,7 +230,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleReaction = async (whatsappMessageId: string, wabaId?: string) => {
+  const handleReaction = async (whatsappMessageId: string, wabaId?: string | null) => {
     if (!selectedContact || !whatsappMessageId) return;
     try {
       await api.sendWhatsAppReaction({
@@ -282,7 +282,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     }
   };
 
-  const getWabaInfo = (wabaId?: string) => {
+  const getWabaInfo = (wabaId?: string | null) => {
     if (!wabaId) return null;
     return WABA_CONFIG[wabaId as keyof typeof WABA_CONFIG];
   };
