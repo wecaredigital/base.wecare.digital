@@ -468,15 +468,50 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                           </div>
                         )}
                         {msg.mediaUrl && (
-                          <img 
-                            src={msg.mediaUrl} 
-                            alt="Media" 
-                            className="message-media"
-                            onError={(e) => {
-                              // Hide broken image
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
+                          <div className="message-media-container">
+                            {msg.content && msg.content.toLowerCase().includes('image') || msg.content && msg.content.toLowerCase().includes('.jpg') || msg.content && msg.content.toLowerCase().includes('.png') ? (
+                              <img 
+                                src={msg.mediaUrl} 
+                                alt="Image" 
+                                className="message-media message-image"
+                                onError={(e) => {
+                                  console.error('Image load error:', msg.mediaUrl);
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            ) : msg.content && msg.content.toLowerCase().includes('video') || msg.content && msg.content.toLowerCase().includes('.mp4') ? (
+                              <video 
+                                src={msg.mediaUrl} 
+                                controls 
+                                className="message-media message-video"
+                                onError={(e) => {
+                                  console.error('Video load error:', msg.mediaUrl);
+                                  (e.target as HTMLVideoElement).style.display = 'none';
+                                }}
+                              />
+                            ) : msg.content && msg.content.toLowerCase().includes('audio') || msg.content && msg.content.toLowerCase().includes('.mp3') || msg.content && msg.content.toLowerCase().includes('.ogg') ? (
+                              <audio 
+                                src={msg.mediaUrl} 
+                                controls 
+                                className="message-media message-audio"
+                                onError={(e) => {
+                                  console.error('Audio load error:', msg.mediaUrl);
+                                  (e.target as HTMLAudioElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="message-media message-document">
+                                <a 
+                                  href={msg.mediaUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="document-link"
+                                >
+                                  📄 Download Document
+                                </a>
+                              </div>
+                            )}
+                          </div>
                         )}
                         <div className="message-content">{msg.content}</div>
                         <div className="message-footer">
