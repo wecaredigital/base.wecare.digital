@@ -26,6 +26,8 @@ interface Message {
   mediaUrl?: string | null;
   receivingPhone?: string | null;
   awsPhoneNumberId?: string | null;
+  senderName?: string | null;
+  senderPhone?: string | null;
 }
 
 interface Contact {
@@ -134,6 +136,8 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
         mediaUrl: m.mediaUrl,  // Use pre-signed URL from API
         receivingPhone: m.receivingPhone,
         awsPhoneNumberId: m.awsPhoneNumberId,
+        senderName: m.senderName,  // Sender's WhatsApp profile name
+        senderPhone: m.senderPhone,  // Sender's phone number
       })));
 
       // Auto-select WABA based on last message
@@ -458,6 +462,11 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                         </div>
                       )}
                       <div className={`message-bubble ${msg.direction}`}>
+                        {msg.direction === 'inbound' && msg.senderName && (
+                          <div className="message-sender-name">
+                            {msg.senderName}
+                          </div>
+                        )}
                         {msg.mediaUrl && (
                           <img 
                             src={msg.mediaUrl} 

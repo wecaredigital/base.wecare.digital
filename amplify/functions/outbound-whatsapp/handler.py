@@ -313,7 +313,12 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         
         # Requirements 5.5, 5.6, 5.7: Handle media upload
         if media_file and media_type:
-            s3_key, whatsapp_media_id = _upload_media(media_file, media_type, message_id, phone_number_id, request_id)
+            # Extract filename from media_file if it's a path
+            filename = None
+            if isinstance(media_file, str) and '/' in media_file:
+                filename = media_file.split('/')[-1]
+            
+            s3_key, whatsapp_media_id, stored_filename = _upload_media(media_file, media_type, message_id, phone_number_id, request_id, filename)
             if not whatsapp_media_id:
                 return _error_response(500, 'Failed to upload media')
         
@@ -440,11 +445,13 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         return _error_response(500, f'Failed to send message: {error_msg}')
 
 
-def _upload_media(media_file: str, media_type: str, message_id: str, phone_number_id: str, request_id: str) -> Tuple[Optional[str], Optional[str]]:
+def _upload_media(media_file: str, media_type: str, message_id: str, phone_number_id: str, request_id: str, filename: Optional[str] = None) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Upload media to S3 and register with WhatsApp.
     Supports all AWS Social Messaging media types per documentation.
     Requirements 5.5, 5.6, 5.7
+    
+    Returns: (s3_key, whatsapp_media_id, filename)
     """
     import subprocess
     import json as json_module
@@ -452,7 +459,13 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
     try:
         # Generate S3 key with proper extension
         extension = _get_media_extension(media_type)
-        s3_key = f"{MEDIA_PREFIX}{message_id}{extension}"
+        
+        # Use provided filename or generate one
+        if filename:
+            # Preserve original filename
+            s3_key = f"{MEDIA_PREFIX}{filename}"
+        else:
+            s3_key = f"{MEDIA_PREFIX}{message_id}{extension}"
         
         # If media_file is already an S3 key, use it directly
         if media_file.startswith('s3://') or media_file.startswith(MEDIA_PREFIX):
@@ -561,10 +574,11 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
             's3Key': s3_key,
             'mediaId': whatsapp_media_id,
             'mediaType': media_type,
+            'filename': filename or 'auto-generated',
             'requestId': request_id
         }))
         
-        return s3_key, whatsapp_media_id
+        return s3_key, whatsapp_media_id, filename or f"{message_id}{extension}"
         
     except Exception as e:
         logger.error(json.dumps({
@@ -574,7 +588,7 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
             'mediaType': media_type,
             'requestId': request_id
         }))
-        return None, None
+        return None, None, None
 
 
 def _normalize_phone_number(phone: str) -> str:
@@ -665,8 +679,15 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
         
         payload['type'] = msg_type
         payload[msg_type] = {'id': media_id}
+        
+        # Add caption if provided
         if content:
             payload[msg_type]['caption'] = content
+        
+        # For documents, add filename if available
+        if msg_type == 'document' and hasattr(content, '__len__'):
+            # Try to extract filename from content or use default
+            pass
     else:
         # Text message
         payload['type'] = 'text'

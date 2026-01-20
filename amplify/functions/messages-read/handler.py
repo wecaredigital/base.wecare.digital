@@ -187,6 +187,10 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
     if 'direction' in result:
         result['direction'] = result['direction'].upper()
     
+    # Ensure sender name is included for inbound messages
+    if result.get('direction') == 'INBOUND' and 'senderName' not in result:
+        result['senderName'] = result.get('senderPhone', 'Unknown')
+    
     # Generate pre-signed URL for media files
     if result.get('s3Key'):
         try:
@@ -200,7 +204,13 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
                     ExpiresIn=PRESIGNED_URL_EXPIRY
                 )
                 result['mediaUrl'] = presigned_url
-            except Exception:
+                logger.info(json.dumps({
+                    'event': 'presigned_url_generated',
+                    's3Key': s3_key,
+                    'hasUrl': True
+                }))
+            except Exception as e:
+                logger.warning(f"Exact key failed: {str(e)}, trying prefix match")
                 # If exact key fails, try to find by prefix (AWS EUM may append metadata)
                 prefix = s3_key.rsplit('.', 1)[0] if '.' in s3_key else s3_key
                 
@@ -219,9 +229,17 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
                     )
                     result['mediaUrl'] = presigned_url
                     result['s3Key'] = actual_key  # Update to actual key
+                    logger.info(json.dumps({
+                        'event': 'presigned_url_generated_prefix',
+                        'prefix': prefix,
+                        'actualKey': actual_key,
+                        'hasUrl': True
+                    }))
                 else:
                     logger.warning(f"No S3 object found for prefix: {prefix}")
+                    result['mediaUrl'] = None
         except Exception as e:
             logger.warning(f"Failed to generate presigned URL for {result.get('s3Key')}: {str(e)}")
+            result['mediaUrl'] = None
     
     return result
