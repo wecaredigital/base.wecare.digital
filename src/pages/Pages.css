@@ -415,32 +415,33 @@
 
 /* Delete Buttons */
 .delete-btn {
-  background: none;
+  background: #fee2e2;
   border: none;
-  color: #999;
+  color: #ef4444;
   cursor: pointer;
   padding: 4px 8px;
   font-size: 14px;
   border-radius: 4px;
   transition: all 0.2s;
+  margin-left: 8px;
 }
 
-.delete-btn:hover { background: #fee2e2; color: #ef4444; }
+.delete-btn:hover { background: #ef4444; color: #fff; }
 .delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .delete-btn-mini {
-  background: none;
+  background: #fee2e2;
   border: none;
-  color: #ccc;
+  color: #ef4444;
   cursor: pointer;
-  padding: 4px;
+  padding: 4px 8px;
   font-size: 12px;
   border-radius: 4px;
   transition: all 0.2s;
   margin-left: auto;
 }
 
-.delete-btn-mini:hover { background: #fee2e2; color: #ef4444; }
+.delete-btn-mini:hover { background: #ef4444; color: #fff; }
 .delete-btn-mini:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .contacts-grid {
@@ -2144,53 +2145,51 @@ input, textarea, select { font-size: 16px !important; }
 
 .whatsapp-inbox .message-actions {
   position: absolute;
-  right: -30px;
+  right: -40px;
   top: 50%;
   transform: translateY(-50%);
-  opacity: 0;
-  transition: opacity 0.2s;
+  display: flex;
+  gap: 4px;
 }
-
-.whatsapp-inbox .message-bubble:hover .message-actions { opacity: 1; }
 
 .reaction-btn {
   background: #2a3942;
   border: none;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
+  color: #e9edef;
 }
+
+.reaction-btn:hover { background: #3b4a54; }
 
 .delete-msg-btn {
   background: #2a3942;
   border: none;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   cursor: pointer;
-  font-size: 12px;
-  color: #8696a0;
-  margin-left: 4px;
+  font-size: 14px;
+  color: #e9edef;
 }
 
 .delete-msg-btn:hover { background: #dc3545; color: #fff; }
 .delete-msg-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .contact-delete-btn {
-  background: transparent;
+  background: #fee2e2;
   border: none;
-  color: #8696a0;
+  color: #ef4444;
   cursor: pointer;
-  padding: 4px;
+  padding: 4px 8px;
   font-size: 12px;
-  opacity: 0;
-  transition: opacity 0.2s;
+  border-radius: 4px;
 }
 
-.whatsapp-inbox .contact-item:hover .contact-delete-btn { opacity: 1; }
-.contact-delete-btn:hover { color: #dc3545; }
+.contact-delete-btn:hover { background: #ef4444; color: #fff; }
 .contact-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* WhatsApp Input Area */
@@ -2228,16 +2227,21 @@ input, textarea, select { font-size: 16px !important; }
 
 /* Media Upload */
 .whatsapp-inbox .attach-btn {
-  background: transparent;
+  background: #2a3942;
   border: none;
-  font-size: 24px;
+  font-size: 20px;
   cursor: pointer;
-  padding: 8px;
-  opacity: 0.7;
-  transition: opacity 0.2s;
+  padding: 12px;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
 }
 
-.whatsapp-inbox .attach-btn:hover { opacity: 1; }
+.whatsapp-inbox .attach-btn:hover { background: #3b4a54; }
 .whatsapp-inbox .attach-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .whatsapp-inbox .media-preview {
