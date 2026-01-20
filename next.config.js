@@ -5,6 +5,9 @@ const nextConfig = {
   trailingSlash: true,
   images: {
     unoptimized: true
+  },
+  env: {
+    NEXT_PUBLIC_SEND_MODE: 'LIVE'
   }
 }
 

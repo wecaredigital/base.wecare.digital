@@ -5,6 +5,8 @@ import { storage } from './storage/resource';
 import { HttpApi, HttpMethod, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Duration } from 'aws-cdk-lib';
+import { Topic } from 'aws-cdk-lib/aws-sns';
+import { LambdaSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 
 // Import Lambda functions
 import { authMiddleware } from './functions/auth-middleware/resource';
@@ -187,5 +189,24 @@ backend.addOutput({
     },
   },
 });
+
+// ============================================================================
+// SNS SUBSCRIPTION FOR INBOUND WHATSAPP
+// Critical: Without this, inbound WhatsApp messages never reach the handler
+// ============================================================================
+
+const snsStack = backend.createStack('sns-subscription-stack');
+
+// Reference existing SNS topic for WhatsApp inbound messages
+const whatsappSnsTopic = Topic.fromTopicArn(
+  snsStack,
+  'WhatsAppInboundTopic',
+  'arn:aws:sns:us-east-1:809904170947:base-wecare-digital'
+);
+
+// Subscribe the inbound-whatsapp-handler Lambda to the SNS topic
+whatsappSnsTopic.addSubscription(
+  new LambdaSubscription(backend.inboundWhatsappHandler.resources.lambda)
+);
 
 export default backend;

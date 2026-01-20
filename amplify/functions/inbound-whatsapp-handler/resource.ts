@@ -9,6 +9,9 @@ export const inboundWhatsappHandler = defineFunction({
   environment: {
     AWS_REGION: 'us-east-1',
     LOG_LEVEL: 'INFO',
+    SEND_MODE: 'LIVE',
+    CONTACTS_TABLE: 'base-wecare-digital-ContactsTable',
+    MESSAGES_TABLE: 'base-wecare-digital-WhatsAppInboundTable',
     MEDIA_BUCKET: 'auth.wecare.digital',
     MEDIA_INBOUND_PREFIX: 'whatsapp-media/whatsapp-media-incoming/',
     SNS_TOPIC_ARN: 'arn:aws:sns:us-east-1:809904170947:base-wecare-digital',

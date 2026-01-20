@@ -20,7 +20,7 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 # DynamoDB client
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
-CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contacts')
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -38,9 +38,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if not contact_id:
             return _error_response(400, 'contactId is required')
         
-        # Query DynamoDB
+        # Query DynamoDB - table uses 'id' as primary key
         table = dynamodb.Table(CONTACTS_TABLE)
-        response = table.get_item(Key={'contactId': contact_id})
+        response = table.get_item(Key={'id': contact_id})
         
         item = response.get('Item')
         

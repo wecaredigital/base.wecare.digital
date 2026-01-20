@@ -9,7 +9,9 @@ export const outboundWhatsapp = defineFunction({
   environment: {
     AWS_REGION: 'us-east-1',
     LOG_LEVEL: 'INFO',
-    SEND_MODE: process.env.SEND_MODE || 'DRY_RUN',
+    SEND_MODE: 'LIVE',
+    CONTACTS_TABLE: 'base-wecare-digital-ContactsTable',
+    MESSAGES_TABLE: 'base-wecare-digital-WhatsAppOutboundTable',
     WHATSAPP_PHONE_NUMBER_ID_1: 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54',
     WHATSAPP_PHONE_NUMBER_ID_2: 'phone-number-id-1447bc72d1b040f4bf2341c9e04b2e06',
     MEDIA_BUCKET: 'auth.wecare.digital',

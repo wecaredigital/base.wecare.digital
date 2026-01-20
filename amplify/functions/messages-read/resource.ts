@@ -7,7 +7,9 @@ export const messagesRead = defineFunction({
   timeoutSeconds: 30,
   memoryMB: 256,
   environment: {
-    MESSAGES_TABLE: 'Messages',
+    AWS_REGION: 'us-east-1',
+    INBOUND_TABLE: 'base-wecare-digital-WhatsAppInboundTable',
+    OUTBOUND_TABLE: 'base-wecare-digital-WhatsAppOutboundTable',
     LOG_LEVEL: 'INFO',
   },
 });

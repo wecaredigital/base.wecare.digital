@@ -29,9 +29,9 @@ s3 = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 cloudwatch = boto3.client('cloudwatch', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Environment variables
-SEND_MODE = os.environ.get('SEND_MODE', 'DRY_RUN')
-CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contacts')
-MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'Messages')
+SEND_MODE = os.environ.get('SEND_MODE', 'LIVE')
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
+MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'base-wecare-digital-WhatsAppOutboundTable')
 MEDIA_FILES_TABLE = os.environ.get('MEDIA_FILES_TABLE', 'MediaFiles')
 RATE_LIMIT_TABLE = os.environ.get('RATE_LIMIT_TABLE', 'RateLimitTrackers')
 MEDIA_BUCKET = os.environ.get('MEDIA_BUCKET', 'auth.wecare.digital')
@@ -374,7 +374,8 @@ def _get_contact(contact_id: str) -> Optional[Dict[str, Any]]:
     """Retrieve contact from DynamoDB."""
     try:
         contacts_table = dynamodb.Table(CONTACTS_TABLE)
-        response = contacts_table.get_item(Key={'contactId': contact_id})
+        # Table uses 'id' as primary key
+        response = contacts_table.get_item(Key={'id': contact_id})
         item = response.get('Item')
         
         # Filter soft-deleted
@@ -383,6 +384,18 @@ def _get_contact(contact_id: str) -> Optional[Dict[str, Any]]:
         
         return item
     except Exception:
+        # Try scanning by contactId if direct lookup fails
+        try:
+            response = contacts_table.scan(
+                FilterExpression='contactId = :cid',
+                ExpressionAttributeValues={':cid': contact_id},
+                Limit=1
+            )
+            items = response.get('Items', [])
+            if items and items[0].get('deletedAt') is None:
+                return items[0]
+        except Exception:
+            pass
         return None
 
 
@@ -446,7 +459,8 @@ def _store_message_record(message_id: str, contact_id: str, content: str, status
     expires_at = now + MESSAGE_TTL_SECONDS
     
     record = {
-        'messageId': message_id,
+        'id': message_id,  # Primary key - table uses 'id'
+        'messageId': message_id,  # Keep for backwards compatibility
         'contactId': contact_id,
         'channel': 'whatsapp',
         'direction': 'outbound',
