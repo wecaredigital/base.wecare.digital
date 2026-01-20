@@ -33,8 +33,8 @@ interface LayoutProps {
   onSignOut?: () => void;
 }
 
-// Get SEND_MODE from environment or default to DRY_RUN
-const SEND_MODE = process.env.NEXT_PUBLIC_SEND_MODE || 'DRY_RUN';
+// SEND_MODE is always LIVE in production
+const SEND_MODE = 'LIVE';
 
 const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   const router = useRouter();
@@ -86,9 +86,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
 
   return (
     <>
-      {/* Requirement 20.5: SEND_MODE Banner */}
-      <div className={`send-mode-banner ${SEND_MODE === 'LIVE' ? 'live' : 'dry-run'}`}>
-        {SEND_MODE === 'LIVE' ? '🟢 LIVE MODE - Messages will be sent' : '🟡 DRY_RUN MODE - Messages simulated only'}
+      {/* Production LIVE Mode Banner */}
+      <div className="send-mode-banner live">
+        🟢 LIVE MODE - Production Environment
       </div>
       
       <div className="layout">

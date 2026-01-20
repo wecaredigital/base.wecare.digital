@@ -25,8 +25,8 @@ dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', '
 pinpoint_sms = boto3.client('pinpoint-sms-voice-v2', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Environment variables
-SEND_MODE = os.environ.get('SEND_MODE', 'DRY_RUN')
-CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contacts')
+SEND_MODE = os.environ.get('SEND_MODE', 'LIVE')
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
 MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'Messages')
 RATE_LIMIT_TABLE = os.environ.get('RATE_LIMIT_TABLE', 'RateLimitTrackers')
 SMS_POOL_ID = os.environ.get('SMS_POOL_ID', 'pool-6fbf5a5f390d4eeeaa7dbae39d78933e')

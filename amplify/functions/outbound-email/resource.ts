@@ -9,7 +9,7 @@ export const outboundEmail = defineFunction({
   environment: {
     AWS_REGION: 'us-east-1',
     LOG_LEVEL: 'INFO',
-    SEND_MODE: process.env.SEND_MODE || 'DRY_RUN',
+    SEND_MODE: 'LIVE',
     SES_SENDER_EMAIL: 'one@wecare.digital',
     SES_SENDER_NAME: 'WECARE.DIGITAL',
   },

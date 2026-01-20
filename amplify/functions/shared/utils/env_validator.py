@@ -223,20 +223,15 @@ def get_send_mode() -> str:
     Get SEND_MODE with validation.
     
     Returns:
-        'LIVE' or 'DRY_RUN'
+        'LIVE' (production default)
     """
-    mode = os.environ.get('SEND_MODE', 'DRY_RUN').upper()
-    if mode not in ('LIVE', 'DRY_RUN'):
-        logger.warning(f"Invalid SEND_MODE '{mode}', defaulting to DRY_RUN")
-        return 'DRY_RUN'
+    mode = os.environ.get('SEND_MODE', 'LIVE').upper()
+    if mode not in ('LIVE',):
+        logger.warning(f"Invalid SEND_MODE '{mode}', defaulting to LIVE")
+        return 'LIVE'
     return mode
 
 
 def is_live_mode() -> bool:
-    """Check if running in LIVE mode."""
-    return get_send_mode() == 'LIVE'
-
-
-def is_dry_run_mode() -> bool:
-    """Check if running in DRY_RUN mode."""
-    return get_send_mode() == 'DRY_RUN'
+    """Check if running in LIVE mode. Always True in production."""
+    return True

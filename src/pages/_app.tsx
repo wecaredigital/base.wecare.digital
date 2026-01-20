@@ -1,6 +1,9 @@
 /**
  * WECARE.DIGITAL Admin Platform
- * Next.js App Component with Amplify Data API
+ * Next.js App Component with Amplify Auth + Data API
+ * 
+ * SSO Domain: https://sso.wecare.digital
+ * Production: https://base.wecare.digital
  */
 
 import type { AppProps } from 'next/app';
@@ -18,6 +21,16 @@ try {
   // Fallback config if amplify_outputs.json not available
 }
 
+// Determine current origin for redirect URIs
+const getRedirectUri = () => {
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    // Return origin with trailing slash
+    return origin.endsWith('/') ? origin : `${origin}/`;
+  }
+  return 'https://base.wecare.digital/';
+};
+
 // Configure Amplify with OAuth and Data API
 Amplify.configure({
   Auth: {
@@ -28,8 +41,16 @@ Amplify.configure({
         oauth: {
           domain: amplifyConfig?.auth?.oauth?.domain || 'sso.wecare.digital',
           scopes: amplifyConfig?.auth?.oauth?.scopes || ['openid', 'email', 'profile'],
-          redirectSignIn: amplifyConfig?.auth?.oauth?.redirect_sign_in_uri || ['https://base.dtiq7il2x5c5g.amplifyapp.com/'],
-          redirectSignOut: amplifyConfig?.auth?.oauth?.redirect_sign_out_uri || ['https://base.dtiq7il2x5c5g.amplifyapp.com/'],
+          redirectSignIn: amplifyConfig?.auth?.oauth?.redirect_sign_in_uri || [
+            'https://base.wecare.digital/',
+            'https://base.dtiq7il2x5c5g.amplifyapp.com/',
+            'http://localhost:3000/'
+          ],
+          redirectSignOut: amplifyConfig?.auth?.oauth?.redirect_sign_out_uri || [
+            'https://base.wecare.digital/',
+            'https://base.dtiq7il2x5c5g.amplifyapp.com/',
+            'http://localhost:3000/'
+          ],
           responseType: 'code'
         }
       }

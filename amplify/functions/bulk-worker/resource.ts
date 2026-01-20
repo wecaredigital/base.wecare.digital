@@ -9,7 +9,7 @@ export const bulkWorker = defineFunction({
   environment: {
     AWS_REGION: 'us-east-1',
     LOG_LEVEL: 'INFO',
-    SEND_MODE: process.env.SEND_MODE || 'DRY_RUN',
+    SEND_MODE: 'LIVE',
     REPORT_BUCKET: 'stream.wecare.digital',
     REPORT_PREFIX: 'base-wecare-digital/reports/',
   },

@@ -7,7 +7,8 @@ const nextConfig = {
     unoptimized: true
   },
   env: {
-    NEXT_PUBLIC_SEND_MODE: 'LIVE'
+    NEXT_PUBLIC_SEND_MODE: 'LIVE',
+    NEXT_PUBLIC_ENV: 'production'
   }
 }
 

@@ -216,7 +216,7 @@ def log_message_sent(
         contact_id: Recipient contact ID
         channel: Messaging channel
         status: Delivery status
-        send_mode: LIVE or DRY_RUN
+        send_mode: Always LIVE in production
     """
     _default_logger.info(
         "Message sent",
@@ -225,7 +225,7 @@ def log_message_sent(
         contactId=contact_id,
         channel=channel,
         status=status,
-        sendMode=send_mode or os.environ.get('SEND_MODE', 'DRY_RUN')
+        sendMode=send_mode or os.environ.get('SEND_MODE', 'LIVE')
     )
 
 

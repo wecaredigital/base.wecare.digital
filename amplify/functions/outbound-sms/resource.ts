@@ -9,7 +9,7 @@ export const outboundSms = defineFunction({
   environment: {
     AWS_REGION: 'us-east-1',
     LOG_LEVEL: 'INFO',
-    SEND_MODE: process.env.SEND_MODE || 'DRY_RUN',
+    SEND_MODE: 'LIVE',
     SMS_POOL_ID: 'pool-6fbf5a5f390d4eeeaa7dbae39d78933e',
   },
 });
