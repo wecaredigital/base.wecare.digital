@@ -209,7 +209,7 @@ const EmailDM: React.FC<PageProps> = ({ signOut, user }) => {
                       <div className="email-body">{msg.content}</div>
                       <div className="email-footer">
                         <span className={`email-status ${msg.status}`}>
-                          {msg.status === 'delivered' ? '✓ Delivered' : msg.status === 'opened' ? '👁 Opened' : '✓ Sent'}
+                          {msg.status === 'delivered' ? '✓ Delivered' : msg.status === 'opened' ? '◉ Opened' : '✓ Sent'}
                         </span>
                       </div>
                     </div>
