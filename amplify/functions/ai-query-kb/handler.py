@@ -111,7 +111,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         return {
             'statusCode': 200,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
             'body': json.dumps({
                 'interactionId': interaction_id,
                 'response': output_text,
@@ -132,9 +137,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 
 def _error_response(status_code: int, message: str) -> Dict[str, Any]:
-    """Return error response."""
+    """Return error response with CORS headers."""
     return {
         'statusCode': status_code,
-        'headers': {'Content-Type': 'application/json'},
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+            'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+        },
         'body': json.dumps({'error': message})
     }
