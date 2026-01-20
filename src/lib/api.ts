@@ -259,10 +259,32 @@ export interface SendMessageRequest {
   mediaType?: string;
 }
 
+// Send WhatsApp reaction via Lambda
+export interface SendReactionRequest {
+  contactId: string;
+  reactionMessageId: string;  // WhatsApp message ID to react to
+  reactionEmoji?: string;     // Default: thumbs up
+  phoneNumberId?: string;
+}
+
 export async function sendWhatsAppMessage(request: SendMessageRequest): Promise<{ messageId: string; status: string } | null> {
   return apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
     method: 'POST',
     body: JSON.stringify(request),
+  });
+}
+
+// Send a reaction to a WhatsApp message
+export async function sendWhatsAppReaction(request: SendReactionRequest): Promise<{ messageId: string; status: string; emoji: string } | null> {
+  return apiCall<{ messageId: string; status: string; emoji: string }>(`${API_BASE}/whatsapp/send`, {
+    method: 'POST',
+    body: JSON.stringify({
+      contactId: request.contactId,
+      isReaction: true,
+      reactionMessageId: request.reactionMessageId,
+      reactionEmoji: request.reactionEmoji || '\uD83D\uDC4D',  // Default: thumbs up
+      phoneNumberId: request.phoneNumberId,
+    }),
   });
 }
 

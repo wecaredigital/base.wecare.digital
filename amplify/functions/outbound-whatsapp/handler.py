@@ -53,8 +53,9 @@ METRICS_NAMESPACE = 'WECARE.DIGITAL'
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Send WhatsApp message.
+    Send WhatsApp message or reaction.
     Requirements: 3.1, 3.2, 5.2-5.11, 16.2-16.6
+    Supports: text, media, template, and reaction messages
     """
     request_id = context.aws_request_id if context else 'local'
     
@@ -76,6 +77,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         template_name = body.get('templateName')
         template_params = body.get('templateParams', [])
         
+        # Reaction support
+        is_reaction = body.get('isReaction', False)
+        reaction_message_id = body.get('reactionMessageId')  # WhatsApp message ID to react to
+        reaction_emoji = body.get('reactionEmoji', '\U0001F44D')  # Default: thumbs up
+        
         if not contact_id:
             return _error_response(400, 'contactId is required')
         
@@ -84,12 +90,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if not contact:
             return _error_response(404, 'Contact not found')
         
+        # Validate reaction request
+        if is_reaction and not reaction_message_id:
+            return _error_response(400, 'reactionMessageId is required for reactions')
+        
         # All contacts are allowed by default - no opt-in/allowlist checks
         # Customer service window check - always allow (within_window = True)
         within_window = True
         
-        # Requirement 5.4: Validate text length
-        if content and len(content) > MAX_TEXT_LENGTH:
+        # Requirement 5.4: Validate text length (skip for reactions)
+        if not is_reaction and content and len(content) > MAX_TEXT_LENGTH:
             return _error_response(400, f'Content exceeds {MAX_TEXT_LENGTH} characters')
         
         # Requirement 5.9: Check rate limit
@@ -102,7 +112,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Requirement 5.3: DRY_RUN mode - log without API call
         if SEND_MODE == 'DRY_RUN':
+            if is_reaction:
+                return _handle_dry_run_reaction(message_id, contact_id, recipient_phone, reaction_message_id, reaction_emoji, request_id)
             return _handle_dry_run(message_id, contact_id, recipient_phone, content, is_template, request_id)
+        
+        # Handle reaction messages
+        if is_reaction:
+            return _handle_reaction_send(
+                message_id, contact_id, recipient_phone, phone_number_id,
+                reaction_message_id, reaction_emoji, request_id
+            )
         
         # Requirement 5.2: LIVE mode - call API
         return _handle_live_send(
@@ -162,6 +181,111 @@ def _handle_dry_run(message_id: str, contact_id: str, recipient_phone: str,
             'message': 'Message logged but not sent (DRY_RUN mode)'
         })
     }
+
+
+def _handle_dry_run_reaction(message_id: str, contact_id: str, recipient_phone: str,
+                              reaction_message_id: str, reaction_emoji: str, request_id: str) -> Dict[str, Any]:
+    """Handle DRY_RUN mode for reactions - log without actual API call."""
+    logger.info(json.dumps({
+        'event': 'dry_run_reaction',
+        'messageId': message_id,
+        'contactId': contact_id,
+        'recipientPhone': recipient_phone,
+        'reactionMessageId': reaction_message_id,
+        'emoji': reaction_emoji,
+        'requestId': request_id
+    }))
+    
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+            'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+        },
+        'body': json.dumps({
+            'messageId': message_id,
+            'status': 'dry_run',
+            'mode': 'DRY_RUN',
+            'type': 'reaction',
+            'reactionMessageId': reaction_message_id,
+            'emoji': reaction_emoji,
+            'message': 'Reaction logged but not sent (DRY_RUN mode)'
+        })
+    }
+
+
+def _handle_reaction_send(message_id: str, contact_id: str, recipient_phone: str,
+                          phone_number_id: str, reaction_message_id: str, 
+                          reaction_emoji: str, request_id: str) -> Dict[str, Any]:
+    """
+    Send a reaction to a WhatsApp message.
+    Uses AWS EUM Social SendWhatsAppMessage API with reaction type.
+    """
+    try:
+        # Build reaction payload per WhatsApp Cloud API spec
+        reaction_payload = {
+            'messaging_product': 'whatsapp',
+            'recipient_type': 'individual',
+            'to': recipient_phone,
+            'type': 'reaction',
+            'reaction': {
+                'message_id': reaction_message_id,
+                'emoji': reaction_emoji
+            }
+        }
+        
+        # Call SendWhatsAppMessage API
+        response = social_messaging.send_whats_app_message(
+            originationPhoneNumberId=phone_number_id,
+            message=json.dumps(reaction_payload).encode('utf-8'),
+            metaApiVersion=META_API_VERSION
+        )
+        
+        whatsapp_message_id = response.get('messageId', '')
+        
+        logger.info(json.dumps({
+            'event': 'reaction_sent',
+            'messageId': message_id,
+            'whatsappMessageId': whatsapp_message_id,
+            'contactId': contact_id,
+            'reactionMessageId': reaction_message_id,
+            'emoji': reaction_emoji,
+            'requestId': request_id
+        }))
+        
+        # Emit success metric
+        _emit_delivery_metric('success', is_template=False)
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
+            'body': json.dumps({
+                'messageId': message_id,
+                'whatsappMessageId': whatsapp_message_id,
+                'status': 'sent',
+                'mode': 'LIVE',
+                'type': 'reaction',
+                'reactionMessageId': reaction_message_id,
+                'emoji': reaction_emoji
+            })
+        }
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'reaction_send_error',
+            'messageId': message_id,
+            'error': str(e),
+            'requestId': request_id
+        }))
+        _emit_delivery_metric('failed', is_template=False)
+        return _error_response(500, f'Failed to send reaction: {str(e)}')
 
 
 def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
