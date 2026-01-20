@@ -180,9 +180,9 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
         <div className="page-header">
-          <h1 className="page-title">Contacts</h1>
+          <h1 className="page-title">☎ Contacts</h1>
           <div className="header-actions">
-            <button className="btn-secondary" onClick={loadContacts} disabled={loading}>🔄 {loading ? 'Loading...' : 'Refresh'}</button>
+            <button className="btn-secondary" onClick={loadContacts} disabled={loading}>↻ {loading ? 'Loading...' : 'Refresh'}</button>
             <button className="btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>+ Add Contact</button>
           </div>
         </div>
@@ -253,9 +253,9 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
                     <td>{contact.lastInboundMessageAt ? new Date(contact.lastInboundMessageAt).toLocaleDateString() : '-'}</td>
                     <td>
                       <div className="action-buttons">
-                        <button className="btn-icon" title="Edit" onClick={() => handleEdit(contact)}>✏️</button>
-                        <button className="btn-icon" title="Message" onClick={() => window.location.href = '/messaging'}>💬</button>
-                        <button className="btn-icon btn-icon-danger" title="Delete" onClick={() => handleDelete(contact.contactId)}>🗑️</button>
+                        <button className="btn-icon" title="Edit" onClick={() => handleEdit(contact)}>✎</button>
+                        <button className="btn-icon" title="Message" onClick={() => window.location.href = '/messaging'}>✉</button>
+                        <button className="btn-icon btn-icon-danger" title="Delete" onClick={() => handleDelete(contact.contactId)}>⌫</button>
                       </div>
                     </td>
                   </tr>

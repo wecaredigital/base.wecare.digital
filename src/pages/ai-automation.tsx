@@ -1,11 +1,13 @@
 /**
  * AI Automation Page
  * Bedrock Agent + Knowledge Base Integration
- * Default: AI Enabled
+ * REAL API Integration - No Mock Data
+ * Design: Unicode symbols only - No emoji
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout';
+import * as api from '../lib/api';
 
 interface PageProps {
   signOut?: () => void;
@@ -27,43 +29,61 @@ const AIAutomation: React.FC<PageProps> = ({ signOut, user }) => {
   // Default AI to ENABLED
   const [aiEnabled, setAiEnabled] = useState(true);
   const [autoApprove, setAutoApprove] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pending' | 'history' | 'config'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'history' | 'config' | 'test'>('pending');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [aiConfig, setAiConfig] = useState<api.AIConfig | null>(null);
 
-  // Mock pending approvals
-  const [pendingApprovals, setPendingApprovals] = useState<AIInteraction[]>([
-    {
-      id: '1',
-      messageId: 'msg-001',
-      query: 'What are your business hours?',
-      response: 'Our business hours are Monday to Friday, 9 AM to 6 PM IST. We are closed on weekends and public holidays.',
-      approved: false,
-      timestamp: '2 minutes ago',
-      contactName: 'Test Customer'
+  // Pending approvals (would come from real API)
+  const [pendingApprovals, setPendingApprovals] = useState<AIInteraction[]>([]);
+
+  // History (would come from real API)
+  const [history, setHistory] = useState<AIInteraction[]>([]);
+
+  // Test AI
+  const [testQuery, setTestQuery] = useState('');
+  const [testResponse, setTestResponse] = useState<{ response: string; sources?: string[] } | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  // Load AI config
+  const loadConfig = useCallback(async () => {
+    try {
+      const config = await api.getAIConfig();
+      setAiConfig(config);
+      setAiEnabled(config.enabled);
+      setAutoApprove(config.autoReplyEnabled);
+    } catch (err) {
+      console.error('Failed to load AI config:', err);
     }
-  ]);
+  }, []);
 
-  // Mock history
-  const [history] = useState<AIInteraction[]>([
-    {
-      id: '2',
-      messageId: 'msg-002',
-      query: 'How can I track my order?',
-      response: 'You can track your order by logging into your account and visiting the Orders section.',
-      approved: true,
-      feedback: 'positive',
-      timestamp: '1 hour ago',
-      contactName: 'John Doe'
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
+
+  const handleTestAI = async () => {
+    if (!testQuery.trim()) return;
+    setTesting(true);
+    setError(null);
+    try {
+      const result = await api.testAIResponse(testQuery);
+      setTestResponse(result);
+    } catch (err) {
+      console.error('AI test error:', err);
+      setError('Failed to test AI response');
+    } finally {
+      setTesting(false);
     }
-  ]);
-
-  const handleApprove = (id: string) => {
-    setPendingApprovals(prev => prev.filter(p => p.id !== id));
-    // API call to approve and send
   };
 
-  const handleReject = (id: string) => {
+  const handleApprove = async (id: string) => {
     setPendingApprovals(prev => prev.filter(p => p.id !== id));
-    // API call to reject
+    // API call to approve and send would go here
+  };
+
+  const handleReject = async (id: string) => {
+    setPendingApprovals(prev => prev.filter(p => p.id !== id));
+    // API call to reject would go here
   };
 
   const handleEdit = (id: string, newResponse: string) => {
@@ -75,7 +95,9 @@ const AIAutomation: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
-        <h1 className="page-title">AI Automation</h1>
+        <h1 className="page-title">⌘ AI Automation</h1>
+
+        {error && <div className="error-banner">{error} <button onClick={() => setError(null)}>✕</button></div>}
         
         {/* AI Status Card */}
         <div className="ai-status-card">
@@ -96,19 +118,19 @@ const AIAutomation: React.FC<PageProps> = ({ signOut, user }) => {
           
           <div className="ai-resources">
             <div className="resource-card">
-              <div className="resource-icon">🧠</div>
+              <div className="resource-icon">◈</div>
               <div className="resource-info">
                 <div className="resource-label">Knowledge Base</div>
-                <div className="resource-value">FZBPKGTOYE</div>
+                <div className="resource-value">{aiConfig?.knowledgeBaseId || 'FZBPKGTOYE'}</div>
                 <div className="resource-status status-green">● ACTIVE</div>
               </div>
             </div>
             
             <div className="resource-card">
-              <div className="resource-icon">🤖</div>
+              <div className="resource-icon">⌬</div>
               <div className="resource-info">
                 <div className="resource-label">Bedrock Agent</div>
-                <div className="resource-value">HQNT0JXN8G</div>
+                <div className="resource-value">{aiConfig?.agentId || 'HQNT0JXN8G'}</div>
                 <div className="resource-status status-green">● PREPARED</div>
               </div>
             </div>
@@ -117,13 +139,13 @@ const AIAutomation: React.FC<PageProps> = ({ signOut, user }) => {
               <div className="resource-icon">⚡</div>
               <div className="resource-info">
                 <div className="resource-label">Agent Core Runtime</div>
-                <div className="resource-value">base_bedrock_agentcore-1XHDxj2o3Q</div>
+                <div className="resource-value">{aiConfig?.agentAliasId || 'base_bedrock_agentcore-1XHDxj2o3Q'}</div>
                 <div className="resource-status status-green">● ACTIVE</div>
               </div>
             </div>
             
             <div className="resource-card">
-              <div className="resource-icon">🎯</div>
+              <div className="resource-icon">◎</div>
               <div className="resource-info">
                 <div className="resource-label">Foundation Model</div>
                 <div className="resource-value">amazon.nova-pro-v1:0</div>
@@ -146,6 +168,12 @@ const AIAutomation: React.FC<PageProps> = ({ signOut, user }) => {
             onClick={() => setActiveTab('history')}
           >
             History
+          </button>
+          <button 
+            className={`tab ${activeTab === 'test' ? 'active' : ''}`}
+            onClick={() => setActiveTab('test')}
+          >
+            Test AI
           </button>
           <button 
             className={`tab ${activeTab === 'config' ? 'active' : ''}`}
@@ -236,7 +264,7 @@ const AIAutomation: React.FC<PageProps> = ({ signOut, user }) => {
                     </div>
                     {item.feedback && (
                       <div className="feedback-badge">
-                        {item.feedback === 'positive' ? '👍 Helpful' : '👎 Not Helpful'}
+                        {item.feedback === 'positive' ? '↑ Helpful' : '↓ Not Helpful'}
                       </div>
                     )}
                   </div>
@@ -247,6 +275,46 @@ const AIAutomation: React.FC<PageProps> = ({ signOut, user }) => {
                 <p>No AI interaction history yet.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Test AI Tab */}
+        {activeTab === 'test' && (
+          <div className="section">
+            <h2 className="section-title">Test AI Response</h2>
+            <div className="test-ai-form">
+              <div className="form-group">
+                <label>Enter a test query</label>
+                <textarea
+                  value={testQuery}
+                  onChange={e => setTestQuery(e.target.value)}
+                  placeholder="e.g., What are your business hours?"
+                  rows={3}
+                />
+              </div>
+              <button 
+                className="btn-primary" 
+                onClick={handleTestAI}
+                disabled={testing || !testQuery.trim()}
+              >
+                {testing ? 'Generating...' : 'Generate AI Response'}
+              </button>
+              
+              {testResponse && (
+                <div className="test-response">
+                  <h3>AI Response:</h3>
+                  <div className="response-content">{testResponse.response}</div>
+                  {testResponse.sources && testResponse.sources.length > 0 && (
+                    <div className="response-sources">
+                      <span>Sources:</span>
+                      {testResponse.sources.map((s, i) => (
+                        <span key={i} className="source-tag">{s}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

@@ -2,9 +2,11 @@
  * Agent Page - Bedrock Agent Core Chatbot
  * WECARE.DIGITAL Admin Platform
  * 
- * Internal chatbot for taking tasks using Bedrock Agent
+ * Internal Admin Agent chatbot for taking tasks using Bedrock Agent
  * Agent ID: HQNT0JXN8G
  * Runtime ID: base_bedrock_agentcore-1XHDxj2o3Q
+ * 
+ * Design: Unicode symbols only - No emoji
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -29,7 +31,7 @@ const AgentPage: React.FC<PageProps> = ({ signOut, user }) => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m the WECARE.DIGITAL Agent powered by Amazon Bedrock. I can help you with:\n\n• Customer inquiries and support\n• Knowledge base queries\n• Task automation\n• System information\n\nHow can I assist you today?',
+      content: 'Hello! I\'m the WECARE.DIGITAL Admin Agent powered by Amazon Bedrock. I can help you with:\n\n• Send WhatsApp/SMS/Email messages\n• Create and manage bulk jobs\n• Query contacts and messages\n• Check system health and stats\n• DLQ replay (Admin only)\n\nHow can I assist you today?',
       timestamp: new Date(),
     }
   ]);
@@ -130,11 +132,11 @@ const AgentPage: React.FC<PageProps> = ({ signOut, user }) => {
       <div className="page agent-page">
         <div className="agent-header">
           <div className="agent-title">
-            <h1 className="page-title">🤖 Agent</h1>
+            <h1 className="page-title">⌘ Admin Agent</h1>
             <span className="agent-badge">Bedrock Nova Pro</span>
           </div>
           <div className="agent-actions">
-            <button className="btn-secondary" onClick={clearChat}>🗑️ Clear Chat</button>
+            <button className="btn-secondary" onClick={clearChat}>⌫ Clear Chat</button>
           </div>
         </div>
 
@@ -162,7 +164,7 @@ const AgentPage: React.FC<PageProps> = ({ signOut, user }) => {
             {messages.map((msg) => (
               <div key={msg.id} className={`chat-message ${msg.role}`}>
                 <div className="message-avatar">
-                  {msg.role === 'user' ? '👤' : '🤖'}
+                  {msg.role === 'user' ? '◉' : '⌬'}
                 </div>
                 <div className="message-content">
                   {msg.isLoading ? (
@@ -213,10 +215,10 @@ const AgentPage: React.FC<PageProps> = ({ signOut, user }) => {
 
         <div className="agent-suggestions">
           <span className="suggestions-label">Try asking:</span>
-          <button onClick={() => setInput('What are the business hours?')}>Business hours</button>
-          <button onClick={() => setInput('How do I track my order?')}>Track order</button>
-          <button onClick={() => setInput('What payment methods do you accept?')}>Payment methods</button>
+          <button onClick={() => setInput('Send a WhatsApp message to +919903300044')}>Send WhatsApp</button>
           <button onClick={() => setInput('Show me today\'s message stats')}>Today's stats</button>
+          <button onClick={() => setInput('List all contacts')}>List contacts</button>
+          <button onClick={() => setInput('Create a bulk SMS job')}>Create bulk job</button>
         </div>
       </div>
     </Layout>

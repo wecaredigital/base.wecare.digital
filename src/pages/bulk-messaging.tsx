@@ -2,10 +2,13 @@
  * Bulk Messaging Page
  * Separate tabs for WhatsApp, SMS, Email bulk operations
  * Includes bulk contact update
+ * REAL API Integration - No Mock Data
+ * Design: Unicode symbols only - No emoji
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout';
+import * as api from '../lib/api';
 
 interface PageProps {
   signOut?: () => void;
@@ -14,13 +17,14 @@ interface PageProps {
 
 interface BulkJob {
   id: string;
+  jobId: string;
   channel: 'whatsapp' | 'sms' | 'email';
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'paused';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'PAUSED' | 'CANCELLED';
   totalRecipients: number;
-  sent: number;
-  delivered: number;
-  failed: number;
+  sentCount: number;
+  failedCount: number;
   createdAt: string;
+  updatedAt: string;
   template?: string;
   message?: string;
 }
@@ -29,6 +33,8 @@ const BulkMessaging: React.FC<PageProps> = ({ signOut, user }) => {
   const [activeChannel, setActiveChannel] = useState<'whatsapp' | 'sms' | 'email'>('whatsapp');
   const [activeTab, setActiveTab] = useState<'jobs' | 'create' | 'contacts'>('jobs');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Create job form
   const [recipients, setRecipients] = useState('');
@@ -41,43 +47,91 @@ const BulkMessaging: React.FC<PageProps> = ({ signOut, user }) => {
   const [contactsCsv, setContactsCsv] = useState<File | null>(null);
   const [updateMode, setUpdateMode] = useState<'add' | 'update' | 'delete'>('add');
 
+  // Real jobs from API
+  const [jobs, setJobs] = useState<BulkJob[]>([]);
 
-  // Mock jobs
-  const [jobs, setJobs] = useState<BulkJob[]>([
-    { id: '1', channel: 'whatsapp', status: 'completed', totalRecipients: 100, sent: 100, delivered: 95, failed: 5, createdAt: '2026-01-18 14:00', template: 'order_confirmation' },
-    { id: '2', channel: 'sms', status: 'running', totalRecipients: 50, sent: 30, delivered: 28, failed: 2, createdAt: '2026-01-19 09:00', message: 'Your OTP is {{code}}' }
-  ]);
+  // Load jobs from API
+  const loadJobs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.listBulkJobs(activeChannel.toUpperCase());
+      const transformedJobs: BulkJob[] = data.map(j => ({
+        id: j.id || j.jobId,
+        jobId: j.jobId || j.id,
+        channel: j.channel.toLowerCase() as 'whatsapp' | 'sms' | 'email',
+        status: j.status,
+        totalRecipients: j.totalRecipients,
+        sentCount: j.sentCount,
+        failedCount: j.failedCount,
+        createdAt: j.createdAt,
+        updatedAt: j.updatedAt,
+      }));
+      setJobs(transformedJobs);
+    } catch (err) {
+      console.error('Failed to load jobs:', err);
+      setError('Failed to load bulk jobs');
+    } finally {
+      setLoading(false);
+    }
+  }, [activeChannel]);
+
+  useEffect(() => {
+    loadJobs();
+  }, [loadJobs]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(loadJobs, 30000);
+    return () => clearInterval(interval);
+  }, [loadJobs]);
 
   const filteredJobs = jobs.filter(j => j.channel === activeChannel);
 
-  const handleCreateJob = () => {
-    const newJob: BulkJob = {
-      id: Date.now().toString(),
-      channel: activeChannel,
-      status: 'pending',
-      totalRecipients: recipients.split('\n').filter(r => r.trim()).length || 100,
-      sent: 0, delivered: 0, failed: 0,
-      createdAt: new Date().toLocaleString(),
-      template: activeChannel === 'whatsapp' ? selectedTemplate : undefined,
-      message: messageContent
-    };
-    setJobs(prev => [newJob, ...prev]);
-    setShowCreateModal(false);
-    setRecipients(''); setMessageContent(''); setSelectedTemplate(''); setEmailSubject('');
+  const handleCreateJob = async () => {
+    setError(null);
+    try {
+      const recipientList = recipients.split('\n').filter(r => r.trim());
+      const result = await api.createBulkJob({
+        channel: activeChannel.toUpperCase() as 'WHATSAPP' | 'SMS' | 'EMAIL',
+        totalRecipients: recipientList.length || 100,
+        status: 'PENDING',
+      });
+      
+      if (result) {
+        setShowCreateModal(false);
+        setRecipients(''); setMessageContent(''); setSelectedTemplate(''); setEmailSubject('');
+        await loadJobs();
+      } else {
+        setError('Failed to create bulk job');
+      }
+    } catch (err) {
+      console.error('Create job error:', err);
+      setError('Failed to create bulk job');
+    }
   };
 
-  const handleJobAction = (jobId: string, action: 'pause' | 'resume' | 'cancel' | 'delete') => {
+  const handleJobAction = async (jobId: string, action: 'pause' | 'resume' | 'cancel' | 'delete') => {
     if (action === 'delete') {
       if (!confirm('Delete this job?')) return;
-      setJobs(prev => prev.filter(j => j.id !== jobId));
+      const success = await api.deleteBulkJob(jobId);
+      if (success) {
+        await loadJobs();
+      } else {
+        setError('Failed to delete job');
+      }
     } else {
-      setJobs(prev => prev.map(j => {
-        if (j.id !== jobId) return j;
-        if (action === 'pause') return { ...j, status: 'paused' };
-        if (action === 'resume') return { ...j, status: 'running' };
-        if (action === 'cancel') return { ...j, status: 'failed' };
-        return j;
-      }));
+      const statusMap: Record<string, string> = {
+        'pause': 'PAUSED',
+        'resume': 'IN_PROGRESS',
+        'cancel': 'CANCELLED',
+      };
+      const success = await api.updateBulkJobStatus(jobId, statusMap[action]);
+      if (success) {
+        await loadJobs();
+      } else {
+        setError(`Failed to ${action} job`);
+      }
     }
   };
 
@@ -91,20 +145,25 @@ const BulkMessaging: React.FC<PageProps> = ({ signOut, user }) => {
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
         <div className="page-header">
-          <h1 className="page-title">Bulk Messaging</h1>
-          <button className="btn-primary" onClick={() => setShowCreateModal(true)}>+ New Bulk Job</button>
+          <h1 className="page-title">⧉ Bulk Messaging</h1>
+          <div className="header-actions">
+            <button className="btn-secondary" onClick={loadJobs} disabled={loading}>↻ {loading ? 'Loading...' : 'Refresh'}</button>
+            <button className="btn-primary" onClick={() => setShowCreateModal(true)}>+ New Bulk Job</button>
+          </div>
         </div>
+
+        {error && <div className="error-banner">{error} <button onClick={() => setError(null)}>✕</button></div>}
 
         {/* Channel Tabs */}
         <div className="channel-tabs">
           <button className={`channel-tab ${activeChannel === 'whatsapp' ? 'active' : ''}`} onClick={() => setActiveChannel('whatsapp')}>
-            💬 WhatsApp
+            ✉ WhatsApp
           </button>
           <button className={`channel-tab ${activeChannel === 'sms' ? 'active' : ''}`} onClick={() => setActiveChannel('sms')}>
-            📱 SMS
+            ☎ SMS
           </button>
           <button className={`channel-tab ${activeChannel === 'email' ? 'active' : ''}`} onClick={() => setActiveChannel('email')}>
-            📧 Email
+            ✉ Email
           </button>
         </div>
 
@@ -129,16 +188,16 @@ const BulkMessaging: React.FC<PageProps> = ({ signOut, user }) => {
             <div className="stat-label">Total Jobs</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value">{filteredJobs.filter(j => j.status === 'running').length}</div>
+            <div className="stat-value">{filteredJobs.filter(j => j.status === 'IN_PROGRESS').length}</div>
             <div className="stat-label">Running</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value">{filteredJobs.filter(j => j.status === 'completed').length}</div>
+            <div className="stat-value">{filteredJobs.filter(j => j.status === 'COMPLETED').length}</div>
             <div className="stat-label">Completed</div>
           </div>
           <div className="stat-card">
             <div className="stat-value">
-              {filteredJobs.length > 0 ? Math.round(filteredJobs.reduce((acc, j) => acc + (j.delivered / Math.max(j.sent, 1) * 100), 0) / filteredJobs.length) : 100}%
+              {filteredJobs.length > 0 ? Math.round(filteredJobs.reduce((acc, j) => acc + ((j.sentCount - j.failedCount) / Math.max(j.sentCount, 1) * 100), 0) / filteredJobs.length) : 100}%
             </div>
             <div className="stat-label">Avg Delivery</div>
           </div>
@@ -148,7 +207,9 @@ const BulkMessaging: React.FC<PageProps> = ({ signOut, user }) => {
         {activeTab === 'jobs' && (
           <div className="section">
             <h2 className="section-title">{activeChannel.toUpperCase()} Jobs</h2>
-            {filteredJobs.length === 0 ? (
+            {loading ? (
+              <div className="loading">Loading jobs...</div>
+            ) : filteredJobs.length === 0 ? (
               <div className="empty-state">
                 <p>No {activeChannel} bulk jobs yet</p>
                 <button className="btn-primary" onClick={() => setShowCreateModal(true)}>Create First Job</button>
@@ -158,31 +219,27 @@ const BulkMessaging: React.FC<PageProps> = ({ signOut, user }) => {
                 {filteredJobs.map(job => (
                   <div key={job.id} className="job-card">
                     <div className="job-header">
-                      <span className="job-id">#{job.id}</span>
-                      <span className={`job-status status-${job.status}`}>{job.status}</span>
-                      <span className="job-time">{job.createdAt}</span>
-                    </div>
-                    <div className="job-content">
-                      {job.template && <div className="job-template">Template: {job.template}</div>}
-                      {job.message && <div className="job-message">{job.message.substring(0, 100)}</div>}
+                      <span className="job-id">#{job.jobId}</span>
+                      <span className={`job-status status-${job.status.toLowerCase()}`}>{job.status}</span>
+                      <span className="job-time">{new Date(job.createdAt).toLocaleString()}</span>
                     </div>
                     <div className="job-stats">
                       <div className="job-stat"><span className="stat-num">{job.totalRecipients}</span><span className="stat-lbl">Total</span></div>
-                      <div className="job-stat"><span className="stat-num">{job.sent}</span><span className="stat-lbl">Sent</span></div>
-                      <div className="job-stat text-green"><span className="stat-num">{job.delivered}</span><span className="stat-lbl">Delivered</span></div>
-                      <div className="job-stat text-red"><span className="stat-num">{job.failed}</span><span className="stat-lbl">Failed</span></div>
+                      <div className="job-stat"><span className="stat-num">{job.sentCount}</span><span className="stat-lbl">Sent</span></div>
+                      <div className="job-stat text-green"><span className="stat-num">{job.sentCount - job.failedCount}</span><span className="stat-lbl">Delivered</span></div>
+                      <div className="job-stat text-red"><span className="stat-num">{job.failedCount}</span><span className="stat-lbl">Failed</span></div>
                     </div>
                     <div className="job-progress">
                       <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${(job.sent / job.totalRecipients) * 100}%` }}></div>
+                        <div className="progress-fill" style={{ width: `${(job.sentCount / job.totalRecipients) * 100}%` }}></div>
                       </div>
-                      <span>{Math.round((job.sent / job.totalRecipients) * 100)}%</span>
+                      <span>{Math.round((job.sentCount / job.totalRecipients) * 100)}%</span>
                     </div>
                     <div className="job-actions">
-                      {job.status === 'running' && <button className="btn-small" onClick={() => handleJobAction(job.id, 'pause')}>⏸ Pause</button>}
-                      {job.status === 'paused' && <button className="btn-small" onClick={() => handleJobAction(job.id, 'resume')}>▶ Resume</button>}
-                      {(job.status === 'running' || job.status === 'paused') && <button className="btn-small btn-danger" onClick={() => handleJobAction(job.id, 'cancel')}>✕ Cancel</button>}
-                      <button className="btn-small btn-danger" onClick={() => handleJobAction(job.id, 'delete')}>🗑️ Delete</button>
+                      {job.status === 'IN_PROGRESS' && <button className="btn-small" onClick={() => handleJobAction(job.jobId, 'pause')}>⏸ Pause</button>}
+                      {job.status === 'PAUSED' && <button className="btn-small" onClick={() => handleJobAction(job.jobId, 'resume')}>▶ Resume</button>}
+                      {(job.status === 'IN_PROGRESS' || job.status === 'PAUSED') && <button className="btn-small btn-danger" onClick={() => handleJobAction(job.jobId, 'cancel')}>✕ Cancel</button>}
+                      <button className="btn-small btn-danger" onClick={() => handleJobAction(job.jobId, 'delete')}>⌫ Delete</button>
                     </div>
                   </div>
                 ))}
@@ -260,13 +317,13 @@ const BulkMessaging: React.FC<PageProps> = ({ signOut, user }) => {
                 <label>Operation</label>
                 <div className="operation-buttons">
                   <button className={`op-btn ${updateMode === 'add' ? 'active' : ''}`} onClick={() => setUpdateMode('add')}>
-                    ➕ Add Contacts
+                    + Add Contacts
                   </button>
                   <button className={`op-btn ${updateMode === 'update' ? 'active' : ''}`} onClick={() => setUpdateMode('update')}>
-                    ✏️ Update Contacts
+                    ✎ Update Contacts
                   </button>
                   <button className={`op-btn ${updateMode === 'delete' ? 'active' : ''}`} onClick={() => setUpdateMode('delete')}>
-                    🗑️ Delete Contacts
+                    ⌫ Delete Contacts
                   </button>
                 </div>
               </div>

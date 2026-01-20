@@ -369,7 +369,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                     {msg.direction === 'inbound' ? ' sent' : ' received'} a {msg.channel} message
                   </div>
                   <div className="activity-detail">
-                    {msg.mediaUrl && '📎 '}
+                    {msg.mediaUrl && '⊕ '}
                     {msg.content.substring(0, 60)}{msg.content.length > 60 ? '...' : ''}
                   </div>
                 </div>
