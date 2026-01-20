@@ -2,6 +2,7 @@
  * SMS DM Page
  * WECARE.DIGITAL Admin Platform
  * Full SMS messaging interface with AWS Pinpoint
+ * Design: No emoji - Unicode symbols only
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -136,10 +137,10 @@ const SmsDM: React.FC<PageProps> = ({ signOut, user }) => {
     <Layout user={user} onSignOut={signOut}>
       <div className="page dm-page">
         <div className="dm-header">
-          <h1 className="page-title">📱 SMS</h1>
+          <h1 className="page-title">☎ SMS</h1>
           <div className="header-actions">
             <button className="btn-secondary" onClick={loadData} disabled={loading}>
-              🔄 {loading ? 'Loading...' : 'Refresh'}
+              ↻ {loading ? 'Loading...' : 'Refresh'}
             </button>
           </div>
         </div>
@@ -168,9 +169,6 @@ const SmsDM: React.FC<PageProps> = ({ signOut, user }) => {
                     <div className="contact-phone">{contact.phone}</div>
                     <div className="contact-preview">{contact.lastMessage || 'No messages'}</div>
                   </div>
-                  <div className="contact-status">
-                    {!contact.optIn && <span className="status-dot red" title="Not opted in">⚠️</span>}
-                  </div>
                 </div>
               ))}
               {contacts.length === 0 && <div className="empty-sidebar">No SMS contacts</div>}
@@ -188,24 +186,7 @@ const SmsDM: React.FC<PageProps> = ({ signOut, user }) => {
                       <div className="conv-phone">{selectedContact.phone}</div>
                     </div>
                   </div>
-                  <div className="conv-status">
-                    <div className="opt-badges">
-                      <span className={`badge ${selectedContact.optIn ? 'badge-green' : 'badge-red'}`}>
-                        {selectedContact.optIn ? 'Opted In' : 'Not Opted In'}
-                      </span>
-                      <span className={`badge ${selectedContact.allowlist ? 'badge-green' : 'badge-yellow'}`}>
-                        {selectedContact.allowlist ? 'Allowlisted' : 'Not Allowlisted'}
-                      </span>
-                    </div>
-                  </div>
                 </div>
-
-                {!canSend().allowed && (
-                  <div className="block-reason">
-                    <div className="block-reason-title">⚠️ Cannot Send SMS</div>
-                    <div>{canSend().reason}</div>
-                  </div>
-                )}
 
                 <div className="messages-list">
                   {filteredMessages.length > 0 ? filteredMessages.map(msg => (
@@ -249,7 +230,7 @@ const SmsDM: React.FC<PageProps> = ({ signOut, user }) => {
             ) : (
               <div className="no-contact-selected">
                 <div className="empty-state">
-                  <p>📱 Select a conversation</p>
+                  <p>☎ Select a conversation</p>
                   <p className="help-text">Choose a contact from the list to start messaging via SMS</p>
                 </div>
               </div>

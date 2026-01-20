@@ -2,10 +2,11 @@
  * Layout Component with Sidebar Navigation
  * WECARE.DIGITAL Admin Platform
  * 
- * Requirements:
- * - 20.1: Display "WECARE.DIGITAL" as application title
- * - 20.3: Navigation order per spec
- * - 20.5: SEND_MODE banner (DRY_RUN vs LIVE)
+ * Design Rules (10.1):
+ * - No emoji icons - Unicode symbols only
+ * - Helvetica Light / system font
+ * - White background, black buttons, 13px rounded corners
+ * - No environment banner
  * - WebView compatible (Android WebView + iOS WKWebView)
  */
 
@@ -33,31 +34,28 @@ interface LayoutProps {
   onSignOut?: () => void;
 }
 
-// SEND_MODE is always LIVE in production
-const SEND_MODE = 'LIVE';
-
 const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   
-  // Navigation items per Requirement 20.3 - Updated order
+  // Navigation items - Unicode symbols only (no emoji)
   const menuItems: MenuItem[] = [
-    { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/pay', label: 'Pay', icon: '💳' },
-    { path: '/link', label: 'Link', icon: '🔗' },
-    { path: '/forms', label: 'Forms', icon: '📝' },
-    { path: '/docs', label: 'Docs', icon: '📄' },
-    { path: '/invoice', label: 'Invoice', icon: '🧾' },
-    { path: '/dm', label: 'DM', icon: '💬', subItems: [
+    { path: '/', label: 'Dashboard', icon: '⌂' },
+    { path: '/pay', label: 'Pay', icon: '¤' },
+    { path: '/link', label: 'Link', icon: '⛓' },
+    { path: '/forms', label: 'Forms', icon: '☐' },
+    { path: '/docs', label: 'Docs', icon: '⎙' },
+    { path: '/invoice', label: 'Invoice', icon: '⧉' },
+    { path: '/dm', label: 'DM', icon: '✉', subItems: [
       { path: '/dm/whatsapp', label: 'WhatsApp' },
       { path: '/dm/sms', label: 'SMS' },
-      { path: '/dm/email', label: 'Email (SES)' },
+      { path: '/dm/email', label: 'Email' },
     ]},
-    { path: '/contacts', label: 'Contacts', icon: '👥' },
-    { path: '/bulk-messaging', label: 'Bulk Messaging', icon: '📨' },
-    { path: '/agent', label: 'Agent', icon: '🤖' },
-    { path: '/admin', label: 'Admin Tools', icon: '⚙️', adminOnly: true },
+    { path: '/contacts', label: 'Contacts', icon: '☎' },
+    { path: '/bulk-messaging', label: 'Bulk', icon: '⋮⋮' },
+    { path: '/agent', label: 'Agent', icon: '⌘' },
+    { path: '/admin', label: 'Settings', icon: '⚙', adminOnly: true },
   ];
 
   // Auto-expand DM menu if on a DM page
@@ -86,11 +84,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
 
   return (
     <>
-      {/* Production LIVE Mode Banner */}
-      <div className="send-mode-banner live">
-        🟢 LIVE MODE - Production Environment
-      </div>
-      
       <div className="layout">
         {/* Mobile Menu Toggle */}
         <button 

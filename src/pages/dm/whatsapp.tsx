@@ -2,6 +2,7 @@
  * WhatsApp DM Page
  * WECARE.DIGITAL Admin Platform
  * Full WhatsApp messaging interface with AWS End User Messaging Social
+ * Design: No emoji - Unicode symbols only
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -180,10 +181,10 @@ const WhatsAppDM: React.FC<PageProps> = ({ signOut, user }) => {
     <Layout user={user} onSignOut={signOut}>
       <div className="page dm-page">
         <div className="dm-header">
-          <h1 className="page-title">💬 WhatsApp</h1>
+          <h1 className="page-title">✉ WhatsApp</h1>
           <div className="header-actions">
             <button className="btn-secondary" onClick={loadData} disabled={loading}>
-              🔄 {loading ? 'Loading...' : 'Refresh'}
+              ↻ {loading ? 'Loading...' : 'Refresh'}
             </button>
           </div>
         </div>
@@ -222,8 +223,7 @@ const WhatsAppDM: React.FC<PageProps> = ({ signOut, user }) => {
                     <div className="contact-preview">{contact.lastMessage || 'No messages'}</div>
                   </div>
                   <div className="contact-status">
-                    {contact.windowOpen && <span className="window-dot" title="24h window open">🟢</span>}
-                    {!contact.optIn && <span className="status-dot red" title="Not opted in">⚠️</span>}
+                    {contact.windowOpen && <span className="window-dot" title="24h window open">●</span>}
                   </div>
                 </div>
               ))}
@@ -245,16 +245,8 @@ const WhatsAppDM: React.FC<PageProps> = ({ signOut, user }) => {
                   <div className="conv-status">
                     <div className={`window-badge ${selectedContact.windowOpen ? 'open' : 'closed'}`}>
                       {selectedContact.windowOpen 
-                        ? `🟢 Window: ${getWindowTimeRemaining(selectedContact.windowExpiresAt)}`
-                        : '🔴 Window Closed'}
-                    </div>
-                    <div className="opt-badges">
-                      <span className={`badge ${selectedContact.optIn ? 'badge-green' : 'badge-red'}`}>
-                        {selectedContact.optIn ? 'Opted In' : 'Not Opted In'}
-                      </span>
-                      <span className={`badge ${selectedContact.allowlist ? 'badge-green' : 'badge-yellow'}`}>
-                        {selectedContact.allowlist ? 'Allowlisted' : 'Not Allowlisted'}
-                      </span>
+                        ? `● Window: ${getWindowTimeRemaining(selectedContact.windowExpiresAt)}`
+                        : '○ Window Closed'}
                     </div>
                   </div>
                 </div>
@@ -293,9 +285,9 @@ const WhatsAppDM: React.FC<PageProps> = ({ signOut, user }) => {
 
                 <div className="compose-area">
                   <div className="compose-toolbar">
-                    <button onClick={() => setShowTemplateModal(true)} title="Use Template">📋 Template</button>
-                    <button title="Attach Media">📎 Media</button>
-                    <button title="Send Location">📍 Location</button>
+                    <button onClick={() => setShowTemplateModal(true)} title="Use Template">⎙ Template</button>
+                    <button title="Attach Media">⊕ Media</button>
+                    <button title="Send Location">◎ Location</button>
                   </div>
                   {selectedTemplate && (
                     <div className="template-preview-bar">
@@ -320,7 +312,7 @@ const WhatsAppDM: React.FC<PageProps> = ({ signOut, user }) => {
             ) : (
               <div className="no-contact-selected">
                 <div className="empty-state">
-                  <p>💬 Select a conversation</p>
+                  <p>✉ Select a conversation</p>
                   <p className="help-text">Choose a contact from the list to start messaging</p>
                 </div>
               </div>

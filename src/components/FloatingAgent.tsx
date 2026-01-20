@@ -3,6 +3,7 @@
  * WECARE.DIGITAL Admin Platform
  * 
  * CAS (Conversational AI System) for internal task automation
+ * Design: No emoji - Unicode symbols only
  * 
  * Bedrock Resources:
  * - Knowledge Base ID: FZBPKGTOYE
@@ -33,10 +34,10 @@ interface ChatMessage {
 }
 
 const QUICK_ACTIONS = [
-  { label: '📤 Send WhatsApp', prompt: 'Send a WhatsApp message to ' },
-  { label: '👥 Find Contact', prompt: 'Find contact with phone number ' },
-  { label: '📊 Today Stats', prompt: 'Show me today\'s messaging statistics' },
-  { label: '📨 Check Status', prompt: 'Check status of recent messages' },
+  { label: '↗ Send WhatsApp', prompt: 'Send a WhatsApp message to ' },
+  { label: '☎ Find Contact', prompt: 'Find contact with phone number ' },
+  { label: '⌂ Today Stats', prompt: 'Show me today\'s messaging statistics' },
+  { label: '◎ Check Status', prompt: 'Check status of recent messages' },
 ];
 
 const FloatingAgent: React.FC = () => {
@@ -46,7 +47,7 @@ const FloatingAgent: React.FC = () => {
     {
       id: '1',
       role: 'assistant',
-      content: '👋 Hi! I\'m your WECARE Agent. I can help you:\n\n• Send messages (WhatsApp/SMS/Email)\n• Find contacts\n• Check message status\n• Run bulk operations\n\nWhat would you like to do?',
+      content: 'Hi! I\'m your WECARE Agent. I can help you:\n\n• Send messages (WhatsApp/SMS/Email)\n• Find contacts\n• Check message status\n• Run bulk operations\n\nWhat would you like to do?',
       timestamp: new Date(),
     }
   ]);
@@ -112,13 +113,13 @@ const FloatingAgent: React.FC = () => {
   };
 
   const executeAction = async (action: string, params: Record<string, string>): Promise<string> => {
-    const API_BASE = 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
     
     try {
       switch (action) {
         case 'send_whatsapp': {
           if (!params.phone) {
-            return '❌ Please provide a phone number. Example: "Send WhatsApp to +919330994400 saying Hello!"';
+            return '✗ Please provide a phone number. Example: "Send WhatsApp to +919330994400 saying Hello!"';
           }
           
           // First find the contact
@@ -127,21 +128,13 @@ const FloatingAgent: React.FC = () => {
           const contacts = contactsData.contacts || [];
           
           if (contacts.length === 0) {
-            return `❌ No contact found with phone ${params.phone}. Please add the contact first.`;
+            return `✗ No contact found with phone ${params.phone}. Please add the contact first.`;
           }
           
           const contact = contacts[0];
           
-          if (!contact.optInWhatsApp) {
-            return `⚠️ Contact ${contact.name || params.phone} has not opted in to WhatsApp. Cannot send message.`;
-          }
-          
-          if (!contact.allowlistWhatsApp) {
-            return `⚠️ Contact ${contact.name || params.phone} is not allowlisted for WhatsApp. Cannot send message.`;
-          }
-          
           if (!params.content) {
-            return `✅ Found contact: ${contact.name || 'Unknown'} (${contact.phone})\n\nOptIn: ✓ | Allowlist: ✓\n\nWhat message would you like to send?`;
+            return `✓ Found contact: ${contact.name || 'Unknown'} (${contact.phone})\n\nWhat message would you like to send?`;
           }
           
           // Send the message
@@ -156,17 +149,17 @@ const FloatingAgent: React.FC = () => {
           
           if (sendRes.ok) {
             const result = await sendRes.json();
-            return `✅ Message sent successfully!\n\nTo: ${contact.name || contact.phone}\nMessage: "${params.content}"\nStatus: ${result.status}\nMode: ${result.mode || 'LIVE'}`;
+            return `✓ Message sent successfully!\n\nTo: ${contact.name || contact.phone}\nMessage: "${params.content}"\nStatus: ${result.status}`;
           } else {
             const error = await sendRes.json();
-            return `❌ Failed to send: ${error.error || 'Unknown error'}`;
+            return `✗ Failed to send: ${error.error || 'Unknown error'}`;
           }
         }
         
         case 'find_contact': {
           const query = params.phone || params.name;
           if (!query) {
-            return '❌ Please provide a phone number or name to search.';
+            return '✗ Please provide a phone number or name to search.';
           }
           
           const res = await fetch(`${API_BASE}/contacts?q=${encodeURIComponent(query)}`);
@@ -174,14 +167,14 @@ const FloatingAgent: React.FC = () => {
           const contacts = data.contacts || [];
           
           if (contacts.length === 0) {
-            return `🔍 No contacts found matching "${query}"`;
+            return `○ No contacts found matching "${query}"`;
           }
           
           const results = contacts.slice(0, 5).map((c: any) => 
-            `• ${c.name || 'Unknown'} - ${c.phone || 'No phone'}\n  WhatsApp: ${c.optInWhatsApp ? '✓' : '✗'} | SMS: ${c.optInSms ? '✓' : '✗'} | Email: ${c.optInEmail ? '✓' : '✗'}`
+            `• ${c.name || 'Unknown'} - ${c.phone || 'No phone'}`
           ).join('\n\n');
           
-          return `🔍 Found ${contacts.length} contact(s):\n\n${results}`;
+          return `○ Found ${contacts.length} contact(s):\n\n${results}`;
         }
         
         case 'get_stats': {
@@ -202,13 +195,11 @@ const FloatingAgent: React.FC = () => {
           const inbound = todayMessages.filter((m: any) => m.direction === 'INBOUND').length;
           const outbound = todayMessages.filter((m: any) => m.direction === 'OUTBOUND').length;
           
-          return `📊 Today's Statistics:\n\n` +
-            `📨 Messages Today: ${todayMessages.length}\n` +
-            `  ↙️ Inbound: ${inbound}\n` +
-            `  ↗️ Outbound: ${outbound}\n\n` +
-            `👥 Total Contacts: ${contacts.length}\n` +
-            `📱 WhatsApp Opted-In: ${contacts.filter((c: any) => c.optInWhatsApp).length}\n` +
-            `✅ Allowlisted: ${contacts.filter((c: any) => c.allowlistWhatsApp).length}`;
+          return `⌂ Today's Statistics:\n\n` +
+            `✉ Messages Today: ${todayMessages.length}\n` +
+            `  ↙ Inbound: ${inbound}\n` +
+            `  ↗ Outbound: ${outbound}\n\n` +
+            `☎ Total Contacts: ${contacts.length}`;
         }
         
         case 'check_status': {
@@ -217,25 +208,25 @@ const FloatingAgent: React.FC = () => {
           const messages = data.messages || [];
           
           if (messages.length === 0) {
-            return '📭 No recent messages found.';
+            return '○ No recent messages found.';
           }
           
           const results = messages.slice(0, 5).map((m: any) => {
-            const dir = m.direction === 'INBOUND' ? '↙️' : '↗️';
+            const dir = m.direction === 'INBOUND' ? '↙' : '↗';
             const status = m.status?.toLowerCase() || 'unknown';
-            const statusIcon = status === 'delivered' || status === 'read' ? '✓✓' : status === 'sent' ? '✓' : '⏳';
+            const statusIcon = status === 'delivered' || status === 'read' ? '✓✓' : status === 'sent' ? '✓' : '○';
             return `${dir} ${m.channel || 'WHATSAPP'} | ${statusIcon} ${status}\n   "${(m.content || '').substring(0, 40)}..."`;
           }).join('\n\n');
           
-          return `📋 Recent Messages:\n\n${results}`;
+          return `◎ Recent Messages:\n\n${results}`;
         }
         
         default:
-          return '🤔 I didn\'t understand that command. Try:\n• "Send WhatsApp to +91... saying Hello"\n• "Find contact +91..."\n• "Show today\'s stats"';
+          return '? I didn\'t understand that command. Try:\n• "Send WhatsApp to +91... saying Hello"\n• "Find contact +91..."\n• "Show today\'s stats"';
       }
     } catch (error) {
       console.error('Action error:', error);
-      return `❌ Error executing action: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return `✗ Error executing action: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   };
 
@@ -258,7 +249,7 @@ const FloatingAgent: React.FC = () => {
     setMessages(prev => [...prev, {
       id: loadingId,
       role: 'assistant',
-      content: '⏳ Processing...',
+      content: '○ Processing...',
       timestamp: new Date(),
     }]);
 
@@ -271,7 +262,8 @@ const FloatingAgent: React.FC = () => {
         response = await executeAction(command.action, command.params);
       } else {
         // Fall back to AI for general queries
-        const aiRes = await fetch('https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod/ai/generate', {
+        const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
+        const aiRes = await fetch(`${API_BASE}/ai/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -284,7 +276,7 @@ const FloatingAgent: React.FC = () => {
           const data = await aiRes.json();
           response = data.suggestedResponse || data.suggestion || 'I can help you with:\n• Sending messages\n• Finding contacts\n• Checking stats\n\nTry a specific command!';
         } else {
-          response = '🤔 I can help you with:\n• "Send WhatsApp to +91... saying Hello"\n• "Find contact named John"\n• "Show today\'s stats"\n• "Check message status"';
+          response = '? I can help you with:\n• "Send WhatsApp to +91... saying Hello"\n• "Find contact named John"\n• "Show today\'s stats"\n• "Check message status"';
         }
       }
 
@@ -293,7 +285,7 @@ const FloatingAgent: React.FC = () => {
       ));
     } catch (error) {
       setMessages(prev => prev.map(m => 
-        m.id === loadingId ? { ...m, content: '❌ Connection error. Please try again.' } : m
+        m.id === loadingId ? { ...m, content: '✗ Connection error. Please try again.' } : m
       ));
     } finally {
       setIsLoading(false);
@@ -308,7 +300,7 @@ const FloatingAgent: React.FC = () => {
   if (!isOpen) {
     return (
       <button className="floating-agent-button" onClick={() => setIsOpen(true)} title="Open Agent">
-        <span className="agent-icon">🤖</span>
+        <span className="agent-icon">⌘</span>
         <span className="agent-pulse"></span>
       </button>
     );
@@ -318,7 +310,7 @@ const FloatingAgent: React.FC = () => {
     <div className={`floating-agent-container ${isMinimized ? 'minimized' : ''}`}>
       <div className="floating-agent-header">
         <div className="agent-header-info">
-          <span className="agent-avatar">🤖</span>
+          <span className="agent-avatar">⌘</span>
           <div>
             <span className="agent-name">WECARE Agent</span>
             <span className="agent-status">● Online</span>
@@ -326,7 +318,7 @@ const FloatingAgent: React.FC = () => {
         </div>
         <div className="agent-header-actions">
           <button onClick={() => setIsMinimized(!isMinimized)} title={isMinimized ? 'Expand' : 'Minimize'}>
-            {isMinimized ? '⬆️' : '⬇️'}
+            {isMinimized ? '△' : '▽'}
           </button>
           <button onClick={() => setIsOpen(false)} title="Close">✕</button>
         </div>

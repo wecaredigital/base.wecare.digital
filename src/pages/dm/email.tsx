@@ -2,6 +2,7 @@
  * Email DM Page (SES)
  * WECARE.DIGITAL Admin Platform
  * Full Email messaging interface with AWS SES
+ * Design: No emoji - Unicode symbols only
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -141,13 +142,13 @@ const EmailDM: React.FC<PageProps> = ({ signOut, user }) => {
     <Layout user={user} onSignOut={signOut}>
       <div className="page dm-page email-page">
         <div className="dm-header">
-          <h1 className="page-title">📧 Email (SES)</h1>
+          <h1 className="page-title">✉ Email</h1>
           <div className="header-actions">
             <button className="btn-primary" onClick={() => setShowComposeModal(true)} disabled={!canSend().allowed}>
-              ✉️ Compose
+              ✎ Compose
             </button>
             <button className="btn-secondary" onClick={loadData} disabled={loading}>
-              🔄 {loading ? 'Loading...' : 'Refresh'}
+              ↻ {loading ? 'Loading...' : 'Refresh'}
             </button>
           </div>
         </div>
@@ -176,9 +177,6 @@ const EmailDM: React.FC<PageProps> = ({ signOut, user }) => {
                     <div className="contact-email">{contact.email}</div>
                     <div className="contact-preview">{contact.lastMessage || 'No emails'}</div>
                   </div>
-                  <div className="contact-status">
-                    {!contact.optIn && <span className="status-dot red" title="Not opted in">⚠️</span>}
-                  </div>
                 </div>
               ))}
               {contacts.length === 0 && <div className="empty-sidebar">No email contacts</div>}
@@ -196,24 +194,7 @@ const EmailDM: React.FC<PageProps> = ({ signOut, user }) => {
                       <div className="conv-email">{selectedContact.email}</div>
                     </div>
                   </div>
-                  <div className="conv-status">
-                    <div className="opt-badges">
-                      <span className={`badge ${selectedContact.optIn ? 'badge-green' : 'badge-red'}`}>
-                        {selectedContact.optIn ? 'Opted In' : 'Not Opted In'}
-                      </span>
-                      <span className={`badge ${selectedContact.allowlist ? 'badge-green' : 'badge-yellow'}`}>
-                        {selectedContact.allowlist ? 'Allowlisted' : 'Not Allowlisted'}
-                      </span>
-                    </div>
-                  </div>
                 </div>
-
-                {!canSend().allowed && (
-                  <div className="block-reason">
-                    <div className="block-reason-title">⚠️ Cannot Send Email</div>
-                    <div>{canSend().reason}</div>
-                  </div>
-                )}
 
                 <div className="email-list">
                   {filteredMessages.length > 0 ? filteredMessages.map(msg => (
@@ -239,14 +220,14 @@ const EmailDM: React.FC<PageProps> = ({ signOut, user }) => {
 
                 <div className="email-actions">
                   <button className="btn-primary" onClick={() => setShowComposeModal(true)} disabled={!canSend().allowed}>
-                    ✉️ Compose New Email
+                    ✎ Compose New Email
                   </button>
                 </div>
               </>
             ) : (
               <div className="no-contact-selected">
                 <div className="empty-state">
-                  <p>📧 Select a contact</p>
+                  <p>✉ Select a contact</p>
                   <p className="help-text">Choose a contact from the list to view email history</p>
                 </div>
               </div>
