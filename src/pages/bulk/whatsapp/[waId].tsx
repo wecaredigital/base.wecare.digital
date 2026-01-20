@@ -7,7 +7,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../../../components/Layout';
 import RichTextEditor from '../../../components/RichTextEditor';
-import '../../../components/RichTextEditor.css';
 import * as api from '../../../lib/api';
 
 interface PageProps {

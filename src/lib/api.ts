@@ -202,6 +202,8 @@ export interface Message {
   mediaId?: string;
   s3Key?: string;
   senderPhone?: string;
+  receivingPhone?: string;
+  awsPhoneNumberId?: string;
 }
 
 export async function listMessages(contactId?: string, channel?: string): Promise<Message[]> {
@@ -244,6 +246,8 @@ function normalizeMessage(item: any): Message {
     mediaId: item.mediaId,
     s3Key: item.s3Key,
     senderPhone: item.senderPhone,
+    receivingPhone: item.receivingPhone,
+    awsPhoneNumberId: item.awsPhoneNumberId,
   };
 }
 

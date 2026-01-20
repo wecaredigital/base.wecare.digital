@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import styles from './RichTextEditor.module.css';
 
 interface RichTextEditorProps {
   value: string;
@@ -141,17 +142,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const isOverLimit = maxLength ? charCount > maxLength : false;
 
   return (
-    <div className="rich-text-editor">
+    <div className={styles['rich-text-editor']}>
       {/* AI Suggestions Panel */}
       {showAISuggestions && showSuggestions && aiSuggestions.length > 0 && (
-        <div className="ai-suggestions-panel">
-          <div className="ai-suggestions-header">
+        <div className={styles['ai-suggestions-panel']}>
+          <div className={styles['ai-suggestions-header']}>
             <span>✨ AI Suggestions</span>
             <button onClick={() => setShowSuggestions(false)}>✕</button>
           </div>
-          <div className="ai-suggestions-list">
+          <div className={styles['ai-suggestions-list']}>
             {aiSuggestions.map((suggestion, i) => (
-              <button key={i} className="ai-suggestion-item" onClick={() => applySuggestion(suggestion)}>
+              <button key={i} className={styles['ai-suggestion-item']} onClick={() => applySuggestion(suggestion)}>
                 {suggestion}
               </button>
             ))}
@@ -160,10 +161,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       )}
 
       {/* Toolbar */}
-      <div className="editor-toolbar">
+      <div className={styles['editor-toolbar']}>
         <button
           type="button"
-          className={`toolbar-btn ${showEmojiPicker ? 'active' : ''}`}
+          className={`${styles['toolbar-btn']} ${showEmojiPicker ? styles['active'] : ''}`}
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           title="Emoji"
         >
@@ -173,7 +174,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {showAISuggestions && (
           <button
             type="button"
-            className="toolbar-btn ai-btn"
+            className={`${styles['toolbar-btn']} ${styles['ai-btn']}`}
             onClick={fetchAISuggestions}
             disabled={loadingAI || !value.trim()}
             title="Get AI Suggestions"
@@ -184,13 +185,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
         {channel === 'whatsapp' && (
           <>
-            <button type="button" className="toolbar-btn" title="Bold" onClick={() => onChange(value + '*bold*')}>
+            <button type="button" className={styles['toolbar-btn']} title="Bold" onClick={() => onChange(value + '*bold*')}>
               <strong>B</strong>
             </button>
-            <button type="button" className="toolbar-btn" title="Italic" onClick={() => onChange(value + '_italic_')}>
+            <button type="button" className={styles['toolbar-btn']} title="Italic" onClick={() => onChange(value + '_italic_')}>
               <em>I</em>
             </button>
-            <button type="button" className="toolbar-btn" title="Strikethrough" onClick={() => onChange(value + '~strike~')}>
+            <button type="button" className={styles['toolbar-btn']} title="Strikethrough" onClick={() => onChange(value + '~strike~')}>
               <s>S</s>
             </button>
           </>
@@ -198,25 +199,25 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
         {channel === 'email' && (
           <>
-            <button type="button" className="toolbar-btn" title="Bold">
+            <button type="button" className={styles['toolbar-btn']} title="Bold">
               <strong>B</strong>
             </button>
-            <button type="button" className="toolbar-btn" title="Italic">
+            <button type="button" className={styles['toolbar-btn']} title="Italic">
               <em>I</em>
             </button>
-            <button type="button" className="toolbar-btn" title="Underline">
+            <button type="button" className={styles['toolbar-btn']} title="Underline">
               <u>U</u>
             </button>
-            <button type="button" className="toolbar-btn" title="Link">
+            <button type="button" className={styles['toolbar-btn']} title="Link">
               🔗
             </button>
           </>
         )}
 
-        <div className="toolbar-spacer" />
+        <div className={styles['toolbar-spacer']} />
 
         {showCharCount && (
-          <span className={`char-counter ${isOverLimit ? 'over-limit' : ''}`}>
+          <span className={`${styles['char-counter']} ${isOverLimit ? styles['over-limit'] : ''}`}>
             {charCount}{maxLength ? `/${maxLength}` : ''}
           </span>
         )}
@@ -224,21 +225,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
       {/* Emoji Picker */}
       {showEmojiPicker && (
-        <div className="emoji-picker" ref={emojiPickerRef}>
-          <div className="emoji-categories">
+        <div className={styles['emoji-picker']} ref={emojiPickerRef}>
+          <div className={styles['emoji-categories']}>
             {Object.keys(EMOJI_CATEGORIES).map((cat) => (
               <button
                 key={cat}
-                className={`emoji-cat-btn ${activeEmojiCategory === cat ? 'active' : ''}`}
+                className={`${styles['emoji-cat-btn']} ${activeEmojiCategory === cat ? styles['active'] : ''}`}
                 onClick={() => setActiveEmojiCategory(cat as keyof typeof EMOJI_CATEGORIES)}
               >
                 {EMOJI_CATEGORIES[cat as keyof typeof EMOJI_CATEGORIES][0]}
               </button>
             ))}
           </div>
-          <div className="emoji-grid">
+          <div className={styles['emoji-grid']}>
             {EMOJI_CATEGORIES[activeEmojiCategory].map((emoji, i) => (
-              <button key={i} className="emoji-btn" onClick={() => insertEmoji(emoji)}>
+              <button key={i} className={styles['emoji-btn']} onClick={() => insertEmoji(emoji)}>
                 {emoji}
               </button>
             ))}
@@ -247,7 +248,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       )}
 
       {/* Text Input */}
-      <div className="editor-input-wrapper">
+      <div className={styles['editor-input-wrapper']}>
         <textarea
           ref={textareaRef}
           value={value}
@@ -255,14 +256,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className={`editor-textarea ${isOverLimit ? 'over-limit' : ''}`}
+          className={`${styles['editor-textarea']} ${isOverLimit ? styles['over-limit'] : ''}`}
           rows={1}
         />
         
         {onSend && (
           <button
             type="button"
-            className="send-btn"
+            className={styles['send-btn']}
             onClick={onSend}
             disabled={disabled || !value.trim() || isOverLimit}
           >
