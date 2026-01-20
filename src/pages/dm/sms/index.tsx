@@ -1,310 +1,85 @@
 /**
- * SMS DM - Airtel IQ SMS Gateway
- * Direct messaging via Airtel IQ SMS API
+ * SMS DM Hub - SMS Provider Selection
+ * Choose between Airtel IQ SMS and AWS Pinpoint SMS
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React from 'react';
+import Link from 'next/link';
 import Layout from '../../../components/Layout';
-import RichTextEditor from '../../../components/RichTextEditor';
-import * as api from '../../../lib/api';
 
 interface PageProps {
   signOut?: () => void;
   user?: any;
 }
 
-interface Contact {
-  id: string;
-  name: string;
-  phone: string;
-  unread: number;
-  lastMessage?: string;
-}
+const SMS_PROVIDERS = [
+  {
+    id: 'airtel',
+    name: 'Airtel IQ SMS',
+    icon: '📱',
+    description: 'SMS via Airtel IQ Gateway',
+    href: '/dm/sms/airtel',
+    status: 'active',
+    features: ['Transactional SMS', 'Promotional SMS', 'DLT Compliance', 'India Coverage'],
+  },
+  {
+    id: 'aws',
+    name: 'AWS Pinpoint SMS',
+    icon: '☎️',
+    description: 'SMS via Amazon Pinpoint',
+    href: '/dm/sms/aws',
+    status: 'active',
+    features: ['Global Coverage', 'Two-way SMS', 'Delivery Reports', 'SNS Integration'],
+  },
+];
 
-interface Message {
-  id: string;
-  direction: 'inbound' | 'outbound';
-  content: string;
-  timestamp: string;
-  status: string;
-  contactId: string;
-}
-
-const SmsDM: React.FC<PageProps> = ({ signOut, user }) => {
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [messageText, setMessageText] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [contactsData, messagesData] = await Promise.all([
-        api.listContacts(),
-        api.listMessages(undefined, 'SMS'),
-      ]);
-
-      const displayContacts: Contact[] = contactsData
-        .filter(c => c.phone)
-        .map(c => {
-          const contactMsgs = messagesData.filter(m => m.contactId === c.contactId);
-          const lastMsg = contactMsgs[0];
-          return {
-            id: c.contactId,
-            name: c.name || c.phone,
-            phone: c.phone,
-            unread: contactMsgs.filter(m => m.direction === 'INBOUND' && m.status === 'received').length,
-            lastMessage: lastMsg?.content?.substring(0, 40) || '',
-          };
-        });
-
-      setContacts(displayContacts);
-      setMessages(messagesData.map(m => ({
-        id: m.messageId,
-        direction: m.direction.toLowerCase() as 'inbound' | 'outbound',
-        content: m.content || '',
-        timestamp: m.timestamp,
-        status: m.status?.toLowerCase() || 'sent',
-        contactId: m.contactId,
-      })));
-    } catch (err) {
-      setError('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 30000);
-    return () => clearInterval(interval);
-  }, [loadData]);
-
-  const filteredMessages = messages.filter(m => selectedContact && m.contactId === selectedContact.id);
-
-  const handleSend = async () => {
-    if (!selectedContact || !messageText.trim() || sending) return;
-    setSending(true);
-    setError(null);
-
-    try {
-      const result = await api.sendSmsMessage(selectedContact.id, messageText);
-      if (result) {
-        setMessageText('');
-        await loadData();
-      } else {
-        setError('SMS sending not yet implemented');
-      }
-    } catch (err) {
-      setError('Failed to send SMS');
-    } finally {
-      setSending(false);
-    }
-  };
-
+const SmsDMHub: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
-      <div className="sms-page">
-        <div className="sms-header">
-          <a href="/dm" className="back-btn">←</a>
-          <div className="sms-header-info">
-            <span className="sms-icon">📱</span>
-            <div>
-              <h1>SMS - Airtel IQ</h1>
-              <span className="sms-provider">Airtel IQ SMS Gateway</span>
-            </div>
-          </div>
-          <button onClick={loadData} className="refresh-btn" disabled={loading}>
-            {loading ? '...' : '↻'}
-          </button>
+      <div className="page">
+        <div className="page-header">
+          <Link href="/dm" className="back-link">← DM Hub</Link>
+          <h1 className="page-title">SMS</h1>
+          <p className="page-subtitle">Select SMS provider</p>
         </div>
 
-        {error && <div className="error-bar">{error}</div>}
-
-        <div className="sms-layout">
-          {/* Contacts Sidebar */}
-          <div className="sms-sidebar">
-            <div className="sidebar-search">
-              <input type="text" placeholder="Search contacts..." />
-            </div>
-            <div className="contacts-list">
-              {contacts.map(contact => (
-                <div
-                  key={contact.id}
-                  className={`contact-row ${selectedContact?.id === contact.id ? 'active' : ''}`}
-                  onClick={() => setSelectedContact(contact)}
-                >
-                  <div className="contact-avatar">{contact.name.charAt(0).toUpperCase()}</div>
-                  <div className="contact-details">
-                    <div className="contact-name">
-                      {contact.name}
-                      {contact.unread > 0 && <span className="unread">{contact.unread}</span>}
-                    </div>
-                    <div className="contact-preview">{contact.lastMessage || 'No messages'}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Chat Area */}
-          <div className="sms-chat">
-            {selectedContact ? (
-              <>
-                <div className="chat-header">
-                  <div className="chat-contact">
-                    <div className="contact-avatar large">{selectedContact.name.charAt(0).toUpperCase()}</div>
-                    <div>
-                      <div className="chat-name">{selectedContact.name}</div>
-                      <div className="chat-phone">{selectedContact.phone}</div>
-                    </div>
-                  </div>
-                  <div className="char-info">
-                    {messageText.length}/160 chars
-                    {messageText.length > 160 && <span className="split-warning"> ({Math.ceil(messageText.length / 160)} SMS)</span>}
-                  </div>
-                </div>
-
-                <div className="messages-area">
-                  {filteredMessages.map(msg => (
-                    <div key={msg.id} className={`message ${msg.direction}`}>
-                      <div className="message-bubble">
-                        <div className="message-text">{msg.content}</div>
-                        <div className="message-footer">
-                          <span className="message-time">
-                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          {msg.direction === 'outbound' && (
-                            <span className={`message-status ${msg.status}`}>
-                              {msg.status === 'delivered' ? '✓✓' : '✓'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+        <div className="providers-grid">
+          {SMS_PROVIDERS.map((provider) => (
+            <Link key={provider.id} href={provider.href} className="provider-card">
+              <div className="provider-icon">{provider.icon}</div>
+              <div className="provider-info">
+                <h3 className="provider-name">{provider.name}</h3>
+                <p className="provider-desc">{provider.description}</p>
+                <div className="provider-features">
+                  {provider.features.map((f, i) => (
+                    <span key={i} className="feature-tag">{f}</span>
                   ))}
-                  <div ref={messagesEndRef} />
                 </div>
-
-                <div className="compose-area">
-                  <RichTextEditor
-                    value={messageText}
-                    onChange={setMessageText}
-                    placeholder="Type an SMS..."
-                    channel="sms"
-                    showCharCount={true}
-                    maxLength={1600}
-                    showAISuggestions={true}
-                    onSend={handleSend}
-                    disabled={sending}
-                    contactContext={selectedContact.name}
-                  />
-                </div>
-              </>
-            ) : (
-              <div className="no-chat">
-                <p>📱 Select a conversation</p>
-                <small>Choose a contact from the list</small>
               </div>
-            )}
-          </div>
-
-          {/* Info Panel */}
-          <div className="info-panel">
-            <h3>Airtel IQ SMS</h3>
-            <div className="info-section">
-              <h4>API Status</h4>
-              <div className="status-row">
-                <span className="status-dot active"></span>
-                <span>Connected</span>
-              </div>
-            </div>
-            <div className="info-section">
-              <h4>Features</h4>
-              <ul className="feature-list">
-                <li>✓ Transactional SMS</li>
-                <li>✓ Promotional SMS</li>
-                <li>✓ DLT Compliance</li>
-                <li>✓ Delivery Reports</li>
-              </ul>
-            </div>
-            <div className="info-section">
-              <h4>Documentation</h4>
-              <a href="https://www.airtel.in/business/b2b/airtel-iq/api-docs/sms/overview" target="_blank" rel="noopener noreferrer" className="doc-link">
-                Airtel IQ SMS API Docs →
-              </a>
-            </div>
-          </div>
+              <span className="provider-arrow">→</span>
+            </Link>
+          ))}
         </div>
       </div>
 
       <style jsx>{`
-        .sms-page { height: calc(100vh - 60px); display: flex; flex-direction: column; }
-        .sms-header { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: #0066b3; color: #fff; }
-        .back-btn, .refresh-btn { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 8px 12px; border-radius: 8px; cursor: pointer; text-decoration: none; }
-        .sms-header-info { display: flex; align-items: center; gap: 12px; flex: 1; }
-        .sms-icon { font-size: 28px; }
-        .sms-header h1 { font-size: 18px; font-weight: 500; margin: 0; }
-        .sms-provider { font-size: 13px; opacity: 0.9; }
-        .error-bar { background: #fee2e2; color: #991b1b; padding: 8px 16px; font-size: 13px; }
-        .sms-layout { display: grid; grid-template-columns: 280px 1fr 260px; flex: 1; overflow: hidden; }
-        .sms-sidebar { background: #fff; border-right: 1px solid #e5e5e5; display: flex; flex-direction: column; }
-        .sidebar-search { padding: 12px; border-bottom: 1px solid #e5e5e5; }
-        .sidebar-search input { width: 100%; padding: 10px 14px; border: 1px solid #e5e5e5; border-radius: 20px; font-size: 14px; }
-        .contacts-list { flex: 1; overflow-y: auto; }
-        .contact-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f5f5f5; }
-        .contact-row:hover { background: #f9f9f9; }
-        .contact-row.active { background: #e3f2fd; }
-        .contact-avatar { width: 44px; height: 44px; background: #e5e5e5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 500; color: #666; }
-        .contact-avatar.large { width: 40px; height: 40px; }
-        .contact-details { flex: 1; min-width: 0; }
-        .contact-name { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
-        .contact-preview { font-size: 12px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .unread { background: #0066b3; color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 10px; }
-        .sms-chat { display: flex; flex-direction: column; background: #f5f5f5; }
-        .chat-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: #fff; border-bottom: 1px solid #e5e5e5; }
-        .chat-contact { display: flex; align-items: center; gap: 12px; }
-        .chat-name { font-weight: 500; }
-        .chat-phone { font-size: 12px; color: #666; }
-        .char-info { font-size: 12px; color: #666; }
-        .split-warning { color: #f59e0b; }
-        .messages-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-        .message { display: flex; max-width: 70%; }
-        .message.inbound { align-self: flex-start; }
-        .message.outbound { align-self: flex-end; }
-        .message-bubble { background: #fff; padding: 10px 14px; border-radius: 12px; }
-        .message.outbound .message-bubble { background: #0066b3; color: #fff; }
-        .message-text { font-size: 14px; line-height: 1.4; }
-        .message-footer { display: flex; justify-content: flex-end; gap: 4px; margin-top: 4px; }
-        .message-time { font-size: 11px; opacity: 0.7; }
-        .message-status { font-size: 12px; }
-        .compose-area { padding: 12px 16px; background: #fff; }
-        .no-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #999; }
-        .info-panel { background: #fff; border-left: 1px solid #e5e5e5; padding: 20px; overflow-y: auto; }
-        .info-panel h3 { font-size: 16px; margin: 0 0 20px 0; }
-        .info-section { margin-bottom: 20px; }
-        .info-section h4 { font-size: 12px; color: #666; text-transform: uppercase; margin: 0 0 8px 0; }
-        .status-row { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
-        .feature-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
-        .feature-list li { padding: 4px 0; }
-        .doc-link { color: #0066b3; text-decoration: none; font-size: 13px; }
-        .doc-link:hover { text-decoration: underline; }
+        .page-header { margin-bottom: 24px; }
+        .back-link { color: #666; text-decoration: none; font-size: 14px; }
+        .page-title { font-size: 24px; font-weight: 500; margin: 8px 0 4px 0; }
+        .page-subtitle { color: #666; margin: 0; }
+        .providers-grid { display: grid; gap: 16px; max-width: 600px; }
+        .provider-card { display: flex; align-items: flex-start; gap: 16px; padding: 20px 24px; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; text-decoration: none; color: inherit; transition: all 0.2s; }
+        .provider-card:hover { border-color: #1a1a1a; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .provider-icon { font-size: 36px; }
+        .provider-info { flex: 1; }
+        .provider-name { font-size: 18px; font-weight: 500; margin: 0 0 4px 0; }
+        .provider-desc { font-size: 14px; color: #666; margin: 0 0 12px 0; }
+        .provider-features { display: flex; flex-wrap: wrap; gap: 6px; }
+        .feature-tag { font-size: 11px; background: #f5f5f5; padding: 3px 8px; border-radius: 4px; color: #666; }
+        .provider-arrow { font-size: 24px; color: #ccc; align-self: center; }
       `}</style>
     </Layout>
   );
 };
 
-export default SmsDM;
+export default SmsDMHub;

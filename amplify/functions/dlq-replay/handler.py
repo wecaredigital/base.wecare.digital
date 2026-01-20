@@ -50,11 +50,63 @@ HANDLERS = {
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Replay messages from DLQ.
+    DLQ operations: GET to list, POST to replay.
     Requirements: 9.1-9.7
     """
     request_id = context.aws_request_id if context else 'local'
+    http_method = event.get('requestContext', {}).get('http', {}).get('method', 'POST')
     
+    logger.info(json.dumps({
+        'event': 'dlq_handler_start',
+        'method': http_method,
+        'requestId': request_id
+    }))
+    
+    # GET /dlq - List DLQ messages
+    if http_method == 'GET':
+        return _list_dlq_messages(request_id)
+    
+    # POST /dlq/replay - Replay messages
+    return _replay_dlq_messages(event, request_id)
+
+
+def _list_dlq_messages(request_id: str) -> Dict[str, Any]:
+    """List all DLQ messages from tracking table."""
+    try:
+        dlq_table = dynamodb.Table(DLQ_MESSAGES_TABLE)
+        response = dlq_table.scan(Limit=100)
+        items = response.get('Items', [])
+        
+        messages = []
+        for item in items:
+            messages.append({
+                'id': item.get('dlqMessageId'),
+                'queueName': item.get('queueName'),
+                'retryCount': int(item.get('retryCount', 0)),
+                'lastAttemptAt': int(item.get('lastAttemptAt', 0)),
+                'error': item.get('error', 'Unknown error'),
+            })
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
+            'body': json.dumps({
+                'messages': messages,
+                'count': len(messages)
+            })
+        }
+    except Exception as e:
+        logger.error(f"List DLQ error: {str(e)}")
+        return _error_response(500, 'Failed to list DLQ messages')
+
+
+def _replay_dlq_messages(event: Dict[str, Any], request_id: str) -> Dict[str, Any]:
+    """Replay messages from DLQ."""
     logger.info(json.dumps({
         'event': 'dlq_replay_start',
         'requestId': request_id

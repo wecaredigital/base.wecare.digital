@@ -467,10 +467,13 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                            media_id: Optional[str], is_template: bool, template_name: Optional[str],
                            template_params: list) -> Dict[str, Any]:
     """Build WhatsApp Cloud API message payload."""
+    # Format phone number with + prefix if not present
+    formatted_phone = recipient_phone if recipient_phone.startswith('+') else f'+{recipient_phone}'
+    
     payload = {
         'messaging_product': 'whatsapp',
         'recipient_type': 'individual',
-        'to': recipient_phone
+        'to': formatted_phone
     }
     
     if is_template and template_name:

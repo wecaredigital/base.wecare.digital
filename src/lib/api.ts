@@ -226,6 +226,8 @@ export async function getMessage(messageId: string): Promise<Message | null> {
   return messages.find(m => m.messageId === messageId) || null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 export async function deleteMessage(messageId: string): Promise<boolean> {
   // Not implemented in backend yet
   return false;
@@ -561,4 +563,32 @@ function normalizeVoiceCall(item: any): VoiceCall {
     createdAt: item.createdAt ? new Date(Number(item.createdAt) * 1000).toISOString() : new Date().toISOString(),
     updatedAt: item.updatedAt ? new Date(Number(item.updatedAt) * 1000).toISOString() : new Date().toISOString(),
   };
+}
+
+
+// ============================================================================
+// DLQ API
+// ============================================================================
+
+export interface DLQMessage {
+  id: string;
+  queueName: string;
+  retryCount: number;
+  lastAttemptAt: number;
+  error: string;
+}
+
+export async function listDLQMessages(): Promise<DLQMessage[]> {
+  const data = await apiCall<any>(`${API_BASE}/dlq`);
+  if (data) {
+    return data.messages || [];
+  }
+  return [];
+}
+
+export async function replayDLQMessages(queueName: string, batchSize?: number): Promise<{ processed: number; succeeded: number; failed: number } | null> {
+  return apiCall<{ processed: number; succeeded: number; failed: number }>(`${API_BASE}/dlq/replay`, {
+    method: 'POST',
+    body: JSON.stringify({ queueName, batchSize: batchSize || 10 }),
+  });
 }

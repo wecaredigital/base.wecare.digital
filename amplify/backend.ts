@@ -26,6 +26,8 @@ import { bulkJobControl } from './functions/bulk-job-control/resource';
 import { dlqReplay } from './functions/dlq-replay/resource';
 import { aiQueryKb } from './functions/ai-query-kb/resource';
 import { aiGenerateResponse } from './functions/ai-generate-response/resource';
+import { outboundVoice } from './functions/outbound-voice/resource';
+import { voiceCallsRead } from './functions/voice-calls-read/resource';
 
 /**
  * WECARE.DIGITAL Admin Platform Backend
@@ -61,6 +63,8 @@ const backend = defineBackend({
   dlqReplay,
   aiQueryKb,
   aiGenerateResponse,
+  outboundVoice,
+  voiceCallsRead,
 });
 
 // Create HTTP API for frontend to call Lambda functions
@@ -179,6 +183,37 @@ httpApi.addRoutes({
   path: '/ai/generate',
   methods: [HttpMethod.POST],
   integration: aiGenerateResponseIntegration,
+});
+
+// Voice API routes
+const outboundVoiceIntegration = new HttpLambdaIntegration('OutboundVoiceIntegration', backend.outboundVoice.resources.lambda);
+const voiceCallsReadIntegration = new HttpLambdaIntegration('VoiceCallsReadIntegration', backend.voiceCallsRead.resources.lambda);
+
+httpApi.addRoutes({
+  path: '/voice/call',
+  methods: [HttpMethod.POST],
+  integration: outboundVoiceIntegration,
+});
+
+httpApi.addRoutes({
+  path: '/voice/calls',
+  methods: [HttpMethod.GET],
+  integration: voiceCallsReadIntegration,
+});
+
+// DLQ API routes
+const dlqReplayIntegration = new HttpLambdaIntegration('DlqReplayIntegration', backend.dlqReplay.resources.lambda);
+
+httpApi.addRoutes({
+  path: '/dlq',
+  methods: [HttpMethod.GET],
+  integration: dlqReplayIntegration,
+});
+
+httpApi.addRoutes({
+  path: '/dlq/replay',
+  methods: [HttpMethod.POST],
+  integration: dlqReplayIntegration,
 });
 
 // Output the API URL
