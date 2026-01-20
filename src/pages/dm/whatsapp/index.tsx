@@ -596,7 +596,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                     type="file"
                     ref={fileInputRef}
                     onChange={handleMediaSelect}
-                    accept="image/jpeg,image/png,video/mp4,audio/mp3,audio/ogg,application/pdf"
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/3gpp,audio/mpeg,audio/mp3,audio/ogg,audio/aac,audio/amr,audio/mp4,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain"
                     style={{ display: 'none' }}
                   />
                   <button 
