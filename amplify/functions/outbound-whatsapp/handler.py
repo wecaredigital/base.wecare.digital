@@ -353,31 +353,31 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
 
 def _get_contact(contact_id: str) -> Optional[Dict[str, Any]]:
     """Retrieve contact from DynamoDB."""
+    contacts_table = dynamodb.Table(CONTACTS_TABLE)
+    
+    # First try direct lookup by 'id' (primary key)
     try:
-        contacts_table = dynamodb.Table(CONTACTS_TABLE)
-        # Table uses 'id' as primary key
         response = contacts_table.get_item(Key={'id': contact_id})
         item = response.get('Item')
-        
-        # Filter soft-deleted
-        if item and item.get('deletedAt') is not None:
-            return None
-        
-        return item
-    except Exception:
-        # Try scanning by contactId if direct lookup fails
-        try:
-            response = contacts_table.scan(
-                FilterExpression='contactId = :cid',
-                ExpressionAttributeValues={':cid': contact_id},
-                Limit=1
-            )
-            items = response.get('Items', [])
-            if items and items[0].get('deletedAt') is None:
-                return items[0]
-        except Exception:
-            pass
-        return None
+        if item and item.get('deletedAt') is None:
+            return item
+    except Exception as e:
+        logger.warning(f"Direct lookup failed: {str(e)}")
+    
+    # Fallback: scan by contactId field
+    try:
+        response = contacts_table.scan(
+            FilterExpression='contactId = :cid AND (attribute_not_exists(deletedAt) OR deletedAt = :null)',
+            ExpressionAttributeValues={':cid': contact_id, ':null': None},
+            Limit=1
+        )
+        items = response.get('Items', [])
+        if items:
+            return items[0]
+    except Exception as e:
+        logger.warning(f"Scan by contactId failed: {str(e)}")
+    
+    return None
 
 
 def _is_within_service_window(contact: Dict[str, Any]) -> bool:
