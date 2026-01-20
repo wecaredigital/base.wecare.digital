@@ -224,8 +224,8 @@ def _handle_reaction_send(message_id: str, contact_id: str, recipient_phone: str
     Uses AWS EUM Social SendWhatsAppMessage API with reaction type.
     """
     try:
-        # Format phone number with + prefix if not present
-        formatted_phone = recipient_phone if recipient_phone.startswith('+') else f'+{recipient_phone}'
+        # Normalize phone number - WhatsApp API expects digits only without + prefix
+        formatted_phone = _normalize_phone_number(recipient_phone)
         
         # Build reaction payload per WhatsApp Cloud API spec
         reaction_payload = {
@@ -463,12 +463,42 @@ def _upload_media(media_file: str, media_type: str, message_id: str, request_id:
         return None, None
 
 
+def _normalize_phone_number(phone: str) -> str:
+    """
+    Normalize phone number to WhatsApp-compatible E.164 format.
+    WhatsApp requires: digits only, no + prefix, with country code.
+    
+    Examples:
+    - "+919876543210" -> "919876543210"
+    - "919876543210" -> "919876543210"
+    - "+91 98765 43210" -> "919876543210"
+    - "9876543210" -> "919876543210" (assumes India)
+    - "447447840003" -> "447447840003"
+    """
+    # Remove all non-digit characters (spaces, dashes, +, etc.)
+    digits_only = ''.join(c for c in phone if c.isdigit())
+    
+    # If empty, return as-is
+    if not digits_only:
+        return phone
+    
+    # If 10 digits and starts with 6-9, assume Indian number
+    if len(digits_only) == 10 and digits_only[0] in '6789':
+        digits_only = '91' + digits_only
+    
+    # If 11 digits starting with 0, remove leading 0 and add country code
+    if len(digits_only) == 11 and digits_only[0] == '0':
+        digits_only = '91' + digits_only[1:]
+    
+    return digits_only
+
+
 def _build_message_payload(recipient_phone: str, content: str, media_type: Optional[str],
                            media_id: Optional[str], is_template: bool, template_name: Optional[str],
                            template_params: list) -> Dict[str, Any]:
     """Build WhatsApp Cloud API message payload."""
-    # Format phone number with + prefix if not present
-    formatted_phone = recipient_phone if recipient_phone.startswith('+') else f'+{recipient_phone}'
+    # Normalize phone number - WhatsApp API expects digits only without + prefix
+    formatted_phone = _normalize_phone_number(recipient_phone)
     
     payload = {
         'messaging_product': 'whatsapp',
