@@ -261,7 +261,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
               <span className="qa-icon">☎</span>
               <span className="qa-title">SMS</span>
             </Link>
-            <Link href="/dm/email" className="quick-action-card">
+            <Link href="/dm/ses" className="quick-action-card">
               <span className="qa-icon">@</span>
               <span className="qa-title">Email</span>
             </Link>
@@ -269,7 +269,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
               <span className="qa-icon">+</span>
               <span className="qa-title">Add Contact</span>
             </Link>
-            <Link href="/bulk-messaging" className="quick-action-card">
+            <Link href="/bulk" className="quick-action-card">
               <span className="qa-icon">⧉</span>
               <span className="qa-title">Bulk Send</span>
             </Link>
@@ -284,7 +284,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         <div className="section">
           <div className="section-header">
             <h2 className="section-title">Recent Messages</h2>
-            <Link href="/messaging" className="view-all-link">View All →</Link>
+            <Link href="/dm" className="view-all-link">View All →</Link>
           </div>
           
           {messages.length > 0 ? (
