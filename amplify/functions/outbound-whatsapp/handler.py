@@ -623,17 +623,20 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                            media_id: Optional[str], is_template: bool, template_name: Optional[str],
                            template_params: list) -> Dict[str, Any]:
     """Build WhatsApp Cloud API message payload."""
-    # Normalize phone number - WhatsApp API expects digits only without + prefix
+    # Normalize phone number - WhatsApp API expects digits only without + prefix for normalization
     formatted_phone = _normalize_phone_number(recipient_phone)
     
     # Validate phone number format
     if not formatted_phone or not formatted_phone.isdigit() or len(formatted_phone) < 10:
         logger.warning(f"Invalid phone number after normalization: {recipient_phone} -> {formatted_phone}")
     
+    # WhatsApp requires + prefix with country code in the message payload
+    whatsapp_phone = f"+{formatted_phone}"
+    
     payload = {
         'messaging_product': 'whatsapp',
         'recipient_type': 'individual',
-        'to': formatted_phone
+        'to': whatsapp_phone
     }
     
     if is_template and template_name:
