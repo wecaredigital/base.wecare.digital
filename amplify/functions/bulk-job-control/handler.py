@@ -38,12 +38,74 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     Requirement 8.7: Implement pause, resume, and cancel operations
     """
     request_id = context.aws_request_id if context else 'local'
+    http_method = event.get('requestContext', {}).get('http', {}).get('method', 'PUT')
+    path_params = event.get('pathParameters') or {}
+    job_id = path_params.get('jobId')
+    
+    # Handle GET request - get single job
+    if http_method == 'GET':
+        if not job_id:
+            return _error_response(400, 'jobId is required')
+        job = _get_job(job_id)
+        if not job:
+            return _error_response(404, 'Job not found')
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
+            'body': json.dumps({
+                'id': job.get('jobId'),
+                'jobId': job.get('jobId'),
+                'channel': job.get('channel', 'WHATSAPP').upper(),
+                'status': job.get('status', 'PENDING').upper(),
+                'totalRecipients': int(job.get('totalRecipients', 0)),
+                'sentCount': int(job.get('sentCount', 0)),
+                'failedCount': int(job.get('failedCount', 0)),
+                'createdAt': str(job.get('createdAt', '')),
+                'updatedAt': str(job.get('updatedAt', '')),
+            })
+        }
+    
+    # Handle DELETE request - delete job
+    if http_method == 'DELETE':
+        if not job_id:
+            return _error_response(400, 'jobId is required')
+        job = _get_job(job_id)
+        if not job:
+            return _error_response(404, 'Job not found')
+        result = _delete_job(job_id, request_id)
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
+            'body': json.dumps({
+                'jobId': job_id,
+                'deleted': result.get('deleted', False),
+                'message': result.get('message')
+            })
+        }
     
     try:
-        # Parse request body
+        # Parse request body for PUT
         body = json.loads(event.get('body', '{}'))
-        job_id = body.get('jobId')
-        action = body.get('action')
+        job_id = job_id or body.get('jobId')
+        action = body.get('action') or body.get('status', '').lower()
+        
+        # Map status to action
+        if action in ['paused', 'pause']:
+            action = 'pause'
+        elif action in ['in_progress', 'pending', 'resume']:
+            action = 'resume'
+        elif action in ['cancelled', 'cancel']:
+            action = 'cancel'
         
         if not job_id:
             return _error_response(400, 'jobId is required')
@@ -59,8 +121,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         current_status = job.get('status')
         
         # Validate state transitions
-        if action == 'pause' and current_status != 'pending':
-            return _error_response(400, 'Can only pause pending jobs')
+        if action == 'pause' and current_status not in ['pending', 'in_progress']:
+            return _error_response(400, 'Can only pause pending or in-progress jobs')
         
         if action == 'resume' and current_status != 'paused':
             return _error_response(400, 'Can only resume paused jobs')
@@ -86,7 +148,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         return {
             'statusCode': 200,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
             'body': json.dumps({
                 'jobId': job_id,
                 'action': action,
@@ -336,6 +403,48 @@ def _error_response(status_code: int, message: str) -> Dict[str, Any]:
     """Return error response."""
     return {
         'statusCode': status_code,
-        'headers': {'Content-Type': 'application/json'},
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+            'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+        },
         'body': json.dumps({'error': message})
     }
+
+
+def _delete_job(job_id: str, request_id: str) -> Dict[str, Any]:
+    """Delete a bulk job and its recipients."""
+    try:
+        # Delete job record
+        jobs_table = dynamodb.Table(BULK_JOBS_TABLE)
+        jobs_table.delete_item(Key={'jobId': job_id})
+        
+        # Delete recipients (optional - could be expensive for large jobs)
+        try:
+            recipients_table = dynamodb.Table(BULK_RECIPIENTS_TABLE)
+            response = recipients_table.query(
+                KeyConditionExpression='jobId = :jid',
+                ExpressionAttributeValues={':jid': job_id}
+            )
+            
+            with recipients_table.batch_writer() as batch:
+                for item in response.get('Items', []):
+                    batch.delete_item(Key={
+                        'jobId': job_id,
+                        'recipientId': item.get('recipientId')
+                    })
+        except Exception as e:
+            logger.warning(f"Failed to delete recipients: {str(e)}")
+        
+        logger.info(json.dumps({
+            'event': 'bulk_job_deleted',
+            'jobId': job_id,
+            'requestId': request_id
+        }))
+        
+        return {'deleted': True, 'message': 'Job deleted successfully'}
+        
+    except Exception as e:
+        logger.error(f"Delete job error: {str(e)}")
+        return {'deleted': False, 'message': str(e)}

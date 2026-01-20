@@ -39,10 +39,15 @@ WHATSAPP_TIER_LIMIT = 250  # Tier 1 default: 250 business-initiated conversation
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Create bulk message job.
+    Create or list bulk message jobs.
     Requirements: 8.1, 8.2, 8.3, 13.10
     """
     request_id = context.aws_request_id if context else 'local'
+    http_method = event.get('requestContext', {}).get('http', {}).get('method', 'POST')
+    
+    # Handle GET request - list all jobs
+    if http_method == 'GET':
+        return _list_jobs(event, request_id)
     
     logger.info(json.dumps({
         'event': 'bulk_job_create_start',
@@ -76,7 +81,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }))
             return {
                 'statusCode': 400,
-                'headers': {'Content-Type': 'application/json'},
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+                },
                 'body': json.dumps({
                     'error': 'CONFIRMATION_REQUIRED',
                     'message': f'Bulk job with {len(recipients)} recipients requires confirmation',
@@ -137,7 +147,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         return {
             'statusCode': 201,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
             'body': json.dumps({
                 'jobId': job_id,
                 'status': 'pending',
@@ -224,6 +239,80 @@ def _error_response(status_code: int, message: str) -> Dict[str, Any]:
     """Return error response."""
     return {
         'statusCode': status_code,
-        'headers': {'Content-Type': 'application/json'},
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+            'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+        },
         'body': json.dumps({'error': message})
     }
+
+
+def _list_jobs(event: Dict[str, Any], request_id: str) -> Dict[str, Any]:
+    """List all bulk jobs with optional channel filter."""
+    try:
+        # Get query parameters
+        query_params = event.get('queryStringParameters') or {}
+        channel_filter = query_params.get('channel', '').lower()
+        
+        jobs_table = dynamodb.Table(BULK_JOBS_TABLE)
+        
+        # Scan all jobs (for small datasets; use GSI for production scale)
+        response = jobs_table.scan()
+        items = response.get('Items', [])
+        
+        # Handle pagination
+        while 'LastEvaluatedKey' in response:
+            response = jobs_table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+            items.extend(response.get('Items', []))
+        
+        # Filter by channel if specified
+        if channel_filter:
+            items = [j for j in items if j.get('channel', '').lower() == channel_filter]
+        
+        # Convert Decimal to int/float for JSON serialization
+        jobs = []
+        for item in items:
+            job = {
+                'id': item.get('jobId'),
+                'jobId': item.get('jobId'),
+                'createdBy': item.get('createdBy', 'unknown'),
+                'channel': item.get('channel', 'WHATSAPP').upper(),
+                'totalRecipients': int(item.get('totalRecipients', 0)),
+                'sentCount': int(item.get('sentCount', 0)),
+                'failedCount': int(item.get('failedCount', 0)),
+                'status': item.get('status', 'PENDING').upper(),
+                'createdAt': str(item.get('createdAt', '')),
+                'updatedAt': str(item.get('updatedAt', '')),
+            }
+            jobs.append(job)
+        
+        # Sort by createdAt descending
+        jobs.sort(key=lambda x: x.get('createdAt', ''), reverse=True)
+        
+        logger.info(json.dumps({
+            'event': 'bulk_jobs_listed',
+            'count': len(jobs),
+            'channel': channel_filter or 'all',
+            'requestId': request_id
+        }))
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
+            'body': json.dumps({'jobs': jobs, 'count': len(jobs)})
+        }
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'bulk_jobs_list_error',
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return _error_response(500, 'Failed to list bulk jobs')
