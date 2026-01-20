@@ -5,6 +5,7 @@ Purpose: Invoke Bedrock agent for response generation
 Requirements: 15.2, 15.3, 15.7
 
 Generates response suggestions using Bedrock Agent HQNT0JXN8G.
+Runtime ID: base_bedrock_agentcore-1XHDxj2o3Q
 Responses require operator approval before sending.
 """
 
@@ -26,10 +27,12 @@ dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', '
 bedrock_agent_runtime = boto3.client('bedrock-agent-runtime', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Environment variables
-SEND_MODE = os.environ.get('SEND_MODE', 'DRY_RUN')
+SEND_MODE = os.environ.get('SEND_MODE', 'LIVE')
 AI_INTERACTIONS_TABLE = os.environ.get('AI_INTERACTIONS_TABLE', 'AIInteractions')
 BEDROCK_AGENT_ID = os.environ.get('BEDROCK_AGENT_ID', 'HQNT0JXN8G')
 BEDROCK_AGENT_ALIAS_ID = os.environ.get('BEDROCK_AGENT_ALIAS_ID', 'TSTALIASID')
+# Bedrock Agent Core Runtime ID for internal admin automation
+BEDROCK_AGENTCORE_RUNTIME_ID = os.environ.get('BEDROCK_AGENTCORE_RUNTIME_ID', 'base_bedrock_agentcore-1XHDxj2o3Q')
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:

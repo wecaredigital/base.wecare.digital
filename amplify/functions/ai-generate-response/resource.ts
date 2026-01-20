@@ -9,7 +9,9 @@ export const aiGenerateResponse = defineFunction({
   environment: {
     AWS_REGION: 'us-east-1',
     LOG_LEVEL: 'INFO',
+    SEND_MODE: 'LIVE',
     BEDROCK_AGENT_ID: 'HQNT0JXN8G',
-    SEND_MODE: process.env.SEND_MODE || 'DRY_RUN',
+    BEDROCK_AGENT_ALIAS_ID: 'TSTALIASID',
+    BEDROCK_AGENTCORE_RUNTIME_ID: 'base_bedrock_agentcore-1XHDxj2o3Q',
   },
 });

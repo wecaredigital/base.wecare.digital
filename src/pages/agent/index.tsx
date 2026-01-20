@@ -148,6 +148,10 @@ const AgentPage: React.FC<PageProps> = ({ signOut, user }) => {
             <span className="info-value">HQNT0JXN8G</span>
           </div>
           <div className="info-item">
+            <span className="info-label">Runtime ID</span>
+            <span className="info-value">base_bedrock_agentcore-1XHDxj2o3Q</span>
+          </div>
+          <div className="info-item">
             <span className="info-label">Status</span>
             <span className="info-value status-active">● Active</span>
           </div>
