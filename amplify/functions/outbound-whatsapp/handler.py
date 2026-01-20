@@ -237,7 +237,7 @@ def _handle_reaction_send(message_id: str, contact_id: str, recipient_phone: str
         }
         
         # Call SendWhatsAppMessage API
-        response = social_messaging.send_whats_app_message(
+        response = social_messaging.send_whatsapp_message(
             originationPhoneNumberId=phone_number_id,
             message=json.dumps(reaction_payload).encode('utf-8'),
             metaApiVersion=META_API_VERSION
@@ -313,7 +313,7 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         )
         
         # Requirement 5.8: Call SendWhatsAppMessage API
-        response = social_messaging.send_whats_app_message(
+        response = social_messaging.send_whatsapp_message(
             originationPhoneNumberId=phone_number_id,
             message=json.dumps(message_payload).encode('utf-8'),
             metaApiVersion=META_API_VERSION
@@ -420,7 +420,7 @@ def _upload_media(media_file: str, media_type: str, message_id: str, request_id:
             )
         
         # Requirement 5.6: Call PostWhatsAppMessageMedia to get mediaId
-        response = social_messaging.post_whats_app_message_media(
+        response = social_messaging.post_whatsapp_message_media(
             sourceS3File={
                 's3BucketName': MEDIA_BUCKET,
                 's3Key': s3_key

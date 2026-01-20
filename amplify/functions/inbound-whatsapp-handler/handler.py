@@ -360,7 +360,7 @@ def _download_media(whatsapp_media_id: str, message_id: str, media_type: str, re
         s3_key = f"{MEDIA_PREFIX}{message_id}{extension}"
         
         # Requirement 4.5: Call GetWhatsAppMessageMedia with destinationS3File
-        response = social_messaging.get_whats_app_message_media(
+        response = social_messaging.get_whatsapp_message_media(
             mediaId=whatsapp_media_id,
             destinationS3File={
                 's3BucketName': MEDIA_BUCKET,
