@@ -3,8 +3,8 @@ import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 /**
  * WECARE.DIGITAL DynamoDB Schema
  * 
- * 11 Tables with PAY_PER_REQUEST billing mode
- * TTL enabled on: Messages (30d), DLQMessages (7d), AuditLogs (180d), RateLimitTrackers (24h)
+ * 12 Tables with PAY_PER_REQUEST billing mode
+ * TTL enabled on: Messages (30d), DLQMessages (7d), AuditLogs (180d), RateLimitTrackers (24h), VoiceCalls (90d)
  */
 const schema = a.schema({
   // Table 1: Contacts - Contact records with opt-in preferences
@@ -179,6 +179,30 @@ const schema = a.schema({
       updatedAt: a.datetime(),
     })
     .identifier(['configKey'])
+    .authorization((allow) => [allow.authenticated()]),
+
+  // Table 12: VoiceCalls - Voice call records (TTL: 90 days)
+  VoiceCall: a
+    .model({
+      callId: a.id().required(),
+      contactId: a.string(),
+      phoneNumber: a.string().required(),
+      provider: a.enum(['AWS', 'AIRTEL']),
+      callType: a.enum(['TTS', 'AUDIO', 'IVR', 'CLICK_TO_CALL']),
+      direction: a.enum(['INBOUND', 'OUTBOUND']),
+      status: a.enum(['INITIATED', 'RINGING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'NO_ANSWER', 'BUSY']),
+      duration: a.integer().default(0),
+      recordingUrl: a.string(),
+      providerCallId: a.string(),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime(),
+      expiresAt: a.integer(), // TTL: Unix epoch seconds (90 days)
+    })
+    .identifier(['callId'])
+    .secondaryIndexes((index) => [
+      index('contactId'),
+      index('phoneNumber'),
+    ])
     .authorization((allow) => [allow.authenticated()]),
 });
 

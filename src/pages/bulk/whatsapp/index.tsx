@@ -1,0 +1,90 @@
+/**
+ * Bulk WhatsApp - WABA Selection
+ * Select which WABA to use for bulk messaging
+ */
+
+import React from 'react';
+import Link from 'next/link';
+import Layout from '../../../components/Layout';
+
+interface PageProps {
+  signOut?: () => void;
+  user?: any;
+}
+
+const WABA_ACCOUNTS = [
+  {
+    id: 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54',
+    name: 'WECARE.DIGITAL',
+    phone: '+91 93309 94400',
+    status: 'active',
+    quality: 'GREEN',
+  },
+  {
+    id: 'phone-number-id-1447bc72d1b040f4bf2341c9e04b2e06',
+    name: 'Manish Agarwal',
+    phone: '+91 99033 00044',
+    status: 'active',
+    quality: 'GREEN',
+  },
+];
+
+const BulkWhatsAppIndex: React.FC<PageProps> = ({ signOut, user }) => {
+  return (
+    <Layout user={user} onSignOut={signOut}>
+      <div className="page">
+        <div className="page-header">
+          <Link href="/bulk" className="back-link">← Bulk Hub</Link>
+          <h1 className="page-title">Bulk WhatsApp</h1>
+          <p className="page-subtitle">Select WABA for bulk messaging</p>
+        </div>
+
+        <div className="waba-grid">
+          {WABA_ACCOUNTS.map((waba) => (
+            <Link key={waba.id} href={`/bulk/whatsapp/${waba.id}`} className="waba-card">
+              <div className="waba-icon">💬</div>
+              <div className="waba-info">
+                <h3 className="waba-name">{waba.name}</h3>
+                <p className="waba-phone">{waba.phone}</p>
+                <div className="waba-meta">
+                  <span className={`quality-badge ${waba.quality.toLowerCase()}`}>
+                    Quality: {waba.quality}
+                  </span>
+                  <span className={`status-badge ${waba.status}`}>
+                    {waba.status === 'active' ? '● Active' : '○ Inactive'}
+                  </span>
+                </div>
+              </div>
+              <span className="waba-arrow">→</span>
+            </Link>
+          ))}
+        </div>
+
+        <style jsx>{`
+          .page-header { margin-bottom: 24px; }
+          .back-link { color: #666; text-decoration: none; font-size: 14px; }
+          .back-link:hover { color: #1a1a1a; }
+          .page-title { font-size: 24px; font-weight: 500; margin: 8px 0 4px 0; }
+          .page-subtitle { color: #666; margin: 0; }
+          .waba-grid { display: grid; gap: 16px; max-width: 600px; }
+          .waba-card { display: flex; align-items: center; gap: 16px; padding: 20px 24px; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; text-decoration: none; color: inherit; transition: all 0.2s; }
+          .waba-card:hover { border-color: #25D366; box-shadow: 0 4px 12px rgba(37,211,102,0.15); }
+          .waba-icon { font-size: 36px; }
+          .waba-info { flex: 1; }
+          .waba-name { font-size: 18px; font-weight: 500; margin: 0 0 4px 0; }
+          .waba-phone { font-size: 14px; color: #666; margin: 0 0 8px 0; }
+          .waba-meta { display: flex; gap: 12px; }
+          .quality-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+          .quality-badge.green { background: #dcfce7; color: #166534; }
+          .quality-badge.yellow { background: #fef3c7; color: #92400e; }
+          .quality-badge.red { background: #fee2e2; color: #991b1b; }
+          .status-badge { font-size: 11px; color: #22c55e; }
+          .status-badge.inactive { color: #999; }
+          .waba-arrow { font-size: 24px; color: #ccc; }
+        `}</style>
+      </div>
+    </Layout>
+  );
+};
+
+export default BulkWhatsAppIndex;

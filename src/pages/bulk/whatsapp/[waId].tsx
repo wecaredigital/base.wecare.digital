@@ -1,0 +1,261 @@
+/**
+ * Bulk WhatsApp Campaign - Specific WABA
+ * Create and manage bulk WhatsApp campaigns
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
+import Layout from '../../../components/Layout';
+import RichTextEditor from '../../../components/RichTextEditor';
+import '../../../components/RichTextEditor.css';
+import * as api from '../../../lib/api';
+
+interface PageProps {
+  signOut?: () => void;
+  user?: any;
+}
+
+interface BulkJob {
+  id: string;
+  status: string;
+  totalRecipients: number;
+  sentCount: number;
+  failedCount: number;
+  createdAt: string;
+}
+
+const WABA_INFO: Record<string, { name: string; phone: string }> = {
+  'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54': { name: 'WECARE.DIGITAL', phone: '+91 93309 94400' },
+  'phone-number-id-1447bc72d1b040f4bf2341c9e04b2e06': { name: 'Manish Agarwal', phone: '+91 99033 00044' },
+};
+
+const BulkWhatsAppCampaign: React.FC<PageProps> = ({ signOut, user }) => {
+  const router = useRouter();
+  const { waId } = router.query;
+  const wabaInfo = waId ? WABA_INFO[waId as string] : null;
+
+  const [jobs, setJobs] = useState<BulkJob[]>([]);
+  const [contacts, setContacts] = useState<api.Contact[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [messageText, setMessageText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [jobsData, contactsData] = await Promise.all([
+        api.listBulkJobs('WHATSAPP'),
+        api.listContacts(),
+      ]);
+      setJobs(jobsData);
+      setContacts(contactsData.filter(c => c.phone && c.optInWhatsApp));
+    } catch (err) {
+      console.error('Failed to load data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleSelectAll = () => {
+    if (selectedContacts.length === contacts.length) {
+      setSelectedContacts([]);
+    } else {
+      setSelectedContacts(contacts.map(c => c.contactId));
+    }
+  };
+
+  const handleToggleContact = (contactId: string) => {
+    setSelectedContacts(prev =>
+      prev.includes(contactId)
+        ? prev.filter(id => id !== contactId)
+        : [...prev, contactId]
+    );
+  };
+
+  const handleCreateCampaign = async () => {
+    if (selectedContacts.length === 0 || !messageText.trim()) return;
+    setCreating(true);
+    try {
+      await api.createBulkJob({
+        channel: 'WHATSAPP',
+        totalRecipients: selectedContacts.length,
+      });
+      setShowCreate(false);
+      setSelectedContacts([]);
+      setMessageText('');
+      await loadData();
+    } catch (err) {
+      console.error('Failed to create campaign:', err);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  if (!waId || !wabaInfo) {
+    return (
+      <Layout user={user} onSignOut={signOut}>
+        <div className="page"><p>Loading...</p></div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout user={user} onSignOut={signOut}>
+      <div className="bulk-page">
+        <div className="bulk-header">
+          <button onClick={() => router.push('/bulk/whatsapp')} className="back-btn">←</button>
+          <div className="bulk-header-info">
+            <span className="bulk-icon">💬</span>
+            <div>
+              <h1>Bulk WhatsApp - {wabaInfo.name}</h1>
+              <span className="bulk-phone">{wabaInfo.phone}</span>
+            </div>
+          </div>
+          <button onClick={() => setShowCreate(true)} className="create-btn">+ New Campaign</button>
+        </div>
+
+        <div className="bulk-content">
+          {/* Jobs List */}
+          <div className="jobs-section">
+            <h2>Campaigns</h2>
+            {loading ? (
+              <p>Loading...</p>
+            ) : jobs.length === 0 ? (
+              <div className="empty-state">
+                <p>No campaigns yet</p>
+                <button onClick={() => setShowCreate(true)}>Create First Campaign</button>
+              </div>
+            ) : (
+              <div className="jobs-list">
+                {jobs.map(job => (
+                  <div key={job.id} className="job-card">
+                    <div className="job-status">
+                      <span className={`status-badge ${job.status.toLowerCase()}`}>{job.status}</span>
+                    </div>
+                    <div className="job-stats">
+                      <div className="stat">
+                        <span className="stat-value">{job.totalRecipients}</span>
+                        <span className="stat-label">Recipients</span>
+                      </div>
+                      <div className="stat">
+                        <span className="stat-value">{job.sentCount}</span>
+                        <span className="stat-label">Sent</span>
+                      </div>
+                      <div className="stat">
+                        <span className="stat-value">{job.failedCount}</span>
+                        <span className="stat-label">Failed</span>
+                      </div>
+                    </div>
+                    <div className="job-date">{new Date(job.createdAt).toLocaleDateString()}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Create Campaign Modal */}
+        {showCreate && (
+          <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>New WhatsApp Campaign</h2>
+                <button onClick={() => setShowCreate(false)}>✕</button>
+              </div>
+              <div className="modal-body">
+                <div className="form-section">
+                  <h3>Select Recipients ({selectedContacts.length} selected)</h3>
+                  <button className="select-all-btn" onClick={handleSelectAll}>
+                    {selectedContacts.length === contacts.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                  <div className="contacts-grid">
+                    {contacts.map(contact => (
+                      <label key={contact.contactId} className="contact-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={selectedContacts.includes(contact.contactId)}
+                          onChange={() => handleToggleContact(contact.contactId)}
+                        />
+                        <span>{contact.name || contact.phone}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="form-section">
+                  <h3>Message</h3>
+                  <RichTextEditor
+                    value={messageText}
+                    onChange={setMessageText}
+                    placeholder="Type your bulk message..."
+                    channel="whatsapp"
+                    showAISuggestions={true}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button className="btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+                <button
+                  className="btn-primary"
+                  onClick={handleCreateCampaign}
+                  disabled={creating || selectedContacts.length === 0 || !messageText.trim()}
+                >
+                  {creating ? 'Creating...' : `Send to ${selectedContacts.length} contacts`}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        .bulk-page { height: calc(100vh - 60px); display: flex; flex-direction: column; }
+        .bulk-header { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: #25D366; color: #fff; }
+        .back-btn { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+        .bulk-header-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .bulk-icon { font-size: 28px; }
+        .bulk-header h1 { font-size: 18px; font-weight: 500; margin: 0; }
+        .bulk-phone { font-size: 13px; opacity: 0.9; }
+        .create-btn { background: #fff; color: #25D366; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 500; }
+        .bulk-content { flex: 1; padding: 24px; overflow-y: auto; }
+        .jobs-section h2 { font-size: 18px; margin: 0 0 16px 0; }
+        .empty-state { text-align: center; padding: 40px; color: #666; }
+        .empty-state button { margin-top: 12px; background: #1a1a1a; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        .jobs-list { display: grid; gap: 12px; }
+        .job-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 20px; }
+        .status-badge { font-size: 12px; padding: 4px 12px; border-radius: 12px; text-transform: uppercase; }
+        .status-badge.completed { background: #dcfce7; color: #166534; }
+        .status-badge.in_progress { background: #dbeafe; color: #1e40af; }
+        .status-badge.pending { background: #fef3c7; color: #92400e; }
+        .status-badge.failed { background: #fee2e2; color: #991b1b; }
+        .job-stats { display: flex; gap: 24px; flex: 1; }
+        .stat { text-align: center; }
+        .stat-value { display: block; font-size: 20px; font-weight: 500; }
+        .stat-label { font-size: 12px; color: #666; }
+        .job-date { font-size: 13px; color: #999; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: #fff; border-radius: 12px; width: 90%; max-width: 700px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e5e5e5; }
+        .modal-header h2 { margin: 0; font-size: 18px; }
+        .modal-header button { background: none; border: none; font-size: 20px; cursor: pointer; }
+        .modal-body { padding: 20px; flex: 1; overflow-y: auto; }
+        .form-section { margin-bottom: 20px; }
+        .form-section h3 { font-size: 14px; margin: 0 0 12px 0; }
+        .select-all-btn { background: #f5f5f5; border: 1px solid #e5e5e5; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-bottom: 12px; }
+        .contacts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; }
+        .contact-checkbox { display: flex; align-items: center; gap: 8px; padding: 8px; background: #f9f9f9; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px; border-top: 1px solid #e5e5e5; }
+        .btn-secondary { background: #fff; border: 1px solid #e5e5e5; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        .btn-primary { background: #25D366; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        .btn-primary:disabled { background: #ccc; }
+      `}</style>
+    </Layout>
+  );
+};
+
+export default BulkWhatsAppCampaign;

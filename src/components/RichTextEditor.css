@@ -1,0 +1,258 @@
+/**
+ * Rich Text Editor Styles
+ */
+
+.rich-text-editor {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Toolbar */
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.toolbar-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbar-btn:hover {
+  background: #fff;
+  border-color: #e5e5e5;
+}
+
+.toolbar-btn.active {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+
+.toolbar-btn.ai-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+}
+
+.toolbar-btn.ai-btn:hover {
+  opacity: 0.9;
+}
+
+.toolbar-btn.ai-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.char-counter {
+  font-size: 12px;
+  color: #999;
+}
+
+.char-counter.over-limit {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+/* Emoji Picker */
+.emoji-picker {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  margin-top: 4px;
+}
+
+.emoji-categories {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  overflow-x: auto;
+}
+
+.emoji-cat-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background 0.2s;
+}
+
+.emoji-cat-btn:hover {
+  background: #f5f5f5;
+}
+
+.emoji-cat-btn.active {
+  background: #e5e5e5;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  padding: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.emoji-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.2s;
+}
+
+.emoji-btn:hover {
+  background: #f5f5f5;
+  transform: scale(1.2);
+}
+
+/* Text Input */
+.editor-input-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px;
+}
+
+.editor-textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  min-height: 24px;
+  max-height: 150px;
+  line-height: 1.5;
+}
+
+.editor-textarea::placeholder {
+  color: #999;
+}
+
+.editor-textarea.over-limit {
+  color: #ef4444;
+}
+
+.send-btn {
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.send-btn:hover {
+  background: #333;
+  transform: scale(1.05);
+}
+
+.send-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* AI Suggestions Panel */
+.ai-suggestions-panel {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border-bottom: 1px solid #ddd6fe;
+}
+
+.ai-suggestions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #7c3aed;
+}
+
+.ai-suggestions-header button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #7c3aed;
+  opacity: 0.7;
+}
+
+.ai-suggestions-header button:hover {
+  opacity: 1;
+}
+
+.ai-suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 12px 12px;
+}
+
+.ai-suggestion-item {
+  background: #fff;
+  border: 1px solid #ddd6fe;
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.4;
+}
+
+.ai-suggestion-item:hover {
+  background: #f5f3ff;
+  border-color: #7c3aed;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .emoji-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  
+  .toolbar-btn {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+}

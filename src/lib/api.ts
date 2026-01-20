@@ -481,3 +481,80 @@ export async function getSystemHealth(): Promise<SystemHealth> {
     dlq: { depth: 0 },
   };
 }
+
+
+// ============================================================================
+// VOICE CALLS API
+// ============================================================================
+
+export interface VoiceCall {
+  id: string;
+  callId: string;
+  contactId: string;
+  phoneNumber: string;
+  provider: 'aws' | 'airtel';
+  callType: 'tts' | 'audio' | 'ivr' | 'click_to_call';
+  status: string;
+  direction: 'INBOUND' | 'OUTBOUND';
+  duration: number;
+  recordingUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MakeVoiceCallRequest {
+  contactId?: string;
+  phoneNumber: string;
+  provider: 'aws' | 'airtel';
+  callType: 'tts' | 'audio' | 'ivr' | 'click_to_call';
+  messageText?: string;
+  voiceId?: string;
+  audioUrl?: string;
+}
+
+export async function listVoiceCalls(contactId?: string, provider?: string): Promise<VoiceCall[]> {
+  let url = `${API_BASE}/voice/calls`;
+  const params = new URLSearchParams();
+  if (contactId) params.append('contactId', contactId);
+  if (provider) params.append('provider', provider);
+  if (params.toString()) url += `?${params}`;
+  
+  const data = await apiCall<any>(url);
+  if (data) {
+    const calls = Array.isArray(data) ? data : (data.calls || []);
+    return calls.map(normalizeVoiceCall);
+  }
+  return [];
+}
+
+export async function getVoiceCall(callId: string): Promise<VoiceCall | null> {
+  const data = await apiCall<any>(`${API_BASE}/voice/calls/${callId}`);
+  if (data) {
+    return normalizeVoiceCall(data.call || data);
+  }
+  return null;
+}
+
+export async function makeVoiceCall(request: MakeVoiceCallRequest): Promise<{ callId: string; status: string } | null> {
+  return apiCall<{ callId: string; status: string }>(`${API_BASE}/voice/call`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+function normalizeVoiceCall(item: any): VoiceCall {
+  return {
+    id: item.id || item.callId || '',
+    callId: item.callId || item.id || '',
+    contactId: item.contactId || '',
+    phoneNumber: item.phoneNumber || '',
+    provider: item.provider || 'aws',
+    callType: item.callType || 'tts',
+    status: item.status || 'unknown',
+    direction: (item.direction || 'OUTBOUND').toUpperCase() as 'INBOUND' | 'OUTBOUND',
+    duration: item.duration || 0,
+    recordingUrl: item.recordingUrl,
+    createdAt: item.createdAt ? new Date(Number(item.createdAt) * 1000).toISOString() : new Date().toISOString(),
+    updatedAt: item.updatedAt ? new Date(Number(item.updatedAt) * 1000).toISOString() : new Date().toISOString(),
+  };
+}

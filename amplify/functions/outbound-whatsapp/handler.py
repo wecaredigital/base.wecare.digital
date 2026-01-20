@@ -341,7 +341,8 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
             is_template=is_template,
             whatsapp_message_id=whatsapp_message_id,
             media_id=whatsapp_media_id,
-            s3_key=s3_key
+            s3_key=s3_key,
+            phone_number_id=phone_number_id
         )
         
         logger.info(json.dumps({
@@ -373,14 +374,15 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
             })
         }
         
-    except social_messaging.exceptions.ThrottlingException as e:
+    except social_messaging.exceptions.ThrottledRequestException as e:
         # Requirement 5.10: Handle API errors
         _store_message_record(
             message_id=message_id,
             contact_id=contact_id,
             content=content,
             status='failed',
-            error_details={'type': 'throttling', 'message': str(e)}
+            error_details={'type': 'throttling', 'message': str(e)},
+            phone_number_id=phone_number_id
         )
         # Emit failure metric
         _emit_delivery_metric('failed', is_template)
@@ -393,7 +395,8 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
             contact_id=contact_id,
             content=content,
             status='failed',
-            error_details={'type': 'api_error', 'message': str(e)}
+            error_details={'type': 'api_error', 'message': str(e)},
+            phone_number_id=phone_number_id
         )
         # Emit failure metric
         _emit_delivery_metric('failed', is_template)
@@ -431,12 +434,13 @@ def _upload_media(media_file: str, media_type: str, message_id: str, request_id:
             )
         
         # Requirement 5.6: Call PostWhatsAppMessageMedia to get mediaId
+        # Note: API requires bucketName/key (not s3BucketName/s3Key)
         response = social_messaging.post_whatsapp_message_media(
+            originationPhoneNumberId=PHONE_NUMBER_ID_1,
             sourceS3File={
-                's3BucketName': MEDIA_BUCKET,
-                's3Key': s3_key
-            },
-            originationPhoneNumberId=PHONE_NUMBER_ID_1
+                'bucketName': MEDIA_BUCKET,
+                'key': s3_key
+            }
         )
         
         whatsapp_media_id = response.get('mediaId', '')
@@ -579,14 +583,14 @@ def _check_rate_limit(phone_number_id: str) -> bool:
 def _store_message_record(message_id: str, contact_id: str, content: str, status: str,
                           is_template: bool = False, whatsapp_message_id: str = None,
                           media_id: str = None, s3_key: str = None,
-                          error_details: Dict = None) -> None:
-    """Store message record in DynamoDB."""
+                          error_details: Dict = None, phone_number_id: str = None) -> None:
+    """Store message record in DynamoDB with WABA tracking."""
     now = int(time.time())
     expires_at = now + MESSAGE_TTL_SECONDS
     
     record = {
-        'id': message_id,  # Primary key - table uses 'id'
-        'messageId': message_id,  # Keep for backwards compatibility
+        'id': message_id,
+        'messageId': message_id,
         'contactId': contact_id,
         'channel': 'whatsapp',
         'direction': 'outbound',
@@ -598,6 +602,8 @@ def _store_message_record(message_id: str, contact_id: str, content: str, status
         'mediaId': media_id,
         's3Key': s3_key,
         'errorDetails': json.dumps(error_details) if error_details else None,
+        # WABA tracking - which phone number sent this message
+        'awsPhoneNumberId': phone_number_id,
         'createdAt': Decimal(str(now)),
         'expiresAt': Decimal(str(expires_at)),
     }

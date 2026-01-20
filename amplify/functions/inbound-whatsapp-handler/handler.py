@@ -6,6 +6,7 @@ Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5.12, 15.4, 15.7
 
 Parses AWS EUM Social event format, stores messages, downloads media,
 updates contact timestamps for 24-hour customer service window.
+Tracks which WABA/phone number received the message.
 Integrates with AI automation when enabled in SystemConfig.
 """
 
@@ -30,7 +31,6 @@ s3 = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 lambda_client = boto3.client('lambda', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Environment variables
-# Use actual deployed DynamoDB table names
 CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
 MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'base-wecare-digital-WhatsAppInboundTable')
 MEDIA_FILES_TABLE = os.environ.get('MEDIA_FILES_TABLE', 'MediaFiles')
@@ -44,6 +44,20 @@ SEND_MODE = os.environ.get('SEND_MODE', 'LIVE')
 # AI Lambda function names
 AI_QUERY_KB_FUNCTION = os.environ.get('AI_QUERY_KB_FUNCTION', 'ai-query-kb')
 AI_GENERATE_RESPONSE_FUNCTION = os.environ.get('AI_GENERATE_RESPONSE_FUNCTION', 'ai-generate-response')
+
+# Outbound WhatsApp Lambda function name
+OUTBOUND_WHATSAPP_FUNCTION = os.environ.get('OUTBOUND_WHATSAPP_FUNCTION', 'wecare-outbound-whatsapp')
+
+# WhatsApp Phone Number IDs - Map Meta phone number IDs to AWS phone number IDs
+# Format: Meta phone number ID -> AWS EUM phone-number-id
+PHONE_NUMBER_ID_1 = os.environ.get('WHATSAPP_PHONE_NUMBER_ID_1', 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54')
+PHONE_NUMBER_ID_2 = os.environ.get('WHATSAPP_PHONE_NUMBER_ID_2', 'phone-number-id-1447bc72d1b040f4bf2341c9e04b2e06')
+
+# Map display phone numbers to AWS phone number IDs for reference
+PHONE_NUMBER_MAP = {
+    '919330994400': PHONE_NUMBER_ID_1,  # +91 93309 94400
+    '919903300044': PHONE_NUMBER_ID_2,  # +91 99033 00044
+}
 
 # TTL: 30 days in seconds
 MESSAGE_TTL_SECONDS = 30 * 24 * 60 * 60
@@ -77,12 +91,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Parse SNS message
             sns_message = json.loads(record.get('Sns', {}).get('Message', '{}'))
             
-            # Requirement 4.1: Parse AWS EUM Social event format
+            # Extract WABA context - which WABA received this message
             context_data = sns_message.get('context', {})
+            meta_waba_ids = context_data.get('MetaWabaIds', [])
+            meta_phone_number_ids = context_data.get('MetaPhoneNumberIds', [])
+            
             webhook_entry_str = sns_message.get('whatsAppWebhookEntry', '{}')
             aws_message_id = sns_message.get('messageId', str(uuid.uuid4()))
             
-            # Requirement 4.2: Decode whatsAppWebhookEntry JSON string
+            # Decode whatsAppWebhookEntry JSON string
             webhook_entry = json.loads(webhook_entry_str)
             
             # Process each change in the webhook entry
@@ -90,10 +107,24 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 value = change.get('value', {})
                 metadata = value.get('metadata', {})
                 
+                # Extract receiving phone number info from metadata
+                display_phone_number = metadata.get('display_phone_number', '')
+                phone_number_id = metadata.get('phone_number_id', '')
+                
+                # Determine AWS phone number ID for this WABA
+                aws_phone_number_id = _get_aws_phone_number_id(display_phone_number, phone_number_id)
+                
                 # Process incoming messages
                 for message in value.get('messages', []):
                     try:
-                        _process_message(message, metadata, request_id)
+                        _process_message(
+                            message=message,
+                            metadata=metadata,
+                            request_id=request_id,
+                            receiving_phone=display_phone_number,
+                            aws_phone_number_id=aws_phone_number_id,
+                            meta_waba_ids=meta_waba_ids
+                        )
                         processed_count += 1
                     except Exception as e:
                         logger.error(json.dumps({
@@ -122,7 +153,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'error': str(e),
                 'requestId': request_id
             }))
-            # Requirement 4.7: Send to inbound-dlq on failure
             _send_to_dlq(record, str(e), request_id)
             error_count += 1
     
@@ -142,17 +172,46 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     }
 
 
-def _process_message(message: Dict, metadata: Dict, request_id: str) -> None:
+def _get_aws_phone_number_id(display_phone: str, meta_phone_id: str) -> str:
+    """
+    Map display phone number or Meta phone ID to AWS EUM phone number ID.
+    Returns the appropriate AWS phone number ID for sending reactions.
+    """
+    # Clean display phone number (remove + and spaces)
+    clean_phone = display_phone.replace('+', '').replace(' ', '').replace('-', '')
+    
+    # Check if we have a mapping for this phone number
+    if clean_phone in PHONE_NUMBER_MAP:
+        return PHONE_NUMBER_MAP[clean_phone]
+    
+    # Default to first phone number ID if no mapping found
+    logger.warning(json.dumps({
+        'event': 'phone_number_mapping_not_found',
+        'displayPhone': display_phone,
+        'metaPhoneId': meta_phone_id,
+        'usingDefault': PHONE_NUMBER_ID_1
+    }))
+    return PHONE_NUMBER_ID_1
+
+
+def _process_message(
+    message: Dict,
+    metadata: Dict,
+    request_id: str,
+    receiving_phone: str,
+    aws_phone_number_id: str,
+    meta_waba_ids: list
+) -> None:
     """
     Process a single inbound message.
-    Requirements: 4.3, 4.4, 4.5, 4.6, 4.8, 4.9
+    Stores which WABA/phone number received the message.
     """
     whatsapp_message_id = message.get('id')
     sender_phone = message.get('from')
     msg_type = message.get('type', 'text')
     timestamp = int(message.get('timestamp', time.time()))
     
-    # Requirement 4.8: Deduplicate using whatsappMessageId
+    # Deduplicate using whatsappMessageId
     if _message_exists(whatsapp_message_id):
         logger.info(json.dumps({
             'event': 'message_duplicate_skipped',
@@ -163,7 +222,7 @@ def _process_message(message: Dict, metadata: Dict, request_id: str) -> None:
     
     # Lookup or create contact
     contact = _get_or_create_contact(sender_phone)
-    contact_id = contact.get('contactId')
+    contact_id = contact.get('contactId') or contact.get('id')
     
     # Extract message content based on type
     content = _extract_content(message, msg_type)
@@ -180,16 +239,14 @@ def _process_message(message: Dict, metadata: Dict, request_id: str) -> None:
         media_data = message.get(msg_type, {})
         whatsapp_media_id = media_data.get('id')
         if whatsapp_media_id:
-            # Requirements 4.4, 4.5, 4.6: Download and store media
-            s3_key = _download_media(whatsapp_media_id, message_id, msg_type, request_id)
+            s3_key = _download_media(whatsapp_media_id, message_id, msg_type, aws_phone_number_id, request_id)
             if s3_key:
                 media_id = _store_media_record(message_id, s3_key, media_data, whatsapp_media_id)
     
-    # Requirement 4.3: Store message in DynamoDB with TTL (30 days)
-    # Note: Table uses 'id' as primary key
+    # Store message in DynamoDB with WABA info
     message_record = {
-        'id': message_id,  # Primary key - table uses 'id' not 'messageId'
-        'messageId': message_id,  # Keep for backwards compatibility
+        'id': message_id,
+        'messageId': message_id,
         'contactId': contact_id,
         'channel': 'whatsapp',
         'direction': 'inbound',
@@ -201,14 +258,18 @@ def _process_message(message: Dict, metadata: Dict, request_id: str) -> None:
         'mediaId': media_id,
         's3Key': s3_key,
         'senderPhone': sender_phone,
+        # WABA tracking - which number received this message
+        'receivingPhone': receiving_phone,
+        'awsPhoneNumberId': aws_phone_number_id,
+        'metaWabaIds': meta_waba_ids if meta_waba_ids else None,
         'createdAt': Decimal(str(now)),
-        'expiresAt': Decimal(str(expires_at)),  # TTL attribute
+        'expiresAt': Decimal(str(expires_at)),
     }
     
     messages_table = dynamodb.Table(MESSAGES_TABLE)
     messages_table.put_item(Item={k: v for k, v in message_record.items() if v is not None})
     
-    # Requirement 4.9: Update Contact.lastInboundMessageAt for 24-hour window
+    # Update Contact.lastInboundMessageAt for 24-hour window
     _update_contact_timestamp(contact_id, now)
     
     logger.info(json.dumps({
@@ -218,19 +279,22 @@ def _process_message(message: Dict, metadata: Dict, request_id: str) -> None:
         'whatsappMessageId': whatsapp_message_id,
         'type': msg_type,
         'hasMedia': bool(media_id),
+        'receivingPhone': receiving_phone,
+        'awsPhoneNumberId': aws_phone_number_id,
         'requestId': request_id
     }))
     
-    # Auto-react with thumbs up to every inbound message (skip reactions to avoid loops)
+    # Auto-react with thumbs up (skip reactions to avoid loops)
+    # Use the same phone number that received the message
     if msg_type != 'reaction':
         _send_auto_reaction(
             contact_id=contact_id,
             whatsapp_message_id=whatsapp_message_id,
+            phone_number_id=aws_phone_number_id,
             request_id=request_id
         )
     
-    # Requirements 15.4, 15.7: Process AI automation if enabled
-    # Only process text messages for AI (skip media-only messages)
+    # Process AI automation if enabled (text messages only)
     if msg_type == 'text' and content:
         _process_ai_automation(
             message_id=message_id,
@@ -270,10 +334,8 @@ def _message_exists(whatsapp_message_id: str) -> bool:
     """Check if message already exists (deduplication)."""
     if not whatsapp_message_id:
         return False
-    
     try:
         messages_table = dynamodb.Table(MESSAGES_TABLE)
-        # Query by GSI on whatsappMessageId if available, or scan
         response = messages_table.scan(
             FilterExpression='whatsappMessageId = :wmid',
             ExpressionAttributeValues={':wmid': whatsapp_message_id},
@@ -288,7 +350,6 @@ def _get_or_create_contact(phone: str) -> Dict[str, Any]:
     """Get existing contact or create new one."""
     contacts_table = dynamodb.Table(CONTACTS_TABLE)
     
-    # Search for existing contact by phone
     response = contacts_table.scan(
         FilterExpression='phone = :phone AND (attribute_not_exists(deletedAt) OR deletedAt = :null)',
         ExpressionAttributeValues={':phone': phone, ':null': None},
@@ -303,20 +364,18 @@ def _get_or_create_contact(phone: str) -> Dict[str, Any]:
     contact_id = str(uuid.uuid4())
     now = int(time.time())
     
-    # Note: Table uses 'id' as primary key
-    # All opt-ins enabled by default for production
     contact = {
-        'id': contact_id,  # Primary key - table uses 'id' not 'contactId'
-        'contactId': contact_id,  # Keep for backwards compatibility
+        'id': contact_id,
+        'contactId': contact_id,
         'name': '',
         'phone': phone,
         'email': None,
-        'optInWhatsApp': True,  # Default enabled
-        'optInSms': True,  # Default enabled
-        'optInEmail': True,  # Default enabled
-        'allowlistWhatsApp': True,  # Default enabled
-        'allowlistSms': True,  # Default enabled
-        'allowlistEmail': True,  # Default enabled
+        'optInWhatsApp': True,
+        'optInSms': True,
+        'optInEmail': True,
+        'allowlistWhatsApp': True,
+        'allowlistSms': True,
+        'allowlistEmail': True,
         'lastInboundMessageAt': Decimal(str(now)),
         'createdAt': Decimal(str(now)),
         'updatedAt': Decimal(str(now)),
@@ -337,34 +396,28 @@ def _update_contact_timestamp(contact_id: str, timestamp: int) -> None:
     """Update contact's lastInboundMessageAt for 24-hour window tracking."""
     try:
         contacts_table = dynamodb.Table(CONTACTS_TABLE)
-        # Note: Table uses 'id' as primary key
         contacts_table.update_item(
             Key={'id': contact_id},
             UpdateExpression='SET lastInboundMessageAt = :ts, updatedAt = :ts',
-            ExpressionAttributeValues={
-                ':ts': Decimal(str(timestamp))
-            }
+            ExpressionAttributeValues={':ts': Decimal(str(timestamp))}
         )
     except Exception as e:
         logger.error(f"Failed to update contact timestamp: {str(e)}")
 
 
-def _download_media(whatsapp_media_id: str, message_id: str, media_type: str, request_id: str) -> Optional[str]:
-    """
-    Download media file from WhatsApp using AWS EUM Social API.
-    Requirements 4.4, 4.5: Call GetWhatsAppMessageMedia and store in S3
-    """
+def _download_media(whatsapp_media_id: str, message_id: str, media_type: str, 
+                    phone_number_id: str, request_id: str) -> Optional[str]:
+    """Download media file from WhatsApp using AWS EUM Social API."""
     try:
-        # Generate S3 key
         extension = _get_media_extension(media_type)
         s3_key = f"{MEDIA_PREFIX}{message_id}{extension}"
         
-        # Requirement 4.5: Call GetWhatsAppMessageMedia with destinationS3File
         response = social_messaging.get_whatsapp_message_media(
             mediaId=whatsapp_media_id,
+            originationPhoneNumberId=phone_number_id,
             destinationS3File={
-                's3BucketName': MEDIA_BUCKET,
-                's3Key': s3_key
+                'bucketName': MEDIA_BUCKET,
+                'key': s3_key
             }
         )
         
@@ -372,6 +425,9 @@ def _download_media(whatsapp_media_id: str, message_id: str, media_type: str, re
             'event': 'media_downloaded',
             'mediaId': whatsapp_media_id,
             's3Key': s3_key,
+            'mimeType': response.get('mimeType', ''),
+            'fileSize': response.get('fileSize', 0),
+            'phoneNumberId': phone_number_id,
             'requestId': request_id
         }))
         
@@ -389,14 +445,13 @@ def _download_media(whatsapp_media_id: str, message_id: str, media_type: str, re
 
 def _get_media_extension(media_type: str) -> str:
     """Get file extension based on media type."""
-    extensions = {
+    return {
         'image': '.jpg',
         'video': '.mp4',
         'audio': '.ogg',
         'document': '.pdf',
         'sticker': '.webp'
-    }
-    return extensions.get(media_type, '')
+    }.get(media_type, '')
 
 
 def _store_media_record(message_id: str, s3_key: str, media_data: Dict, whatsapp_media_id: str) -> str:
@@ -421,22 +476,17 @@ def _store_media_record(message_id: str, s3_key: str, media_data: Dict, whatsapp
 
 
 def _process_status(status: Dict, request_id: str) -> None:
-    """
-    Process message status update.
-    Requirement 5.12: Track message status updates (sent|delivered|read|failed)
-    """
+    """Process message status update (sent|delivered|read|failed)."""
     whatsapp_message_id = status.get('id')
-    status_value = status.get('status')  # sent, delivered, read, failed
+    status_value = status.get('status')
     timestamp = int(status.get('timestamp', time.time()))
     
     if not whatsapp_message_id or not status_value:
         return
     
     try:
-        # Find message by whatsappMessageId and update status
         messages_table = dynamodb.Table(MESSAGES_TABLE)
         
-        # Scan for the message (in production, use GSI)
         response = messages_table.scan(
             FilterExpression='whatsappMessageId = :wmid',
             ExpressionAttributeValues={':wmid': whatsapp_message_id},
@@ -446,7 +496,6 @@ def _process_status(status: Dict, request_id: str) -> None:
         items = response.get('Items', [])
         if items:
             message_id = items[0].get('id') or items[0].get('messageId')
-            # Note: Table uses 'id' as primary key
             messages_table.update_item(
                 Key={'id': message_id},
                 UpdateExpression='SET #status = :status, statusUpdatedAt = :ts',
@@ -475,33 +524,20 @@ def _process_status(status: Dict, request_id: str) -> None:
 
 
 def _send_to_dlq(record: Dict, error: str, request_id: str) -> None:
-    """
-    Send failed message to inbound-dlq.
-    Requirement 4.7: Send to DLQ on processing failure
-    """
+    """Send failed message to inbound-dlq."""
     if not INBOUND_DLQ_URL:
-        logger.warning("INBOUND_DLQ_URL not configured, cannot send to DLQ")
         return
     
     try:
-        dlq_message = {
-            'originalRecord': record,
-            'error': error,
-            'timestamp': int(time.time()),
-            'requestId': request_id
-        }
-        
         sqs.send_message(
             QueueUrl=INBOUND_DLQ_URL,
-            MessageBody=json.dumps(dlq_message, default=str)
+            MessageBody=json.dumps({
+                'originalRecord': record,
+                'error': error,
+                'timestamp': int(time.time()),
+                'requestId': request_id
+            }, default=str)
         )
-        
-        logger.info(json.dumps({
-            'event': 'sent_to_dlq',
-            'queueUrl': INBOUND_DLQ_URL,
-            'requestId': request_id
-        }))
-        
     except Exception as e:
         logger.error(json.dumps({
             'event': 'dlq_send_error',
@@ -510,48 +546,29 @@ def _send_to_dlq(record: Dict, error: str, request_id: str) -> None:
         }))
 
 
-# ============================================================================
-# AUTO-REACTION FEATURE
-# Send thumbs up reaction to every inbound message
-# ============================================================================
-
-# Outbound WhatsApp Lambda function name
-OUTBOUND_WHATSAPP_FUNCTION = os.environ.get('OUTBOUND_WHATSAPP_FUNCTION', 'wecare-outbound-whatsapp')
-
-# Default phone number ID for reactions
-DEFAULT_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID_1', 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54')
-
-
-def _send_auto_reaction(contact_id: str, whatsapp_message_id: str, request_id: str) -> None:
+def _send_auto_reaction(contact_id: str, whatsapp_message_id: str, 
+                        phone_number_id: str, request_id: str) -> None:
     """
     Send automatic thumbs up reaction to inbound message.
-    Calls outbound-whatsapp Lambda with reaction parameters.
+    Uses the same phone number that received the message.
     """
     if not whatsapp_message_id:
-        logger.warning(json.dumps({
-            'event': 'auto_reaction_skipped',
-            'reason': 'no_whatsapp_message_id',
-            'contactId': contact_id,
-            'requestId': request_id
-        }))
         return
     
     try:
-        # Build reaction request payload
         reaction_payload = {
             'body': json.dumps({
                 'contactId': contact_id,
                 'isReaction': True,
                 'reactionMessageId': whatsapp_message_id,
-                'reactionEmoji': '\U0001F44D',  # Thumbs up emoji
-                'phoneNumberId': DEFAULT_PHONE_NUMBER_ID
+                'reactionEmoji': '\U0001F44D',  # Thumbs up
+                'phoneNumberId': phone_number_id  # Use same phone that received
             })
         }
         
-        # Invoke outbound-whatsapp Lambda asynchronously
         response = lambda_client.invoke(
             FunctionName=OUTBOUND_WHATSAPP_FUNCTION,
-            InvocationType='Event',  # Async invocation
+            InvocationType='Event',
             Payload=json.dumps(reaction_payload)
         )
         
@@ -559,16 +576,15 @@ def _send_auto_reaction(contact_id: str, whatsapp_message_id: str, request_id: s
             'event': 'auto_reaction_triggered',
             'contactId': contact_id,
             'whatsappMessageId': whatsapp_message_id,
+            'phoneNumberId': phone_number_id,
             'statusCode': response.get('StatusCode'),
             'requestId': request_id
         }))
         
     except Exception as e:
-        # Log error but don't fail the message processing
         logger.error(json.dumps({
             'event': 'auto_reaction_error',
             'contactId': contact_id,
-            'whatsappMessageId': whatsapp_message_id,
             'error': str(e),
             'requestId': request_id
         }))
@@ -576,79 +592,28 @@ def _send_auto_reaction(contact_id: str, whatsapp_message_id: str, request_id: s
 
 # ============================================================================
 # AI AUTOMATION INTEGRATION
-# Requirements: 15.4, 15.7
 # ============================================================================
 
 def _is_ai_enabled() -> bool:
-    """
-    Check if AI automation is enabled in SystemConfig.
-    Requirement 15.4: Check if AI automation is enabled
-    """
+    """Check if AI automation is enabled in SystemConfig."""
     try:
         config_table = dynamodb.Table(SYSTEM_CONFIG_TABLE)
         response = config_table.get_item(Key={'configKey': 'ai_automation_enabled'})
         item = response.get('Item', {})
         return item.get('configValue', 'false').lower() == 'true'
     except Exception as e:
-        logger.warning(f"Failed to check AI config, defaulting to disabled: {str(e)}")
+        logger.warning(f"Failed to check AI config: {str(e)}")
         return False
 
 
-def _process_ai_automation(
-    message_id: str,
-    contact_id: str,
-    content: str,
-    request_id: str
-) -> Optional[Dict[str, Any]]:
-    """
-    Process AI automation for inbound message.
-    
-    Requirements:
-    - 15.4: If AI enabled, call ai-query-kb and ai-generate-response
-    - 15.7: Respect SEND_MODE - DRY_RUN prevents sending AI responses
-    
-    Returns AI suggestion if generated, None otherwise.
-    """
-    # Requirement 15.4: Check if AI automation is enabled
+def _process_ai_automation(message_id: str, contact_id: str, content: str, request_id: str) -> Optional[Dict]:
+    """Process AI automation for inbound message."""
     if not _is_ai_enabled():
-        logger.info(json.dumps({
-            'event': 'ai_automation_disabled',
-            'messageId': message_id,
-            'requestId': request_id
-        }))
         return None
     
-    logger.info(json.dumps({
-        'event': 'ai_automation_start',
-        'messageId': message_id,
-        'contactId': contact_id,
-        'requestId': request_id
-    }))
-    
     try:
-        # Step 1: Query Knowledge Base
         kb_result = _invoke_ai_query_kb(content, message_id, request_id)
-        
-        # Step 2: Generate response suggestion
-        ai_response = _invoke_ai_generate_response(
-            content=content,
-            kb_context=kb_result,
-            message_id=message_id,
-            contact_id=contact_id,
-            request_id=request_id
-        )
-        
-        # Requirement 15.7: Log but don't send if DRY_RUN
-        if SEND_MODE == 'DRY_RUN':
-            logger.info(json.dumps({
-                'event': 'ai_response_dry_run',
-                'messageId': message_id,
-                'suggestion': ai_response.get('suggestion', '')[:100] if ai_response else None,
-                'requestId': request_id
-            }))
-        
-        return ai_response
-        
+        return _invoke_ai_generate_response(content, kb_result, message_id, contact_id, request_id)
     except Exception as e:
         logger.error(json.dumps({
             'event': 'ai_automation_error',
@@ -660,156 +625,55 @@ def _process_ai_automation(
 
 
 def _invoke_ai_query_kb(query: str, message_id: str, request_id: str) -> Optional[Dict]:
-    """
-    Invoke ai-query-kb Lambda function.
-    Requirement 15.1: Query Bedrock KB for relevant knowledge
-    """
+    """Invoke ai-query-kb Lambda function."""
     try:
-        payload = {
-            'query': query,
-            'messageId': message_id,
-            'requestId': request_id
-        }
-        
         response = lambda_client.invoke(
             FunctionName=AI_QUERY_KB_FUNCTION,
             InvocationType='RequestResponse',
-            Payload=json.dumps(payload)
+            Payload=json.dumps({'query': query, 'messageId': message_id, 'requestId': request_id})
         )
-        
-        response_payload = json.loads(response['Payload'].read().decode('utf-8'))
-        
         if response.get('StatusCode') == 200:
-            body = json.loads(response_payload.get('body', '{}'))
-            logger.info(json.dumps({
-                'event': 'ai_kb_query_success',
-                'messageId': message_id,
-                'resultsCount': len(body.get('results', [])),
-                'requestId': request_id
-            }))
-            return body
-        else:
-            logger.warning(json.dumps({
-                'event': 'ai_kb_query_failed',
-                'messageId': message_id,
-                'statusCode': response.get('StatusCode'),
-                'requestId': request_id
-            }))
-            return None
-            
-    except Exception as e:
-        logger.error(json.dumps({
-            'event': 'ai_kb_invoke_error',
-            'messageId': message_id,
-            'error': str(e),
-            'requestId': request_id
-        }))
+            return json.loads(json.loads(response['Payload'].read().decode('utf-8')).get('body', '{}'))
+        return None
+    except Exception:
         return None
 
 
-def _invoke_ai_generate_response(
-    content: str,
-    kb_context: Optional[Dict],
-    message_id: str,
-    contact_id: str,
-    request_id: str
-) -> Optional[Dict]:
-    """
-    Invoke ai-generate-response Lambda function.
-    Requirements 15.2, 15.3: Generate response suggestion (never auto-send)
-    """
+def _invoke_ai_generate_response(content: str, kb_context: Optional[Dict], 
+                                  message_id: str, contact_id: str, request_id: str) -> Optional[Dict]:
+    """Invoke ai-generate-response Lambda function."""
     try:
-        payload = {
-            'messageContent': content,
-            'kbContext': kb_context,
-            'messageId': message_id,
-            'contactId': contact_id,
-            'requestId': request_id
-        }
-        
         response = lambda_client.invoke(
             FunctionName=AI_GENERATE_RESPONSE_FUNCTION,
             InvocationType='RequestResponse',
-            Payload=json.dumps(payload)
+            Payload=json.dumps({
+                'messageContent': content,
+                'kbContext': kb_context,
+                'messageId': message_id,
+                'contactId': contact_id,
+                'requestId': request_id
+            })
         )
-        
-        response_payload = json.loads(response['Payload'].read().decode('utf-8'))
-        
         if response.get('StatusCode') == 200:
-            body = json.loads(response_payload.get('body', '{}'))
-            
-            # Store AI interaction record
-            _store_ai_interaction(
-                message_id=message_id,
-                query=content,
-                response=body.get('suggestion', ''),
-                request_id=request_id
-            )
-            
-            logger.info(json.dumps({
-                'event': 'ai_response_generated',
-                'messageId': message_id,
-                'interactionId': body.get('interactionId'),
-                'requestId': request_id
-            }))
+            body = json.loads(json.loads(response['Payload'].read().decode('utf-8')).get('body', '{}'))
+            _store_ai_interaction(message_id, content, body.get('suggestion', ''), request_id)
             return body
-        else:
-            logger.warning(json.dumps({
-                'event': 'ai_response_failed',
-                'messageId': message_id,
-                'statusCode': response.get('StatusCode'),
-                'requestId': request_id
-            }))
-            return None
-            
-    except Exception as e:
-        logger.error(json.dumps({
-            'event': 'ai_generate_invoke_error',
-            'messageId': message_id,
-            'error': str(e),
-            'requestId': request_id
-        }))
+        return None
+    except Exception:
         return None
 
 
-def _store_ai_interaction(
-    message_id: str,
-    query: str,
-    response: str,
-    request_id: str
-) -> None:
-    """
-    Store AI interaction record.
-    Requirement 15.5: Store AI interaction logs
-    """
+def _store_ai_interaction(message_id: str, query: str, response: str, request_id: str) -> None:
+    """Store AI interaction record."""
     try:
-        interaction_id = str(uuid.uuid4())
-        now = int(time.time())
-        
-        interaction_record = {
-            'interactionId': interaction_id,
+        ai_table = dynamodb.Table(AI_INTERACTIONS_TABLE)
+        ai_table.put_item(Item={
+            'interactionId': str(uuid.uuid4()),
             'messageId': message_id,
             'query': query,
             'response': response,
-            'approved': False,  # Requirement 15.3: Never auto-approve
-            'feedback': None,
-            'timestamp': Decimal(str(now)),
-        }
-        
-        ai_table = dynamodb.Table(AI_INTERACTIONS_TABLE)
-        ai_table.put_item(Item=interaction_record)
-        
-        logger.info(json.dumps({
-            'event': 'ai_interaction_stored',
-            'interactionId': interaction_id,
-            'messageId': message_id,
-            'requestId': request_id
-        }))
-        
+            'approved': False,
+            'timestamp': Decimal(str(int(time.time()))),
+        })
     except Exception as e:
-        logger.error(json.dumps({
-            'event': 'ai_interaction_store_error',
-            'messageId': message_id,
-            'error': str(e),
-            'requestId': request_id
-        }))
+        logger.error(f"Failed to store AI interaction: {str(e)}")

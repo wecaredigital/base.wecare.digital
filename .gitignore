@@ -60,6 +60,10 @@ yarn-error.log*
 *.tmp
 *.temp
 .cache/
+temp/
+
+# Build artifacts
+*.zip
 
 # Secrets (never commit)
 *.pem
