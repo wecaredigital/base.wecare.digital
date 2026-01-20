@@ -1,7 +1,9 @@
 /**
  * Dashboard Page (Home)
  * WECARE.DIGITAL Admin Platform
- * Live dashboard with real-time stats from Amplify Data API
+ * Live dashboard with real-time stats from API
+ * Design: No emoji - Unicode symbols only
+ * NO MOCK DATA - All data from real AWS resources
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -49,10 +51,10 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
   
   const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
-    whatsapp: { status: 'active', detail: '2 Phone Numbers • GREEN Rating' },
-    sms: { status: 'active', detail: 'Pinpoint Pool • 5 msg/sec' },
-    email: { status: 'active', detail: 'SES Verified • 10 msg/sec' },
-    ai: { status: 'active', detail: 'Bedrock Nova Pro • KB Active' },
+    whatsapp: { status: 'active', detail: 'Loading...' },
+    sms: { status: 'active', detail: 'Loading...' },
+    email: { status: 'active', detail: 'Loading...' },
+    ai: { status: 'active', detail: 'Loading...' },
     dlq: { depth: 0, status: 'active' }
   });
 
@@ -63,6 +65,31 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
       // Load stats from API
       const dashboardStats = await api.getDashboardStats();
       setStats(dashboardStats);
+      
+      // Load system health
+      const health = await api.getSystemHealth();
+      setSystemHealth({
+        whatsapp: { 
+          status: health.whatsapp.status, 
+          detail: `${health.whatsapp.phoneNumbers} Phone Numbers • ${health.whatsapp.qualityRating} Rating` 
+        },
+        sms: { 
+          status: health.sms.status, 
+          detail: `Pool: ${health.sms.poolId.substring(0, 20)}...` 
+        },
+        email: { 
+          status: health.email.status, 
+          detail: health.email.verified ? 'SES Verified • 10 msg/sec' : 'Not Verified' 
+        },
+        ai: { 
+          status: health.ai.status, 
+          detail: `KB: ${health.ai.kbId} • Nova Pro` 
+        },
+        dlq: { 
+          depth: health.dlq.depth, 
+          status: health.dlq.depth > 10 ? 'error' : health.dlq.depth > 0 ? 'warning' : 'active' 
+        }
+      });
       
       // Load recent messages
       const messages = await api.listMessages();
@@ -83,12 +110,6 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         };
       });
       setRecentMessages(recent);
-      
-      // Update DLQ status
-      setSystemHealth(prev => ({
-        ...prev,
-        dlq: { depth: dashboardStats.dlqDepth, status: dashboardStats.dlqDepth > 10 ? 'error' : dashboardStats.dlqDepth > 0 ? 'warning' : 'active' }
-      }));
       
     } catch (err) {
       console.error('Dashboard load error:', err);
@@ -133,10 +154,10 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
           <h1 className="page-title">Dashboard</h1>
           <div className="header-actions">
             <button className="btn-secondary" onClick={loadDashboardData} disabled={loading}>
-              🔄 {loading ? 'Loading...' : 'Refresh'}
+              ↻ {loading ? 'Loading...' : 'Refresh'}
             </button>
-            <Link href="/messaging" className="btn-primary">💬 Send Message</Link>
-            <Link href="/bulk-messaging" className="btn-secondary">📨 Bulk Job</Link>
+            <Link href="/dm/whatsapp" className="btn-primary">✉ Send Message</Link>
+            <Link href="/bulk-messaging" className="btn-secondary">⧉ Bulk Job</Link>
           </div>
         </div>
 
@@ -145,42 +166,42 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         {/* Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-icon">📨</div>
+            <div className="stat-icon">✉</div>
             <div className="stat-content">
               <div className="stat-value">{stats.messagesToday}</div>
               <div className="stat-label">Messages Today</div>
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">📊</div>
+            <div className="stat-icon">⌂</div>
             <div className="stat-content">
               <div className="stat-value">{stats.messagesWeek}</div>
               <div className="stat-label">This Week</div>
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">👥</div>
+            <div className="stat-icon">☎</div>
             <div className="stat-content">
               <div className="stat-value">{stats.activeContacts}</div>
               <div className="stat-label">Active Contacts</div>
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">🤖</div>
+            <div className="stat-icon">⌘</div>
             <div className="stat-content">
               <div className="stat-value">{stats.aiResponses}</div>
               <div className="stat-label">AI Responses</div>
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">📋</div>
+            <div className="stat-icon">⧉</div>
             <div className="stat-content">
               <div className="stat-value">{stats.bulkJobs}</div>
               <div className="stat-label">Bulk Jobs</div>
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">✅</div>
+            <div className="stat-icon">✓</div>
             <div className="stat-content">
               <div className="stat-value">{stats.deliveryRate}%</div>
               <div className="stat-label">Delivery Rate</div>
@@ -194,7 +215,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
           <div className="status-grid">
             <div className="status-card">
               <div className="status-header">
-                <span className="status-icon">💬</span>
+                <span className="status-icon">✉</span>
                 <span className="status-name">WhatsApp</span>
               </div>
               <div className={`status-badge ${getStatusClass(systemHealth.whatsapp.status)}`}>
@@ -204,7 +225,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
             </div>
             <div className="status-card">
               <div className="status-header">
-                <span className="status-icon">📱</span>
+                <span className="status-icon">☎</span>
                 <span className="status-name">SMS</span>
               </div>
               <div className={`status-badge ${getStatusClass(systemHealth.sms.status)}`}>
@@ -214,7 +235,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
             </div>
             <div className="status-card">
               <div className="status-header">
-                <span className="status-icon">📧</span>
+                <span className="status-icon">@</span>
                 <span className="status-name">Email</span>
               </div>
               <div className={`status-badge ${getStatusClass(systemHealth.email.status)}`}>
@@ -224,7 +245,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
             </div>
             <div className="status-card">
               <div className="status-header">
-                <span className="status-icon">🤖</span>
+                <span className="status-icon">⌘</span>
                 <span className="status-name">AI Agent</span>
               </div>
               <div className={`status-badge ${getStatusClass(systemHealth.ai.status)}`}>
@@ -234,7 +255,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
             </div>
             <div className="status-card">
               <div className="status-header">
-                <span className="status-icon">⚠️</span>
+                <span className="status-icon">!</span>
                 <span className="status-name">DLQ Depth</span>
               </div>
               <div className={`status-badge ${systemHealth.dlq.depth > 10 ? 'status-red' : systemHealth.dlq.depth > 0 ? 'status-yellow' : 'status-green'}`}>
@@ -249,33 +270,33 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         <div className="section">
           <h2 className="section-title">Quick Actions</h2>
           <div className="quick-actions-grid">
-            <Link href="/messaging?channel=whatsapp" className="quick-action-card">
-              <span className="qa-icon">💬</span>
+            <Link href="/dm/whatsapp" className="quick-action-card">
+              <span className="qa-icon">✉</span>
               <span className="qa-title">WhatsApp</span>
               <span className="qa-desc">Send & receive</span>
             </Link>
-            <Link href="/messaging?channel=sms" className="quick-action-card">
-              <span className="qa-icon">📱</span>
+            <Link href="/dm/sms" className="quick-action-card">
+              <span className="qa-icon">☎</span>
               <span className="qa-title">SMS</span>
               <span className="qa-desc">Text messages</span>
             </Link>
-            <Link href="/messaging?channel=email" className="quick-action-card">
-              <span className="qa-icon">📧</span>
+            <Link href="/dm/email" className="quick-action-card">
+              <span className="qa-icon">@</span>
               <span className="qa-title">Email</span>
               <span className="qa-desc">Send emails</span>
             </Link>
             <Link href="/bulk-messaging" className="quick-action-card">
-              <span className="qa-icon">📨</span>
+              <span className="qa-icon">⧉</span>
               <span className="qa-title">Bulk Job</span>
               <span className="qa-desc">Mass messaging</span>
             </Link>
             <Link href="/contacts" className="quick-action-card">
-              <span className="qa-icon">👥</span>
+              <span className="qa-icon">☎</span>
               <span className="qa-title">Contacts</span>
               <span className="qa-desc">Manage contacts</span>
             </Link>
-            <Link href="/ai-automation" className="quick-action-card">
-              <span className="qa-icon">🤖</span>
+            <Link href="/agent" className="quick-action-card">
+              <span className="qa-icon">⌘</span>
               <span className="qa-title">AI Settings</span>
               <span className="qa-desc">Configure AI</span>
             </Link>

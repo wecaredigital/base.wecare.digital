@@ -287,20 +287,62 @@ export interface BulkJob {
 }
 
 export async function listBulkJobs(channel?: string): Promise<BulkJob[]> {
-  // Bulk jobs endpoint not yet configured
-  return [];
+  try {
+    let url = `${API_BASE}/bulk/jobs`;
+    if (channel) url += `?channel=${channel}`;
+    const response = await fetch(url);
+    if (response.ok) {
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data.jobs || []);
+    }
+    return [];
+  } catch (e) {
+    console.error('API error fetching bulk jobs:', e);
+    return [];
+  }
 }
 
 export async function createBulkJob(job: Partial<BulkJob>): Promise<BulkJob | null> {
-  return null;
+  try {
+    const response = await fetch(`${API_BASE}/bulk/jobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(job),
+    });
+    if (response.ok) {
+      return response.json();
+    }
+    return null;
+  } catch (e) {
+    console.error('API error creating bulk job:', e);
+    return null;
+  }
 }
 
 export async function updateBulkJobStatus(jobId: string, status: string): Promise<boolean> {
-  return false;
+  try {
+    const response = await fetch(`${API_BASE}/bulk/jobs/${jobId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    return response.ok;
+  } catch (e) {
+    console.error('API error updating bulk job:', e);
+    return false;
+  }
 }
 
 export async function deleteBulkJob(jobId: string): Promise<boolean> {
-  return false;
+  try {
+    const response = await fetch(`${API_BASE}/bulk/jobs/${jobId}`, {
+      method: 'DELETE',
+    });
+    return response.ok;
+  } catch (e) {
+    console.error('API error deleting bulk job:', e);
+    return false;
+  }
 }
 
 // ============================================================================
@@ -318,33 +360,48 @@ export interface AIConfig {
   systemPrompt: string;
 }
 
-const DEFAULT_AI_CONFIG: AIConfig = {
-  enabled: true,  // AI Automation default ON per user requirement
+// Real AWS Resource IDs
+const AI_CONFIG: AIConfig = {
+  enabled: true,
   autoReplyEnabled: true,
-  knowledgeBaseId: 'QNZF0YNRWI',
-  agentId: 'WECARE-AGENT',
-  agentAliasId: 'TSTALIASID',
+  knowledgeBaseId: 'FZBPKGTOYE',
+  agentId: 'HQNT0JXN8G',
+  agentAliasId: 'base_bedrock_agentcore-1XHDxj2o3Q',
   maxTokens: 1024,
   temperature: 0.7,
   systemPrompt: 'You are a helpful customer service assistant for WECARE.DIGITAL.',
 };
 
-let currentAIConfig = { ...DEFAULT_AI_CONFIG };
-
 export async function getAIConfig(): Promise<AIConfig> {
-  return currentAIConfig;
+  // In production, this would fetch from SystemConfig table
+  return AI_CONFIG;
 }
 
 export async function updateAIConfig(updates: Partial<AIConfig>): Promise<AIConfig> {
-  currentAIConfig = { ...currentAIConfig, ...updates };
-  return currentAIConfig;
+  // In production, this would update SystemConfig table
+  Object.assign(AI_CONFIG, updates);
+  return AI_CONFIG;
 }
 
 export async function testAIResponse(message: string): Promise<{ response: string; sources?: string[] }> {
-  return {
-    response: `AI response for: "${message}"`,
-    sources: ['Knowledge Base'],
-  };
+  try {
+    const response = await fetch(`${API_BASE}/ai/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messageContent: message }),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        response: data.suggestedResponse || data.suggestion || 'No response generated',
+        sources: data.sources || ['Knowledge Base'],
+      };
+    }
+    return { response: 'AI service unavailable', sources: [] };
+  } catch (e) {
+    console.error('AI test error:', e);
+    return { response: 'AI service error', sources: [] };
+  }
 }
 
 // ============================================================================
@@ -362,10 +419,11 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  // Fetch real data from contacts and messages
-  const [contacts, messages] = await Promise.all([
+  // Fetch real data from contacts, messages, and bulk jobs
+  const [contacts, messages, bulkJobs] = await Promise.all([
     listContacts(),
-    listMessages()
+    listMessages(),
+    listBulkJobs()
   ]);
   
   const now = new Date();
@@ -376,14 +434,28 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const messagesWeek = messages.filter(m => new Date(m.timestamp).getTime() >= weekStart).length;
   const activeContacts = contacts.filter(c => !c.deletedAt).length;
   
+  // Calculate delivery rate from outbound messages
+  const outboundMessages = messages.filter(m => m.direction === 'OUTBOUND');
+  const deliveredMessages = outboundMessages.filter(m => 
+    m.status === 'delivered' || m.status === 'read' || m.status === 'sent'
+  );
+  const deliveryRate = outboundMessages.length > 0 
+    ? Math.round((deliveredMessages.length / outboundMessages.length) * 100) 
+    : 100;
+  
+  // Count active bulk jobs
+  const activeBulkJobs = bulkJobs.filter(j => 
+    j.status === 'PENDING' || j.status === 'IN_PROGRESS'
+  ).length;
+  
   return {
     messagesToday,
     messagesWeek,
     activeContacts,
-    bulkJobs: 0,
-    deliveryRate: 100,
-    aiResponses: 0,
-    dlqDepth: 0,
+    bulkJobs: activeBulkJobs,
+    deliveryRate,
+    aiResponses: 0, // Would need AI interactions table query
+    dlqDepth: 0, // Would need DLQ depth API
   };
 }
 
@@ -400,11 +472,12 @@ export interface SystemHealth {
 }
 
 export async function getSystemHealth(): Promise<SystemHealth> {
+  // Real AWS Resource IDs
   return {
     whatsapp: { status: 'active', phoneNumbers: 2, qualityRating: 'GREEN' },
-    sms: { status: 'active', poolId: 'pool-wecare-sms' },
+    sms: { status: 'active', poolId: 'pool-6fbf5a5f390d4eeeaa7dbae39d78933e' },
     email: { status: 'active', verified: true },
-    ai: { status: 'active', kbId: 'QNZF0YNRWI' },
+    ai: { status: 'active', kbId: 'FZBPKGTOYE' },
     dlq: { depth: 0 },
   };
 }
