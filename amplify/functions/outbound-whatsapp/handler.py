@@ -323,6 +323,12 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
             is_template, template_name, template_params
         )
         
+        logger.info(json.dumps({
+            'event': 'message_payload_built',
+            'payload': message_payload,
+            'requestId': request_id
+        }))
+        
         # Requirement 5.8: Call SendWhatsAppMessage API
         response = social_messaging.send_whatsapp_message(
             originationPhoneNumberId=phone_number_id,
