@@ -53,10 +53,8 @@ const AdminPage: React.FC<PageProps> = ({ signOut, user }) => {
                 <h3>Send Mode</h3>
                 <div className="config-item">
                   <label>Current Mode</label>
-                  <select defaultValue="DRY_RUN">
-                    <option value="DRY_RUN">DRY_RUN (Simulation)</option>
-                    <option value="LIVE">LIVE (Production)</option>
-                  </select>
+                  <div className="mode-badge live">LIVE</div>
+                  <p className="help-text">All messages are sent to real recipients</p>
                 </div>
               </div>
               <div className="config-card">

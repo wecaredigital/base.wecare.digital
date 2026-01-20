@@ -19,13 +19,19 @@ export function getConnectionStatus() {
 // Helper function for API calls with better error handling
 async function apiCall<T>(url: string, options?: RequestInit): Promise<T | null> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     const response = await fetch(url, {
       ...options,
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...options?.headers,
       },
     });
+    
+    clearTimeout(timeoutId);
     
     if (response.ok) {
       connectionStatus = 'connected';
@@ -51,14 +57,14 @@ async function apiCall<T>(url: string, options?: RequestInit): Promise<T | null>
     return null;
   } catch (e: any) {
     connectionStatus = 'disconnected';
-    if (e.name === 'TypeError' && e.message.includes('fetch')) {
-      lastConnectionError = 'Network error - check internet connection';
-    } else if (e.message.includes('CORS')) {
-      lastConnectionError = 'CORS error - API Gateway needs CORS headers';
+    if (e.name === 'AbortError') {
+      lastConnectionError = 'Request timeout - API took too long';
+    } else if (e.name === 'TypeError') {
+      lastConnectionError = 'CORS error or network unavailable';
     } else {
       lastConnectionError = e.message || 'Connection failed';
     }
-    console.error('API call failed:', lastConnectionError, url);
+    console.error('API call failed:', lastConnectionError, url, e);
     return null;
   }
 }
