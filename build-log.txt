@@ -1,0 +1,91 @@
+2026-01-20T10:38:43.318Z [INFO]: # Build environment configured with Standard build compute type: 8GiB Memory, 4vCPUs, 128GB Disk Space
+2026-01-20T10:38:43.816Z [INFO]: # Cloning repository: git@github.com:wecaredigital/base.wecare.digital.git
+2026-01-20T10:38:44.451Z [INFO]: 
+2026-01-20T10:38:44.451Z [INFO]: Cloning into 'base.wecare.digital'...
+2026-01-20T10:38:44.451Z [INFO]: # Switching to commit: 7517bb170d355af2e3ff418eb52560777b9876a5
+2026-01-20T10:38:44.495Z [INFO]: Note: switching to '7517bb170d355af2e3ff418eb52560777b9876a5'.
+                                 You are in 'detached HEAD' state. You can look around, make experimental
+                                 changes and commit them, and you can discard any commits you make in this
+                                 state without impacting any branches by switching back to a branch.
+                                 If you want to create a new branch to retain commits you create, you may
+                                 do so (now or later) by using -c with the switch command. Example:
+                                 git switch -c <new-branch-name>
+                                 Or undo this operation with:
+                                 git switch -
+                                 Turn off this advice by setting config variable advice.detachedHead to false
+                                 HEAD is now at 7517bb1 Update voice handler, WhatsApp outbound, DM pages and styles
+2026-01-20T10:38:44.579Z [INFO]: Successfully cleaned up Git credentials
+2026-01-20T10:38:44.579Z [INFO]: # Checking for Git submodules at: /codebuild/output/src1660067503/src/base.wecare.digital/.gitmodules
+2026-01-20T10:38:44.589Z [INFO]: # Retrieving environment cache...
+2026-01-20T10:38:44.670Z [INFO]: # Retrieved environment cache
+2026-01-20T10:38:44.671Z [INFO]: ---- Setting Up SSM Secrets ----
+2026-01-20T10:38:44.671Z [INFO]: SSM params {"Path":"/amplify/dtiq7il2x5c5g/base/","WithDecryption":true}
+2026-01-20T10:38:44.722Z [WARNING]: !Failed to set up process.env.secrets
+2026-01-20T10:38:45.128Z [INFO]: # No package override configuration found.
+2026-01-20T10:38:45.131Z [INFO]: # Retrieving cache...
+2026-01-20T10:39:06.782Z [INFO]: # Extracting cache...
+2026-01-20T10:39:59.535Z [INFO]: # Extraction completed
+2026-01-20T10:39:59.778Z [INFO]: # Retrieved cache
+2026-01-20T10:40:04.178Z [INFO]: ## Starting Backend Build
+                                 ## Checking for associated backend environment...
+                                 ## No backend environment association found, continuing...
+                                 ## Completed Backend Build
+2026-01-20T10:40:04.185Z [INFO]: ## Starting Frontend Build
+2026-01-20T10:40:04.186Z [INFO]: # Starting phase: preBuild
+                                 # Executing command: npm ci
+2026-01-20T10:40:24.971Z [WARNING]: npm warn ERESOLVE overriding peer dependency
+2026-01-20T10:40:24.976Z [WARNING]: npm warn While resolving: @aws-amplify/plugin-types@1.10.1
+                                    npm warn Found: @aws-sdk/types@3.821.0
+                                    npm warn node_modules/@aws-amplify/data-construct/node_modules/@aws-amplify/ai-constructs/node_modules/@aws-amplify/plugin-types/node_modules/@aws-sdk/types
+                                    npm warn
+                                    npm warn Could not resolve dependency:
+                                    npm warn peer @aws-sdk/types@"^3.734.0" from @aws-amplify/plugin-types@1.10.1
+                                    npm warn node_modules/@aws-amplify/data-construct/node_modules/@aws-amplify/ai-constructs/node_modules/@aws-amplify/plugin-types
+                                    npm warn   @aws-amplify/plugin-types@"^1.10.1" from @aws-amplify/ai-constructs@1.5.3
+                                    npm warn   node_modules/@aws-amplify/data-construct/node_modules/@aws-amplify/ai-constructs
+2026-01-20T10:40:25.145Z [WARNING]: npm warn ERESOLVE overriding peer dependency
+2026-01-20T10:40:25.146Z [WARNING]: npm warn While resolving: @aws-amplify/plugin-types@1.10.1
+                                    npm warn Found: @aws-sdk/types@3.821.0
+                                    npm warn node_modules/@aws-amplify/graphql-api-construct/node_modules/@aws-amplify/ai-constructs/node_modules/@aws-amplify/plugin-types/node_modules/@aws-sdk/types
+                                    npm warn
+                                    npm warn Could not resolve dependency:
+                                    npm warn peer @aws-sdk/types@"^3.734.0" from @aws-amplify/plugin-types@1.10.1
+                                    npm warn node_modules/@aws-amplify/graphql-api-construct/node_modules/@aws-amplify/ai-constructs/node_modules/@aws-amplify/plugin-types
+                                    npm warn   @aws-amplify/plugin-types@"^1.10.1" from @aws-amplify/ai-constructs@1.5.3
+                                    npm warn   node_modules/@aws-amplify/graphql-api-construct/node_modules/@aws-amplify/ai-constructs
+2026-01-20T10:41:47.861Z [WARNING]: npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-01-20T10:41:47.947Z [WARNING]: npm warn deprecated @babel/plugin-proposal-class-properties@7.18.6: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-class-properties instead.
+2026-01-20T10:41:48.351Z [WARNING]: npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2026-01-20T10:41:48.378Z [WARNING]: npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2026-01-20T10:41:48.389Z [WARNING]: npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-01-20T10:41:49.116Z [WARNING]: npm warn deprecated @babel/plugin-proposal-object-rest-spread@7.20.7: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-object-rest-spread instead.
+2026-01-20T10:41:49.971Z [WARNING]: npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-01-20T10:42:14.733Z [WARNING]: npm warn deprecated core-js@2.6.12: core-js@<3.23.3 is no longer maintained and not recommended for usage due to the number of issues. Because of the V8 engine whims, feature detection in old core-js versions could cause a slowdown up to 100x even if nothing is polyfilled. Some versions have web compatibility issues. Please, upgrade your dependencies to the actual version of core-js.
+2026-01-20T10:42:43.214Z [INFO]: added 2103 packages, and audited 2951 packages in 3m
+2026-01-20T10:42:43.219Z [INFO]: 197 packages are looking for funding
+                                 run `npm fund` for details
+2026-01-20T10:42:43.336Z [INFO]: 40 low severity vulnerabilities
+                                 To address all issues, run:
+                                 npm audit fix
+                                 Run `npm audit` for details.
+2026-01-20T10:42:43.377Z [INFO]: # Completed phase: preBuild
+                                 # Starting phase: build
+                                 # Executing command: npm run build
+2026-01-20T10:42:43.483Z [INFO]: > wecare-digital-admin-platform@1.0.0 build
+                                 > next build
+2026-01-20T10:42:44.184Z [INFO]: ▲ Next.js 14.2.35
+2026-01-20T10:42:44.185Z [INFO]: 
+2026-01-20T10:42:44.185Z [INFO]: Linting and checking validity of types ...
+2026-01-20T10:42:57.453Z [INFO]: Creating an optimized production build ...
+2026-01-20T10:43:01.523Z [WARNING]: Failed to compile.
+2026-01-20T10:43:01.531Z [WARNING]: ./src/pages/dm/whatsapp/index.tsx
+                                    Module not found: Can't resolve '../Pages.css'
+                                    https://nextjs.org/docs/messages/module-not-found
+2026-01-20T10:43:01.543Z [WARNING]: > Build failed because of webpack errors
+2026-01-20T10:43:01.610Z [ERROR]: !!! Build failed
+2026-01-20T10:43:01.610Z [ERROR]: !!! Error: Command failed with exit code 1
+2026-01-20T10:43:01.610Z [INFO]: # Starting environment caching...
+2026-01-20T10:43:01.610Z [INFO]: # Uploading environment cache artifact...
+2026-01-20T10:43:01.706Z [INFO]: # Uploaded environment cache artifact
+2026-01-20T10:43:01.706Z [INFO]: # Environment caching completed
+
