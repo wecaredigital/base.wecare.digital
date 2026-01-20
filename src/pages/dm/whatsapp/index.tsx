@@ -64,6 +64,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedWaba, setSelectedWaba] = useState<string>('phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54');
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -210,6 +211,42 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     }
   };
 
+  const handleDeleteMessage = async (msg: Message) => {
+    if (!confirm('Delete this message?')) return;
+    setDeleting(msg.id);
+    try {
+      const direction = msg.direction === 'inbound' ? 'INBOUND' : 'OUTBOUND';
+      const success = await api.deleteMessage(msg.id, direction);
+      if (success) {
+        await loadData();
+      } else {
+        setError('Failed to delete message');
+      }
+    } catch (err) {
+      setError('Delete error occurred');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleDeleteContact = async (contact: Contact) => {
+    if (!confirm(`Delete contact "${contact.name}"? This will also remove all messages.`)) return;
+    setDeleting(contact.id);
+    try {
+      const success = await api.deleteContact(contact.id);
+      if (success) {
+        setSelectedContact(null);
+        await loadData();
+      } else {
+        setError('Failed to delete contact');
+      }
+    } catch (err) {
+      setError('Delete error occurred');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const getWabaInfo = (wabaId?: string) => {
     if (!wabaId) return null;
     return WABA_CONFIG[wabaId as keyof typeof WABA_CONFIG];
@@ -278,6 +315,14 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                     {contact.unread > 0 && (
                       <span className="unread-badge">{contact.unread}</span>
                     )}
+                    <button 
+                      className="contact-delete-btn"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteContact(contact); }}
+                      disabled={deleting === contact.id}
+                      title="Delete contact"
+                    >
+                      {deleting === contact.id ? '...' : '✕'}
+                    </button>
                   </div>
                 </div>
               );
@@ -395,6 +440,26 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                               title="React with thumbs up"
                             >
                               +
+                            </button>
+                            <button 
+                              className="delete-msg-btn"
+                              onClick={() => handleDeleteMessage(msg)}
+                              disabled={deleting === msg.id}
+                              title="Delete message"
+                            >
+                              {deleting === msg.id ? '...' : '✕'}
+                            </button>
+                          </div>
+                        )}
+                        {msg.direction === 'outbound' && (
+                          <div className="message-actions">
+                            <button 
+                              className="delete-msg-btn"
+                              onClick={() => handleDeleteMessage(msg)}
+                              disabled={deleting === msg.id}
+                              title="Delete message"
+                            >
+                              {deleting === msg.id ? '...' : '✕'}
                             </button>
                           </div>
                         )}

@@ -31,6 +31,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
   const [composeMessage, setComposeMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -113,6 +114,40 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
 
   const inboundCount = messages.filter(m => m.direction === 'INBOUND').length;
   const outboundCount = messages.filter(m => m.direction === 'OUTBOUND').length;
+
+  const handleDeleteMessage = async (msg: api.Message) => {
+    if (!confirm('Delete this message?')) return;
+    setDeleting(msg.id);
+    try {
+      const success = await api.deleteMessage(msg.id, msg.direction);
+      if (success) {
+        await loadData();
+      } else {
+        setError('Failed to delete message');
+      }
+    } catch (err) {
+      setError('Delete error occurred');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleDeleteContact = async (contact: api.Contact) => {
+    if (!confirm(`Delete contact "${contact.name || contact.phone}"?`)) return;
+    setDeleting(contact.id);
+    try {
+      const success = await api.deleteContact(contact.id);
+      if (success) {
+        await loadData();
+      } else {
+        setError('Failed to delete contact');
+      }
+    } catch (err) {
+      setError('Delete error occurred');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   return (
     <Layout user={user} onSignOut={signOut}>
@@ -310,6 +345,14 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                       <span className="message-time">
                         {new Date(msg.timestamp).toLocaleTimeString()}
                       </span>
+                      <button 
+                        className="delete-btn" 
+                        onClick={() => handleDeleteMessage(msg)}
+                        disabled={deleting === msg.id}
+                        title="Delete message"
+                      >
+                        {deleting === msg.id ? '...' : '✕'}
+                      </button>
                     </div>
                   </div>
                 );
@@ -343,6 +386,14 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                     <div className="contact-name-mini">{contact.name || 'No name'}</div>
                     <div className="contact-phone-mini">{contact.phone || contact.email}</div>
                   </div>
+                  <button 
+                    className="delete-btn-mini" 
+                    onClick={() => handleDeleteContact(contact)}
+                    disabled={deleting === contact.id}
+                    title="Delete contact"
+                  >
+                    {deleting === contact.id ? '...' : '✕'}
+                  </button>
                 </div>
               ))}
             </div>

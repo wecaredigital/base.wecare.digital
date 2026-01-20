@@ -226,11 +226,11 @@ export async function getMessage(messageId: string): Promise<Message | null> {
   return messages.find(m => m.messageId === messageId) || null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-
-export async function deleteMessage(messageId: string): Promise<boolean> {
-  // Not implemented in backend yet
-  return false;
+export async function deleteMessage(messageId: string, direction: 'INBOUND' | 'OUTBOUND' = 'INBOUND'): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/messages/${messageId}?direction=${direction}`, {
+    method: 'DELETE',
+  });
+  return data !== null && data.success === true;
 }
 
 function normalizeMessage(item: any): Message {
