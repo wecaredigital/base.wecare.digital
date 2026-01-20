@@ -253,7 +253,7 @@ const WhatsAppDM: React.FC<PageProps> = ({ signOut, user }) => {
 
                 {!canSend().allowed && (
                   <div className="block-reason">
-                    <div className="block-reason-title">⚠️ Cannot Send Message</div>
+                    <div className="block-reason-title">⚑ Cannot Send Message</div>
                     <div>{canSend().reason}</div>
                   </div>
                 )}

@@ -333,7 +333,7 @@ const AIAutomation: React.FC<PageProps> = ({ signOut, user }) => {
                     >
                       {autoApprove ? 'ON' : 'OFF'}
                     </button>
-                    <span className="help-text">⚠️ Not recommended for production</span>
+                    <span className="help-text">⚑ Not recommended for production</span>
                   </div>
                 </div>
                 <div className="config-item">

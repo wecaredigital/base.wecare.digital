@@ -18,7 +18,7 @@ const FormsPage: React.FC<PageProps> = ({ signOut, user }) => {
         <h1 className="page-title">Forms</h1>
         <div className="section">
           <div className="empty-state">
-            <p>📝 Form builder coming soon</p>
+            <p>✎ Form builder coming soon</p>
             <p className="help-text">Create and manage data collection forms</p>
           </div>
         </div>
