@@ -34,6 +34,7 @@ interface SystemHealth {
   email: { status: 'active' | 'warning' | 'error'; detail: string };
   ai: { status: 'active' | 'warning' | 'error'; detail: string };
   dlq: { depth: number; status: 'active' | 'warning' | 'error' };
+  api: { status: 'active' | 'warning' | 'error'; detail: string };
 }
 
 const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
@@ -55,12 +56,31 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
     sms: { status: 'active', detail: 'Loading...' },
     email: { status: 'active', detail: 'Loading...' },
     ai: { status: 'active', detail: 'Loading...' },
-    dlq: { depth: 0, status: 'active' }
+    dlq: { depth: 0, status: 'active' },
+    api: { status: 'active', detail: 'Checking...' }
   });
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    
+    // First test API connection
+    const connectionTest = await api.testConnection();
+    const apiStatus = connectionTest.success ? 'active' : 'error';
+    const apiDetail = connectionTest.success 
+      ? `Connected ${connectionTest.latency}ms` 
+      : connectionTest.message;
+    
+    if (!connectionTest.success) {
+      setError(`API Connection Error: ${connectionTest.message}`);
+      setSystemHealth(prev => ({
+        ...prev,
+        api: { status: 'error', detail: apiDetail }
+      }));
+      setLoading(false);
+      return;
+    }
+    
     try {
       // Load stats from API
       const dashboardStats = await api.getDashboardStats();
@@ -88,7 +108,8 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         dlq: { 
           depth: health.dlq.depth, 
           status: health.dlq.depth > 10 ? 'error' : health.dlq.depth > 0 ? 'warning' : 'active' 
-        }
+        },
+        api: { status: apiStatus as 'active' | 'warning' | 'error', detail: apiDetail }
       });
       
       // Load recent messages
@@ -213,6 +234,16 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         <div className="section">
           <h2 className="section-title">System Status</h2>
           <div className="status-grid">
+            <div className="status-card">
+              <div className="status-header">
+                <span className="status-icon">⚡</span>
+                <span className="status-name">API Gateway</span>
+              </div>
+              <div className={`status-badge ${getStatusClass(systemHealth.api.status)}`}>
+                {getStatusIcon(systemHealth.api.status)} {systemHealth.api.status === 'active' ? 'Connected' : 'Error'}
+              </div>
+              <div className="status-detail">{systemHealth.api.detail}</div>
+            </div>
             <div className="status-card">
               <div className="status-header">
                 <span className="status-icon">✉</span>

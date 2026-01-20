@@ -8,6 +8,84 @@
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
 
+// Connection status tracking
+let lastConnectionError: string | null = null;
+let connectionStatus: 'connected' | 'disconnected' | 'unknown' = 'unknown';
+
+export function getConnectionStatus() {
+  return { status: connectionStatus, lastError: lastConnectionError };
+}
+
+// Helper function for API calls with better error handling
+async function apiCall<T>(url: string, options?: RequestInit): Promise<T | null> {
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+    
+    if (response.ok) {
+      connectionStatus = 'connected';
+      lastConnectionError = null;
+      return response.json();
+    }
+    
+    // Handle specific HTTP errors
+    if (response.status === 403) {
+      lastConnectionError = 'Access denied - check API Gateway permissions';
+    } else if (response.status === 404) {
+      lastConnectionError = 'API endpoint not found';
+    } else if (response.status === 500) {
+      lastConnectionError = 'Server error - check Lambda logs';
+    } else if (response.status === 502 || response.status === 503) {
+      lastConnectionError = 'API Gateway error - service unavailable';
+    } else {
+      lastConnectionError = `HTTP ${response.status}: ${response.statusText}`;
+    }
+    
+    connectionStatus = 'disconnected';
+    console.error(`API error: ${lastConnectionError}`, url);
+    return null;
+  } catch (e: any) {
+    connectionStatus = 'disconnected';
+    if (e.name === 'TypeError' && e.message.includes('fetch')) {
+      lastConnectionError = 'Network error - check internet connection';
+    } else if (e.message.includes('CORS')) {
+      lastConnectionError = 'CORS error - API Gateway needs CORS headers';
+    } else {
+      lastConnectionError = e.message || 'Connection failed';
+    }
+    console.error('API call failed:', lastConnectionError, url);
+    return null;
+  }
+}
+
+// Test API connection
+export async function testConnection(): Promise<{ success: boolean; message: string; latency?: number }> {
+  const start = Date.now();
+  try {
+    const response = await fetch(`${API_BASE}/contacts`, { method: 'GET' });
+    const latency = Date.now() - start;
+    
+    if (response.ok) {
+      connectionStatus = 'connected';
+      lastConnectionError = null;
+      return { success: true, message: `Connected (${latency}ms)`, latency };
+    }
+    
+    connectionStatus = 'disconnected';
+    lastConnectionError = `HTTP ${response.status}`;
+    return { success: false, message: `API returned ${response.status}: ${response.statusText}` };
+  } catch (e: any) {
+    connectionStatus = 'disconnected';
+    lastConnectionError = e.message;
+    return { success: false, message: `Connection failed: ${e.message}` };
+  }
+}
+
 // ============================================================================
 // CONTACTS API
 // ============================================================================
@@ -33,82 +111,49 @@ export interface Contact {
 }
 
 export async function listContacts(): Promise<Contact[]> {
-  try {
-    const response = await fetch(`${API_BASE}/contacts`);
-    if (response.ok) {
-      const data = await response.json();
-      // Handle both array response and {contacts: []} response
-      const contacts = Array.isArray(data) ? data : (data.contacts || []);
-      return contacts.map(normalizeContact);
-    }
-    console.error('Failed to fetch contacts:', response.status);
-    return [];
-  } catch (e) {
-    console.error('API error fetching contacts:', e);
-    return [];
+  const data = await apiCall<any>(`${API_BASE}/contacts`);
+  if (data) {
+    const contacts = Array.isArray(data) ? data : (data.contacts || []);
+    return contacts.map(normalizeContact);
   }
+  return [];
 }
 
 export async function getContact(contactId: string): Promise<Contact | null> {
-  try {
-    const response = await fetch(`${API_BASE}/contacts/${contactId}`);
-    if (response.ok) {
-      const data = await response.json();
-      return normalizeContact(data.contact || data);
-    }
-    return null;
-  } catch (e) {
-    console.error('API error getting contact:', e);
-    return null;
+  const data = await apiCall<any>(`${API_BASE}/contacts/${contactId}`);
+  if (data) {
+    return normalizeContact(data.contact || data);
   }
+  return null;
 }
 
 export async function createContact(contact: Partial<Contact>): Promise<Contact | null> {
-  try {
-    const response = await fetch(`${API_BASE}/contacts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(contact),
-    });
-    if (response.ok) {
-      const data = await response.json();
-      return normalizeContact(data.contact || data);
-    }
-    return null;
-  } catch (e) {
-    console.error('API error creating contact:', e);
-    return null;
+  const data = await apiCall<any>(`${API_BASE}/contacts`, {
+    method: 'POST',
+    body: JSON.stringify(contact),
+  });
+  if (data) {
+    return normalizeContact(data.contact || data);
   }
+  return null;
 }
 
 export async function updateContact(contactId: string, updates: Partial<Contact>): Promise<Contact | null> {
-  try {
-    const response = await fetch(`${API_BASE}/contacts/${contactId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    });
-    if (response.ok) {
-      const data = await response.json();
-      return normalizeContact(data.contact || data);
-    }
-    return null;
-  } catch (e) {
-    console.error('API error updating contact:', e);
-    return null;
+  const data = await apiCall<any>(`${API_BASE}/contacts/${contactId}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  });
+  if (data) {
+    return normalizeContact(data.contact || data);
   }
+  return null;
 }
 
 export async function deleteContact(contactId: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE}/contacts/${contactId}`, {
-      method: 'DELETE',
-    });
-    return response.ok;
-  } catch (e) {
-    console.error('API error deleting contact:', e);
-    return false;
-  }
+  const data = await apiCall<any>(`${API_BASE}/contacts/${contactId}`, {
+    method: 'DELETE',
+  });
+  return data !== null;
 }
 
 function normalizeContact(item: any): Contact {
@@ -154,25 +199,18 @@ export interface Message {
 }
 
 export async function listMessages(contactId?: string, channel?: string): Promise<Message[]> {
-  try {
-    let url = `${API_BASE}/messages`;
-    const params = new URLSearchParams();
-    if (contactId) params.append('contactId', contactId);
-    if (channel) params.append('channel', channel);
-    if (params.toString()) url += `?${params}`;
-    
-    const response = await fetch(url);
-    if (response.ok) {
-      const data = await response.json();
-      const messages = Array.isArray(data) ? data : (data.messages || []);
-      return messages.map(normalizeMessage);
-    }
-    console.error('Failed to fetch messages:', response.status);
-    return [];
-  } catch (e) {
-    console.error('API error fetching messages:', e);
-    return [];
+  let url = `${API_BASE}/messages`;
+  const params = new URLSearchParams();
+  if (contactId) params.append('contactId', contactId);
+  if (channel) params.append('channel', channel);
+  if (params.toString()) url += `?${params}`;
+  
+  const data = await apiCall<any>(url);
+  if (data) {
+    const messages = Array.isArray(data) ? data : (data.messages || []);
+    return messages.map(normalizeMessage);
   }
+  return [];
 }
 
 export async function getMessage(messageId: string): Promise<Message | null> {
@@ -216,57 +254,24 @@ export interface SendMessageRequest {
 }
 
 export async function sendWhatsAppMessage(request: SendMessageRequest): Promise<{ messageId: string; status: string } | null> {
-  try {
-    const response = await fetch(`${API_BASE}/whatsapp/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    });
-    if (response.ok) {
-      return response.json();
-    }
-    console.error('Failed to send WhatsApp message:', response.status);
-    return null;
-  } catch (e) {
-    console.error('API error sending WhatsApp:', e);
-    return null;
-  }
+  return apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
 }
 
 export async function sendSmsMessage(contactId: string, content: string): Promise<{ messageId: string; status: string } | null> {
-  try {
-    const response = await fetch(`${API_BASE}/sms/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contactId, content }),
-    });
-    if (response.ok) {
-      return response.json();
-    }
-    console.error('Failed to send SMS:', response.status);
-    return null;
-  } catch (e) {
-    console.error('API error sending SMS:', e);
-    return null;
-  }
+  return apiCall<{ messageId: string; status: string }>(`${API_BASE}/sms/send`, {
+    method: 'POST',
+    body: JSON.stringify({ contactId, content }),
+  });
 }
 
 export async function sendEmailMessage(contactId: string, subject: string, content: string, htmlContent?: string): Promise<{ messageId: string; status: string } | null> {
-  try {
-    const response = await fetch(`${API_BASE}/email/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contactId, subject, content, htmlContent }),
-    });
-    if (response.ok) {
-      return response.json();
-    }
-    console.error('Failed to send email:', response.status);
-    return null;
-  } catch (e) {
-    console.error('API error sending email:', e);
-    return null;
-  }
+  return apiCall<{ messageId: string; status: string }>(`${API_BASE}/email/send`, {
+    method: 'POST',
+    body: JSON.stringify({ contactId, subject, content, htmlContent }),
+  });
 }
 
 // ============================================================================
@@ -287,62 +292,35 @@ export interface BulkJob {
 }
 
 export async function listBulkJobs(channel?: string): Promise<BulkJob[]> {
-  try {
-    let url = `${API_BASE}/bulk/jobs`;
-    if (channel) url += `?channel=${channel}`;
-    const response = await fetch(url);
-    if (response.ok) {
-      const data = await response.json();
-      return Array.isArray(data) ? data : (data.jobs || []);
-    }
-    return [];
-  } catch (e) {
-    console.error('API error fetching bulk jobs:', e);
-    return [];
+  let url = `${API_BASE}/bulk/jobs`;
+  if (channel) url += `?channel=${channel}`;
+  const data = await apiCall<any>(url);
+  if (data) {
+    return Array.isArray(data) ? data : (data.jobs || []);
   }
+  return [];
 }
 
 export async function createBulkJob(job: Partial<BulkJob>): Promise<BulkJob | null> {
-  try {
-    const response = await fetch(`${API_BASE}/bulk/jobs`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(job),
-    });
-    if (response.ok) {
-      return response.json();
-    }
-    return null;
-  } catch (e) {
-    console.error('API error creating bulk job:', e);
-    return null;
-  }
+  return apiCall<BulkJob>(`${API_BASE}/bulk/jobs`, {
+    method: 'POST',
+    body: JSON.stringify(job),
+  });
 }
 
 export async function updateBulkJobStatus(jobId: string, status: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE}/bulk/jobs/${jobId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    return response.ok;
-  } catch (e) {
-    console.error('API error updating bulk job:', e);
-    return false;
-  }
+  const data = await apiCall<any>(`${API_BASE}/bulk/jobs/${jobId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+  return data !== null;
 }
 
 export async function deleteBulkJob(jobId: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE}/bulk/jobs/${jobId}`, {
-      method: 'DELETE',
-    });
-    return response.ok;
-  } catch (e) {
-    console.error('API error deleting bulk job:', e);
-    return false;
-  }
+  const data = await apiCall<any>(`${API_BASE}/bulk/jobs/${jobId}`, {
+    method: 'DELETE',
+  });
+  return data !== null;
 }
 
 // ============================================================================
@@ -384,24 +362,18 @@ export async function updateAIConfig(updates: Partial<AIConfig>): Promise<AIConf
 }
 
 export async function testAIResponse(message: string): Promise<{ response: string; sources?: string[] }> {
-  try {
-    const response = await fetch(`${API_BASE}/ai/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messageContent: message }),
-    });
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        response: data.suggestedResponse || data.suggestion || 'No response generated',
-        sources: data.sources || ['Knowledge Base'],
-      };
-    }
-    return { response: 'AI service unavailable', sources: [] };
-  } catch (e) {
-    console.error('AI test error:', e);
-    return { response: 'AI service error', sources: [] };
+  const data = await apiCall<any>(`${API_BASE}/ai/generate`, {
+    method: 'POST',
+    body: JSON.stringify({ messageContent: message }),
+  });
+  
+  if (data) {
+    return {
+      response: data.suggestedResponse || data.suggestion || 'No response generated',
+      sources: data.sources || ['Knowledge Base'],
+    };
   }
+  return { response: 'AI service unavailable', sources: [] };
 }
 
 // ============================================================================

@@ -56,6 +56,13 @@ const BulkMessaging: React.FC<PageProps> = ({ signOut, user }) => {
     setError(null);
     try {
       const data = await api.listBulkJobs(activeChannel.toUpperCase());
+      
+      // Check connection status
+      const connStatus = api.getConnectionStatus();
+      if (connStatus.status === 'disconnected' && connStatus.lastError) {
+        setError(`Connection issue: ${connStatus.lastError}`);
+      }
+      
       const transformedJobs: BulkJob[] = data.map(j => ({
         id: j.id || j.jobId,
         jobId: j.jobId || j.id,

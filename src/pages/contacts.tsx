@@ -43,6 +43,12 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
     try {
       const data = await api.listContacts();
       setContacts(data);
+      
+      // Check connection status
+      const connStatus = api.getConnectionStatus();
+      if (connStatus.status === 'disconnected' && connStatus.lastError) {
+        setError(`Connection issue: ${connStatus.lastError}`);
+      }
     } catch (err) {
       console.error('Failed to load contacts:', err);
       setError('Failed to load contacts. Please try again.');
