@@ -23,11 +23,11 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 # DynamoDB client
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
-CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contacts')
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
 
 # Allowed update fields
-ALLOWED_FIELDS = {'name', 'phone', 'email', 'optInWhatsApp', 'optInSms', 'optInEmail'}
-OPT_IN_FIELDS = {'optInWhatsApp', 'optInSms', 'optInEmail'}
+ALLOWED_FIELDS = {'name', 'phone', 'email', 'optInWhatsApp', 'optInSms', 'optInEmail', 'allowlistWhatsApp', 'allowlistSms', 'allowlistEmail'}
+OPT_IN_FIELDS = {'optInWhatsApp', 'optInSms', 'optInEmail', 'allowlistWhatsApp', 'allowlistSms', 'allowlistEmail'}
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -84,11 +84,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         try:
             response = table.update_item(
-                Key={'contactId': contact_id},
+                Key={'id': contact_id},  # Table uses 'id' as primary key
                 UpdateExpression=update_expr,
                 ExpressionAttributeNames=expr_names,
                 ExpressionAttributeValues=expr_values,
-                ConditionExpression=Attr('contactId').exists() & Attr('deletedAt').not_exists(),
+                ConditionExpression=Attr('id').exists() & Attr('deletedAt').not_exists(),
                 ReturnValues='ALL_NEW'
             )
         except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:

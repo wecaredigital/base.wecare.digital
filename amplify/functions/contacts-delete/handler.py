@@ -23,7 +23,7 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 # DynamoDB client
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
-CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contacts')
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -49,7 +49,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         try:
             response = table.update_item(
-                Key={'contactId': contact_id},
+                Key={'id': contact_id},  # Table uses 'id' as primary key
                 UpdateExpression='SET #deletedAt = :deletedAt, #updatedAt = :updatedAt',
                 ExpressionAttributeNames={
                     '#deletedAt': 'deletedAt',
@@ -59,7 +59,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     ':deletedAt': Decimal(str(deleted_at)),
                     ':updatedAt': Decimal(str(deleted_at))
                 },
-                ConditionExpression=Attr('contactId').exists() & Attr('deletedAt').not_exists(),
+                ConditionExpression=Attr('id').exists() & Attr('deletedAt').not_exists(),
                 ReturnValues='ALL_NEW'
             )
         except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:

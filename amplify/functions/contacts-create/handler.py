@@ -23,7 +23,7 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 # DynamoDB client
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
-CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contacts')
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -65,14 +65,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Requirement 2.1: Create contact with opt-in defaults (all False)
         # Requirement 2.3: Store with required attributes
+        # Note: Table uses 'id' as primary key
         contact = {
-            'contactId': contact_id,
+            'id': contact_id,  # Primary key
+            'contactId': contact_id,  # Keep for backwards compatibility
             'name': body.get('name', '').strip(),
             'phone': phone,
             'email': email,
             'optInWhatsApp': False,
             'optInSms': False,
             'optInEmail': False,
+            'allowlistWhatsApp': False,
+            'allowlistSms': False,
+            'allowlistEmail': False,
             'lastInboundMessageAt': None,
             'createdAt': now,
             'updatedAt': now,
