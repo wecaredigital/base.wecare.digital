@@ -337,9 +337,20 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         }))
         
         # Requirement 5.8: Call SendWhatsAppMessage API
+        # Note: message parameter should be a string, not bytes
+        message_json = json.dumps(message_payload)
+        
+        logger.info(json.dumps({
+            'event': 'calling_send_whatsapp_message_api',
+            'messageId': message_id,
+            'phoneNumberId': phone_number_id,
+            'messageJson': message_json,
+            'requestId': request_id
+        }))
+        
         response = social_messaging.send_whatsapp_message(
             originationPhoneNumberId=phone_number_id,
-            message=json.dumps(message_payload).encode('utf-8'),
+            message=message_json,
             metaApiVersion=META_API_VERSION
         )
         
@@ -600,6 +611,10 @@ def _normalize_phone_number(phone: str) -> str:
     # If 12 digits starting with 0091, remove leading 00
     if len(digits_only) == 12 and digits_only.startswith('0091'):
         digits_only = digits_only[2:]
+    
+    # Validate final format: should be 10-15 digits (E.164 format)
+    if not digits_only.isdigit() or len(digits_only) < 10 or len(digits_only) > 15:
+        logger.warning(f"Phone number after normalization is invalid: {phone} -> {digits_only} (length: {len(digits_only)})")
     
     return digits_only
 
