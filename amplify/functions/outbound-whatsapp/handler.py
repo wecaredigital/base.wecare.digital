@@ -313,7 +313,7 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         
         # Requirements 5.5, 5.6, 5.7: Handle media upload
         if media_file and media_type:
-            s3_key, whatsapp_media_id = _upload_media(media_file, media_type, message_id, request_id)
+            s3_key, whatsapp_media_id = _upload_media(media_file, media_type, message_id, phone_number_id, request_id)
             if not whatsapp_media_id:
                 return _error_response(500, 'Failed to upload media')
         
@@ -409,12 +409,15 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         return _error_response(500, f'Failed to send message: {str(e)}')
 
 
-def _upload_media(media_file: str, media_type: str, message_id: str, request_id: str) -> Tuple[Optional[str], Optional[str]]:
+def _upload_media(media_file: str, media_type: str, message_id: str, phone_number_id: str, request_id: str) -> Tuple[Optional[str], Optional[str]]:
     """
     Upload media to S3 and register with WhatsApp.
     Supports all AWS Social Messaging media types per documentation.
     Requirements 5.5, 5.6, 5.7
     """
+    import subprocess
+    import json as json_module
+    
     try:
         # Generate S3 key with proper extension
         extension = _get_media_extension(media_type)
@@ -474,15 +477,34 @@ def _upload_media(media_file: str, media_type: str, message_id: str, request_id:
             )
         
         # Requirement 5.6: Call PostWhatsAppMessageMedia to get mediaId
-        response = social_messaging.post_whatsapp_message_media(
-            originationPhoneNumberId=PHONE_NUMBER_ID_1,
-            sourceS3File={
-                'bucketName': MEDIA_BUCKET,
-                'key': s3_key
-            }
-        )
-        
-        whatsapp_media_id = response.get('mediaId', '')
+        # Use boto3 with correct parameter format
+        try:
+            response = social_messaging.post_whatsapp_message_media(
+                originationPhoneNumberId=phone_number_id,
+                sourceS3File={
+                    'bucketName': MEDIA_BUCKET,
+                    'key': s3_key
+                }
+            )
+            whatsapp_media_id = response.get('mediaId', '')
+            
+            logger.info(json.dumps({
+                'event': 'media_registered',
+                's3Key': s3_key,
+                'mediaId': whatsapp_media_id,
+                'requestId': request_id
+            }))
+            
+        except Exception as e:
+            logger.error(json.dumps({
+                'event': 'media_registration_failed',
+                'error': str(e),
+                'errorType': type(e).__name__,
+                's3Key': s3_key,
+                'requestId': request_id
+            }))
+            # Media registration failed - cannot send media without mediaId
+            return None, None
         
         logger.info(json.dumps({
             'event': 'media_uploaded',
@@ -561,11 +583,13 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                 'parameters': [{'type': 'text', 'text': p} for p in template_params]
             })
     elif media_id and media_type:
-        # Media message
-        payload['type'] = media_type
-        payload[media_type] = {'id': media_id}
+        # Media message - extract message type from media_type
+        # media_type is like 'image/jpeg', we need just 'image'
+        msg_type = media_type.split('/')[0] if '/' in media_type else media_type
+        payload['type'] = msg_type
+        payload[msg_type] = {'id': media_id}
         if content:
-            payload[media_type]['caption'] = content
+            payload[msg_type]['caption'] = content
     else:
         # Text message
         payload['type'] = 'text'
