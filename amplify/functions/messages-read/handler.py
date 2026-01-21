@@ -26,9 +26,9 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 s3_client = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
-# Actual DynamoDB table names (not Amplify Gen 2 schema tables)
-INBOUND_TABLE = os.environ.get('INBOUND_TABLE', 'base-wecare-digital-WhatsAppInboundTable')
-OUTBOUND_TABLE = os.environ.get('OUTBOUND_TABLE', 'base-wecare-digital-WhatsAppOutboundTable')
+# DynamoDB table names (Amplify Gen 2 schema)
+# All messages (inbound/outbound) are stored in the Message table
+MESSAGE_TABLE = os.environ.get('MESSAGE_TABLE', 'Message')
 MEDIA_BUCKET = os.environ.get('MEDIA_BUCKET', 'auth.wecare.digital')
 
 # Pagination defaults
@@ -119,52 +119,35 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 
 def _scan_messages(filter_parts: List[str], expression_values: Dict, limit: int, direction: str = '') -> List[Dict]:
-    """Scan WhatsApp Inbound/Outbound tables and combine results."""
+    """Scan Message table and return results."""
     all_messages = []
     
     try:
-        # Determine which tables to scan based on direction filter
-        tables_to_scan = []
-        if direction == 'INBOUND':
-            tables_to_scan = [(INBOUND_TABLE, 'inbound')]
-        elif direction == 'OUTBOUND':
-            tables_to_scan = [(OUTBOUND_TABLE, 'outbound')]
-        else:
-            # Scan both tables
-            tables_to_scan = [(INBOUND_TABLE, 'inbound'), (OUTBOUND_TABLE, 'outbound')]
+        table = dynamodb.Table(MESSAGE_TABLE)
+        scan_kwargs = {'Limit': limit}
         
-        for table_name, msg_direction in tables_to_scan:
-            try:
-                table = dynamodb.Table(table_name)
-                scan_kwargs = {'Limit': limit}
-                
-                # Build filter for this table (exclude direction filter since we're scanning specific tables)
-                table_filter_parts = [f for f in filter_parts if 'direction' not in f]
-                table_expression_values = {k: v for k, v in expression_values.items() if k != ':dir'}
-                
-                if table_filter_parts:
-                    scan_kwargs['FilterExpression'] = ' AND '.join(table_filter_parts)
-                    scan_kwargs['ExpressionAttributeValues'] = table_expression_values
-                
-                response = table.scan(**scan_kwargs)
-                items = response.get('Items', [])
-                
-                # Add direction and channel to each message
-                for item in items:
-                    item['direction'] = msg_direction
-                    item['channel'] = 'whatsapp'
-                
-                all_messages.extend(items)
-                logger.info(f"Scanned {len(items)} messages from {table_name}")
-                
-            except Exception as e:
-                logger.error(f"Error scanning {table_name}: {str(e)}")
-                continue
+        # Build filter expression
+        if filter_parts:
+            scan_kwargs['FilterExpression'] = ' AND '.join(filter_parts)
+            scan_kwargs['ExpressionAttributeValues'] = expression_values
         
-        return all_messages
+        response = table.scan(**scan_kwargs)
+        items = response.get('Items', [])
+        
+        logger.info(json.dumps({
+            'event': 'messages_scanned',
+            'count': len(items),
+            'table': MESSAGE_TABLE
+        }))
+        
+        return items
         
     except Exception as e:
-        logger.error(f"Error scanning messages: {str(e)}")
+        logger.error(json.dumps({
+            'event': 'scan_messages_error',
+            'error': str(e),
+            'table': MESSAGE_TABLE
+        }))
         return []
 
 

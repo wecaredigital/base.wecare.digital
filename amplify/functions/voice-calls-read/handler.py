@@ -15,7 +15,7 @@ logger.setLevel(logging.INFO)
 
 # Initialize DynamoDB
 dynamodb = boto3.resource('dynamodb')
-VOICE_CALLS_TABLE = os.environ.get('VOICE_CALLS_TABLE', 'base-wecare-digital-VoiceCalls')
+VOICE_CALLS_TABLE = os.environ.get('VOICE_CALLS_TABLE', 'VoiceCall')
 
 def lambda_handler(event, context):
     """Main handler for reading voice calls"""

@@ -28,8 +28,8 @@ polly = boto3.client('polly')
 s3 = boto3.client('s3')
 
 # Environment variables
-CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
-VOICE_CALLS_TABLE = os.environ.get('VOICE_CALLS_TABLE', 'base-wecare-digital-VoiceCalls')
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contact')
+VOICE_CALLS_TABLE = os.environ.get('VOICE_CALLS_TABLE', 'VoiceCall')
 AUDIO_BUCKET = os.environ.get('AUDIO_BUCKET', 'auth.wecare.digital')
 AUDIO_PREFIX = os.environ.get('AUDIO_PREFIX', 'voice-audio/')
 

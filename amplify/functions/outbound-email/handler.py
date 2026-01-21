@@ -27,9 +27,9 @@ ses = boto3.client('ses', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Environment variables
 SEND_MODE = os.environ.get('SEND_MODE', 'LIVE')
-CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
-MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'Messages')
-RATE_LIMIT_TABLE = os.environ.get('RATE_LIMIT_TABLE', 'RateLimitTrackers')
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contact')
+MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'Message')
+RATE_LIMIT_TABLE = os.environ.get('RATE_LIMIT_TABLE', 'RateLimitTracker')
 SES_SENDER_EMAIL = os.environ.get('SES_SENDER_EMAIL', 'one@wecare.digital')
 SES_SENDER_NAME = os.environ.get('SES_SENDER_NAME', 'WECARE.DIGITAL')
 

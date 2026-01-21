@@ -30,10 +30,10 @@ cloudwatch = boto3.client('cloudwatch', region_name=os.environ.get('AWS_REGION',
 
 # Environment variables
 SEND_MODE = os.environ.get('SEND_MODE', 'LIVE')
-CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
-MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'base-wecare-digital-WhatsAppOutboundTable')
-MEDIA_FILES_TABLE = os.environ.get('MEDIA_FILES_TABLE', 'MediaFiles')
-RATE_LIMIT_TABLE = os.environ.get('RATE_LIMIT_TABLE', 'RateLimitTrackers')
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contact')
+MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'Message')
+MEDIA_FILES_TABLE = os.environ.get('MEDIA_FILES_TABLE', 'MediaFile')
+RATE_LIMIT_TABLE = os.environ.get('RATE_LIMIT_TABLE', 'RateLimitTracker')
 MEDIA_BUCKET = os.environ.get('MEDIA_BUCKET', 'auth.wecare.digital')
 MEDIA_PREFIX = os.environ.get('MEDIA_OUTBOUND_PREFIX', 'whatsapp-media/whatsapp-media-outgoing/')
 

@@ -12,8 +12,7 @@ from botocore.exceptions import ClientError
 dynamodb = boto3.resource('dynamodb')
 
 # Table names from environment
-INBOUND_TABLE = os.environ.get('WHATSAPP_INBOUND_TABLE', 'base-wecare-digital-WhatsAppInboundTable')
-OUTBOUND_TABLE = os.environ.get('WHATSAPP_OUTBOUND_TABLE', 'base-wecare-digital-WhatsAppOutboundTable')
+MESSAGE_TABLE = os.environ.get('MESSAGE_TABLE', 'Message')
 
 def handler(event, context):
     """Delete a message by ID"""
@@ -43,18 +42,13 @@ def handler(event, context):
                 'body': json.dumps({'error': 'messageId is required'})
             }
         
-        # Get direction from query params (to know which table)
-        query_params = event.get('queryStringParameters', {}) or {}
-        direction = query_params.get('direction', 'INBOUND').upper()
-        
-        # Select table based on direction
-        table_name = OUTBOUND_TABLE if direction == 'OUTBOUND' else INBOUND_TABLE
-        table = dynamodb.Table(table_name)
+        # Use Message table (unified for inbound/outbound)
+        table = dynamodb.Table(MESSAGE_TABLE)
         
         # Delete the message
-        table.delete_item(Key={'id': message_id})
+        table.delete_item(Key={'messageId': message_id})
         
-        print(f"Deleted message {message_id} from {table_name}")
+        print(f"Deleted message {message_id} from {MESSAGE_TABLE}")
         
         return {
             'statusCode': 200,

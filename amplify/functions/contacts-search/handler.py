@@ -22,7 +22,7 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 # DynamoDB client
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
-CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contact')
 
 # Pagination defaults
 DEFAULT_LIMIT = 20
