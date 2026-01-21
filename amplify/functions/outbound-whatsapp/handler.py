@@ -35,7 +35,7 @@ MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'Message')
 MEDIA_FILES_TABLE = os.environ.get('MEDIA_FILES_TABLE', 'MediaFile')
 RATE_LIMIT_TABLE = os.environ.get('RATE_LIMIT_TABLE', 'RateLimitTracker')
 MEDIA_BUCKET = os.environ.get('MEDIA_BUCKET', 'auth.wecare.digital')
-MEDIA_PREFIX = os.environ.get('MEDIA_OUTBOUND_PREFIX', 'whatsapp-media/whatsapp-media-outgoing/')
+MEDIA_PREFIX = os.environ.get('MEDIA_OUTBOUND_PREFIX', 'media/')
 
 # WhatsApp Phone Number IDs (Allowlist) - Requirement 3.2
 PHONE_NUMBER_ID_1 = os.environ.get('WHATSAPP_PHONE_NUMBER_ID_1', 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54')
@@ -461,12 +461,27 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
         # Generate S3 key with proper extension
         extension = _get_media_extension(media_type)
         
-        # Use provided filename or generate one
-        if filename:
-            # Preserve original filename
-            s3_key = f"{MEDIA_PREFIX}{filename}"
+        # Determine filename to use
+        # Priority: provided filename > generate from message_id
+        sanitized_filename = None
+        if filename and filename.strip() and filename not in ['undefined', 'null', 'File']:
+            # Use provided filename - sanitize it
+            sanitized_filename = _sanitize_filename(filename)
+            s3_key = f"{MEDIA_PREFIX}{sanitized_filename}"
         else:
-            s3_key = f"{MEDIA_PREFIX}{message_id}{extension}"
+            # Generate filename from message_id with proper extension
+            sanitized_filename = f"{message_id}{extension}"
+            s3_key = f"{MEDIA_PREFIX}{sanitized_filename}"
+        
+        logger.info(json.dumps({
+            'event': 'media_upload_start',
+            'messageId': message_id,
+            'mediaType': media_type,
+            'providedFilename': filename,
+            'sanitizedFilename': sanitized_filename,
+            's3Key': s3_key,
+            'requestId': request_id
+        }))
         
         # If media_file is already an S3 key, use it directly
         if media_file.startswith('s3://') or media_file.startswith(MEDIA_PREFIX):
@@ -485,7 +500,7 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
                         'error': error_msg,
                         'requestId': request_id
                     }))
-                    return None, None
+                    return None, None, None
             except Exception as e:
                 logger.warning(f"Could not validate S3 file size: {str(e)}")
         else:
@@ -497,9 +512,10 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
                 logger.error(json.dumps({
                     'event': 'media_decode_error',
                     'error': str(e),
+                    'mediaType': media_type,
                     'requestId': request_id
                 }))
-                return None, None
+                return None, None, None
             
             # Validate file size
             file_size = len(file_content)
@@ -511,7 +527,7 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
                     'error': error_msg,
                     'requestId': request_id
                 }))
-                return None, None
+                return None, None, None
             
             # Upload to S3
             s3.put_object(
@@ -525,6 +541,7 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
             'event': 'media_uploaded_to_s3',
             's3Key': s3_key,
             'mediaType': media_type,
+            'filename': sanitized_filename,
             'requestId': request_id
         }))
         
@@ -547,13 +564,14 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
                     'response': response,
                     'requestId': request_id
                 }))
-                return None, None
+                return None, None, None
             
             logger.info(json.dumps({
                 'event': 'media_registered_with_whatsapp',
                 's3Key': s3_key,
                 'mediaId': whatsapp_media_id,
                 'mediaType': media_type,
+                'filename': sanitized_filename,
                 'phoneNumberId': phone_number_id,
                 'requestId': request_id
             }))
@@ -568,18 +586,18 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
                 'requestId': request_id
             }))
             # Media registration failed - cannot send media without mediaId
-            return None, None
+            return None, None, None
         
         logger.info(json.dumps({
             'event': 'media_upload_complete',
             's3Key': s3_key,
             'mediaId': whatsapp_media_id,
             'mediaType': media_type,
-            'filename': filename or 'auto-generated',
+            'filename': sanitized_filename,
             'requestId': request_id
         }))
         
-        return s3_key, whatsapp_media_id, filename or f"{message_id}{extension}"
+        return s3_key, whatsapp_media_id, sanitized_filename
         
     except Exception as e:
         logger.error(json.dumps({
@@ -608,7 +626,11 @@ def _sanitize_filename(filename: str, max_length: int = 240) -> str:
     Returns:
         Sanitized filename
     """
-    if not filename:
+    if not filename or not isinstance(filename, str):
+        return 'document'
+    
+    # Handle placeholder values
+    if filename.strip() in ['undefined', 'null', 'File', 'Blob', '']:
         return 'document'
     
     # Remove path separators if present
@@ -621,6 +643,9 @@ def _sanitize_filename(filename: str, max_length: int = 240) -> str:
     
     # Replace multiple spaces with single space
     sanitized = re.sub(r'\s+', ' ', sanitized)
+    
+    # Strip leading/trailing spaces
+    sanitized = sanitized.strip()
     
     # If filename is too long, truncate while preserving extension
     if len(sanitized) > max_length:

@@ -1,6 +1,6 @@
 /**
- * Bulk Voice - Airtel IQ
- * Bulk voice campaigns via Airtel IQ Voice API
+ * Bulk Voice Hub - Voice Provider Selection
+ * Choose between Airtel IQ Voice and AWS Voice for bulk campaigns
  */
 
 import React from 'react';
@@ -12,54 +12,78 @@ interface PageProps {
   user?: any;
 }
 
-const BulkVoice: React.FC<PageProps> = ({ signOut, user }) => {
+const VOICE_PROVIDERS = [
+  {
+    id: 'airtel',
+    name: 'Airtel IQ Voice',
+    icon: '📞',
+    description: 'Bulk voice campaigns via Airtel IQ',
+    href: '/bulk/voice/airtel',
+    status: 'coming',
+    features: ['Voice Broadcast', 'IVR Campaigns', 'Call Recording', 'India Coverage'],
+  },
+  {
+    id: 'aws',
+    name: 'AWS Voice',
+    icon: '☎️',
+    description: 'Bulk voice via Amazon Pinpoint',
+    href: '/bulk/voice/aws',
+    status: 'coming',
+    features: ['Pinpoint Campaigns', 'Text-to-Speech', 'Global Coverage', 'Event Tracking'],
+  },
+];
+
+const BulkVoiceHub: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
         <div className="page-header">
           <Link href="/bulk" className="back-link">← Bulk Hub</Link>
-          <h1 className="page-title">Bulk Voice - Airtel IQ</h1>
-          <p className="page-subtitle">Voice broadcast campaigns</p>
+          <h1 className="page-title">Bulk Voice</h1>
+          <p className="page-subtitle">Select voice provider for bulk campaigns</p>
         </div>
 
-        <div className="coming-soon">
-          <div className="coming-icon">📞</div>
-          <h2>Coming Soon</h2>
-          <p>Bulk voice campaigns via Airtel IQ Voice API</p>
-          <div className="features">
-            <h3>Planned Features</h3>
-            <ul>
-              <li>✓ Voice broadcast campaigns</li>
-              <li>✓ IVR integration</li>
-              <li>✓ Call recording</li>
-              <li>✓ Analytics & reporting</li>
-            </ul>
-          </div>
-          <div className="docs-link">
-            <a href="https://www.airtel.in/business/b2b/airtel-iq/api-docs/voice/callflow-component-apis" target="_blank" rel="noopener noreferrer">
-              View Airtel IQ Voice API Docs →
-            </a>
-          </div>
+        <div className="providers-grid">
+          {VOICE_PROVIDERS.map((provider) => (
+            <Link key={provider.id} href={provider.href} className="provider-card">
+              <div className="provider-icon">{provider.icon}</div>
+              <div className="provider-info">
+                <h3 className="provider-name">
+                  {provider.name}
+                  {provider.status === 'coming' && <span className="badge-coming">Coming Soon</span>}
+                </h3>
+                <p className="provider-desc">{provider.description}</p>
+                <div className="provider-features">
+                  {provider.features.map((f, i) => (
+                    <span key={i} className="feature-tag">{f}</span>
+                  ))}
+                </div>
+              </div>
+              <span className="provider-arrow">→</span>
+            </Link>
+          ))}
         </div>
-
-        <style jsx>{`
-          .page-header { margin-bottom: 24px; }
-          .back-link { color: #666; text-decoration: none; font-size: 14px; }
-          .page-title { font-size: 24px; font-weight: 500; margin: 8px 0 4px 0; }
-          .page-subtitle { color: #666; margin: 0; }
-          .coming-soon { text-align: center; padding: 60px 20px; max-width: 500px; margin: 0 auto; }
-          .coming-icon { font-size: 64px; margin-bottom: 16px; }
-          .coming-soon h2 { font-size: 24px; margin: 0 0 8px 0; }
-          .coming-soon > p { color: #666; margin: 0 0 32px 0; }
-          .features { background: #f9f9f9; border-radius: 12px; padding: 20px; text-align: left; margin-bottom: 24px; }
-          .features h3 { font-size: 14px; margin: 0 0 12px 0; }
-          .features ul { list-style: none; padding: 0; margin: 0; }
-          .features li { padding: 6px 0; font-size: 14px; }
-          .docs-link a { color: #0066b3; text-decoration: none; }
-        `}</style>
       </div>
+
+      <style jsx>{`
+        .page-header { margin-bottom: 24px; }
+        .back-link { color: #666; text-decoration: none; font-size: 14px; }
+        .page-title { font-size: 24px; font-weight: 500; margin: 8px 0 4px 0; }
+        .page-subtitle { color: #666; margin: 0; }
+        .providers-grid { display: grid; gap: 16px; max-width: 600px; }
+        .provider-card { display: flex; align-items: flex-start; gap: 16px; padding: 20px 24px; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; text-decoration: none; color: inherit; transition: all 0.2s; }
+        .provider-card:hover { border-color: #1a1a1a; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .provider-icon { font-size: 36px; }
+        .provider-info { flex: 1; }
+        .provider-name { font-size: 18px; font-weight: 500; margin: 0 0 4px 0; display: flex; align-items: center; gap: 8px; }
+        .provider-desc { font-size: 14px; color: #666; margin: 0 0 12px 0; }
+        .provider-features { display: flex; flex-wrap: wrap; gap: 6px; }
+        .feature-tag { font-size: 11px; background: #f5f5f5; padding: 3px 8px; border-radius: 4px; color: #666; }
+        .provider-arrow { font-size: 24px; color: #ccc; align-self: center; }
+        .badge-coming { font-size: 10px; background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; }
+      `}</style>
     </Layout>
   );
 };
 
-export default BulkVoice;
+export default BulkVoiceHub;

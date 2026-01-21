@@ -268,6 +268,7 @@ export interface SendMessageRequest {
   templateParams?: string[];
   mediaFile?: string;
   mediaType?: string;
+  mediaFileName?: string; // Real filename for documents
 }
 
 // Send WhatsApp reaction via Lambda

@@ -1,80 +1,40 @@
-# WECARE.DIGITAL - Admin Platform
+# WECARE.DIGITAL
 
-**Status:** ✅ Production Ready  
-**Last Updated:** January 21, 2026
+Admin platform for WhatsApp, SMS, Email, and Voice messaging.
 
----
+**Status:** ✅ Production Ready | **Region:** us-east-1 | **Account:** 809904170947
 
-## 🚀 Quick Start
+## Quick Start
 
-### Deploy
 ```bash
-npm install -g aws-cdk
-cdk bootstrap aws://809904170947/us-east-1
+npm install
 npx ampx sandbox --once
 ```
 
-### Verify
-```bash
-aws lambda list-functions --query 'Functions[?contains(FunctionName, `wecare`)].FunctionName'
-aws dynamodb list-tables
-curl https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod/contacts
-```
+## Architecture
 
----
+- **Frontend:** Next.js + React
+- **Backend:** 17 Lambda functions (Python 3.12)
+- **Database:** DynamoDB (13 tables)
+- **API:** API Gateway + AppSync
+- **Auth:** Cognito
+- **Storage:** S3
 
-## 📋 Features
+## Features
 
 - WhatsApp messaging (send/receive)
 - Contact management
-- Message history with media
-- SMS & Email support
-- Voice calls
+- SMS, Email, Voice support
 - Bulk messaging
 - AI-powered responses
+- Message history with media
 
----
+## Deployment
 
-## 🏗️ Architecture
+All infrastructure is deployed. API endpoint: `https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com`
 
-- **Frontend:** Next.js + React
-- **Backend:** 17 Lambda functions
-- **Database:** DynamoDB (13 tables)
-- **API:** API Gateway
-- **Storage:** S3
-- **Auth:** Cognito
+## Logs
 
----
-
-## 📊 Key Metrics
-
-- 17 Lambda functions
-- 13 DynamoDB tables
-- 20+ API routes
-- 1 test script
-- 2 API reference docs
-
----
-
-## 🔐 Security
-
-- Cognito authentication
-- IAM role-based access
-- HTTPS/TLS encryption
-- DynamoDB encryption
-- S3 bucket security
-
----
-
-## 📞 Support
-
-Check CloudWatch logs:
 ```bash
-aws logs tail /aws/lambda/wecare-messages-read --follow
+aws logs tail /aws/lambda/wecare-contacts-read --follow
 ```
-
----
-
-**AWS Account:** 809904170947  
-**Region:** us-east-1  
-**Status:** ✅ Ready for Deployment

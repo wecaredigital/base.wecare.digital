@@ -48,6 +48,12 @@ const schema = a.schema({
       errorDetails: a.string(),
       whatsappMessageId: a.string(),
       mediaId: a.string(),
+      s3Key: a.string(), // S3 storage location for media files
+      mediaUrl: a.string(), // Pre-signed URL for media access
+      senderPhone: a.string(), // Sender's phone number (inbound)
+      senderName: a.string(), // Sender's WhatsApp profile name (inbound)
+      receivingPhone: a.string(), // Receiving phone number (outbound)
+      awsPhoneNumberId: a.string(), // WABA phone number ID
       expiresAt: a.integer(), // TTL: Unix epoch seconds (30 days)
     })
     .identifier(['messageId'])

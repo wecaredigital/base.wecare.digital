@@ -182,9 +182,11 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
 
     try {
       let mediaBase64 = undefined;
+      let mediaFileName = undefined;
       
       // Convert media file to base64 if present
       if (mediaFile) {
+        mediaFileName = mediaFile.name; // Capture real filename
         mediaBase64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
@@ -204,6 +206,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
         phoneNumberId: selectedWaba,
         mediaFile: mediaBase64,
         mediaType: mediaFile?.type,
+        mediaFileName: mediaFileName, // Pass real filename
       });
 
       if (result) {
@@ -253,6 +256,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
       reader.onload = (e) => setMediaPreview(e.target?.result as string);
       reader.readAsDataURL(file);
     } else {
+      // For documents, show filename
       setMediaPreview(file.name);
     }
   };
@@ -533,6 +537,16 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                             <span className="message-status">
                               {msg.status === 'read' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : '✓'}
                             </span>
+                          )}
+                          {msg.mediaUrl && (
+                            <a 
+                              href={msg.mediaUrl} 
+                              download 
+                              className="media-download-btn"
+                              title="Download media"
+                            >
+                              ⬇️
+                            </a>
                           )}
                         </div>
                         {msg.direction === 'inbound' && msg.whatsappMessageId && (

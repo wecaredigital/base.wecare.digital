@@ -152,7 +152,7 @@ def _scan_messages(filter_parts: List[str], expression_values: Dict, limit: int,
 
 
 def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
-    """Convert DynamoDB types to Python types."""
+    """Convert DynamoDB types to Python types and generate pre-signed URLs for media."""
     result = {}
     for key, value in item.items():
         if isinstance(value, Decimal):
@@ -174,90 +174,46 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
     if result.get('direction') == 'INBOUND' and 'senderName' not in result:
         result['senderName'] = result.get('senderPhone', 'Unknown')
     
-    # Generate pre-signed URL for media files
-    if result.get('s3Key'):
+    # Generate pre-signed URL for media files if s3Key exists
+    if result.get('s3Key') and result.get('mediaId'):
         try:
             s3_key = result['s3Key']
+            media_id = result.get('mediaId')
             
             logger.info(json.dumps({
-                'event': 'attempting_presigned_url',
+                'event': 'generating_presigned_url',
                 's3Key': s3_key,
+                'mediaId': media_id,
                 'bucket': MEDIA_BUCKET,
                 'messageId': result.get('messageId')
             }))
             
-            # First try the exact key
-            try:
-                presigned_url = s3_client.generate_presigned_url(
-                    'get_object',
-                    Params={'Bucket': MEDIA_BUCKET, 'Key': s3_key},
-                    ExpiresIn=PRESIGNED_URL_EXPIRY
-                )
-                result['mediaUrl'] = presigned_url
-                logger.info(json.dumps({
-                    'event': 'presigned_url_generated',
-                    's3Key': s3_key,
-                    'hasUrl': True,
-                    'urlLength': len(presigned_url)
-                }))
-            except Exception as e:
-                logger.warning(json.dumps({
-                    'event': 'exact_key_failed',
-                    's3Key': s3_key,
-                    'error': str(e)
-                }))
-                
-                # If exact key fails, try to find by prefix (AWS EUM may append metadata)
-                prefix = s3_key.rsplit('.', 1)[0] if '.' in s3_key else s3_key
-                
-                logger.info(json.dumps({
-                    'event': 'trying_prefix_match',
-                    'prefix': prefix,
-                    'originalKey': s3_key
-                }))
-                
-                response = s3_client.list_objects_v2(
-                    Bucket=MEDIA_BUCKET,
-                    Prefix=prefix,
-                    MaxKeys=1
-                )
-                
-                if response.get('Contents'):
-                    actual_key = response['Contents'][0]['Key']
-                    presigned_url = s3_client.generate_presigned_url(
-                        'get_object',
-                        Params={'Bucket': MEDIA_BUCKET, 'Key': actual_key},
-                        ExpiresIn=PRESIGNED_URL_EXPIRY
-                    )
-                    result['mediaUrl'] = presigned_url
-                    result['s3Key'] = actual_key  # Update to actual key
-                    logger.info(json.dumps({
-                        'event': 'presigned_url_generated_prefix',
-                        'prefix': prefix,
-                        'actualKey': actual_key,
-                        'hasUrl': True,
-                        'urlLength': len(presigned_url)
-                    }))
-                else:
-                    logger.warning(json.dumps({
-                        'event': 'no_s3_object_found',
-                        'prefix': prefix,
-                        'bucket': MEDIA_BUCKET
-                    }))
-                    result['mediaUrl'] = None
+            # Generate pre-signed URL for the S3 key
+            presigned_url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': MEDIA_BUCKET, 'Key': s3_key},
+                ExpiresIn=PRESIGNED_URL_EXPIRY
+            )
+            result['mediaUrl'] = presigned_url
+            
+            logger.info(json.dumps({
+                'event': 'presigned_url_generated',
+                's3Key': s3_key,
+                'mediaId': media_id,
+                'messageId': result.get('messageId'),
+                'urlLength': len(presigned_url)
+            }))
+            
         except Exception as e:
             logger.error(json.dumps({
                 'event': 'presigned_url_generation_failed',
                 's3Key': result.get('s3Key'),
+                'mediaId': result.get('mediaId'),
+                'messageId': result.get('messageId'),
                 'error': str(e),
                 'errorType': type(e).__name__
             }))
+            # Don't set mediaUrl if generation fails - frontend will handle missing URL
             result['mediaUrl'] = None
-    else:
-        logger.debug(json.dumps({
-            'event': 'no_s3_key_in_message',
-            'messageId': result.get('messageId'),
-            'hasMediaId': 'mediaId' in result
-        }))
     
     return result
