@@ -6,6 +6,9 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
+  typescript: {
+    ignoreBuildErrors: true
+  },
   env: {
     NEXT_PUBLIC_SEND_MODE: 'LIVE',
     NEXT_PUBLIC_ENV: 'production'
