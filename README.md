@@ -76,21 +76,21 @@ npm run amplify:deploy  # Deploy to AWS
 ```
 s3://stream.wecare.digital/
 ├── whatsapp-media/
-│   ├── whatsapp-media-incoming/      # Inbound WhatsApp media
-│   └── whatsapp-media-outgoing/      # Outbound WhatsApp media
+│   ├── whatsapp-media-incoming/
+│   └── whatsapp-media-outgoing/
 └── base-wecare-digital/
-    ├── Build/                        # Build artifacts
-    ├── packages/                     # Package files
-    ├── reports/                      # Bulk job reports
-    ├── bedrock/                      # Bedrock KB documents
-    ├── deployment/                   # Deployment artifacts
-    ├── logs/                         # Application logs
-    ├── backups/                      # Backup files
-    ├── media/                        # General media
-    ├── cache/                        # Cache files
-    ├── monitoring/                   # Monitoring data
-    ├── config/                       # Configuration files
-    └── metadata/                     # Metadata & index
+    ├── Build/          (builds)
+    ├── packages/       (packages)
+    ├── reports/        (reports)
+    ├── bedrock/        (AI resources)
+    ├── deployment/     (deployment)
+    ├── logs/           (logs)
+    ├── backups/        (backups)
+    ├── media/          (media)
+    ├── cache/          (cache)
+    ├── monitoring/     (monitoring)
+    ├── config/         (config)
+    └── metadata/       (metadata)
 ```
 
 For detailed S3 setup and cleanup instructions, see [docs/S3_SETUP_AND_CLEANUP.md](docs/S3_SETUP_AND_CLEANUP.md).

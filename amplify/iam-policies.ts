@@ -85,10 +85,12 @@ export const IAM_POLICIES = {
         Action: [
           's3:GetObject',
           's3:PutObject',
+          's3:DeleteObject',
         ],
         Resource: [
           'arn:aws:s3:::stream.wecare.digital/whatsapp-media/whatsapp-media-incoming/*',
           'arn:aws:s3:::stream.wecare.digital/whatsapp-media/whatsapp-media-outgoing/*',
+          'arn:aws:s3:::stream.wecare.digital/base-wecare-digital/reports/*',
         ],
       },
     ],

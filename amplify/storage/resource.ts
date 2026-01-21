@@ -5,17 +5,10 @@ import { defineStorage } from '@aws-amplify/backend';
  * 
  * Single bucket: stream.wecare.digital
  * 
- * Structure:
- * - whatsapp-media/whatsapp-media-incoming/*: Inbound WhatsApp media
- * - whatsapp-media/whatsapp-media-outgoing/*: Outbound WhatsApp media
- * - base-wecare-digital/: All other project resources
- *   - Build/: Build artifacts
- *   - packages/: Package files
- *   - reports/: Bulk job reports
- *   - bedrock/kb/whatsapp/: Bedrock KB documents
- *   - deployment/: Deployment artifacts
- *   - logs/: Application logs
- *   - backups/: Backup files
+ * Structure (based on actual code usage):
+ * - whatsapp-media/whatsapp-media-incoming/: Inbound WhatsApp media
+ * - whatsapp-media/whatsapp-media-outgoing/: Outbound WhatsApp media
+ * - base-wecare-digital/reports/: Bulk job reports
  */
 export const storage = defineStorage({
   name: 'wecare-media',
@@ -28,8 +21,8 @@ export const storage = defineStorage({
     'whatsapp-media/whatsapp-media-outgoing/*': [
       allow.authenticated.to(['read', 'write']),
     ],
-    // All other project resources under base-wecare-digital
-    'base-wecare-digital/*': [
+    // Bulk job reports
+    'base-wecare-digital/reports/*': [
       allow.authenticated.to(['read', 'write']),
     ],
   }),

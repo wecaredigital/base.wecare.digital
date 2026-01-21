@@ -46,76 +46,22 @@ Consolidate all S3 storage to use **ONLY** `s3://stream.wecare.digital` with:
 
 ```
 s3://stream.wecare.digital/
-│
-├── whatsapp-media/                          [KEEP - Original WhatsApp paths]
-│   ├── whatsapp-media-incoming/             [Inbound WhatsApp messages]
-│   └── whatsapp-media-outgoing/             [Outbound WhatsApp messages]
-│
-└── base-wecare-digital/                     [ALL OTHER PROJECT RESOURCES]
-    ├── Build/                               [BUILD ARTIFACTS]
-    │   ├── next/                            [Next.js build output]
-    │   ├── amplify/                         [Amplify build output]
-    │   ├── lambda/                          [Lambda function builds]
-    │   ├── docker/                          [Docker builds]
-    │   └── logs/                            [Build logs]
-    │
-    ├── packages/                            [PACKAGE FILES]
-    │   ├── npm/                             [NPM packages]
-    │   ├── python/                          [Python packages]
-    │   ├── docker/                          [Docker packages]
-    │   └── archives/                        [Archived packages]
-    │
-    ├── reports/                             [BULK JOB REPORTS]
-    │   ├── [jobId]/
-    │   ├── [date]/
-    │   └── archives/
-    │
-    ├── bedrock/                             [BEDROCK AI RESOURCES]
-    │   └── kb/whatsapp/
-    │       ├── documents/
-    │       ├── training/
-    │       └── metadata/
-    │
-    ├── deployment/                          [DEPLOYMENT ARTIFACTS]
-    │   ├── cloudformation/
-    │   ├── terraform/
-    │   ├── cdk/
-    │   └── releases/
-    │
-    ├── logs/                                [APPLICATION LOGS]
-    │   ├── lambda/
-    │   ├── api/
-    │   └── deployment/
-    │
-    ├── backups/                             [BACKUP FILES]
-    │   ├── database/
-    │   ├── configuration/
-    │   └── archives/
-    │
-    ├── media/                               [GENERAL MEDIA]
-    │   ├── images/
-    │   ├── documents/
-    │   └── archives/
-    │
-    ├── cache/                               [CACHE FILES]
-    │   ├── compiled/
-    │   └── temporary/
-    │
-    ├── monitoring/                          [MONITORING DATA]
-    │   ├── metrics/
-    │   ├── alerts/
-    │   └── dashboards/
-    │
-    ├── config/                              [CONFIGURATION FILES]
-    │   ├── environment/
-    │   ├── secrets/
-    │   └── templates/
-    │
-    └── metadata/                            [METADATA & INDEX]
-        ├── index.json
-        ├── manifest.json
-        ├── version.txt
-        └── structure.md
+├── whatsapp-media/
+│   ├── whatsapp-media-incoming/
+│   └── whatsapp-media-outgoing/
+└── base-wecare-digital/
+    ├── Build/          (builds)
+    ├── packages/       (packages)
+    ├── reports/        (reports)
+    ├── bedrock/        (AI resources)
+    ├── deployment/     (deployment)
+    ├── logs/           (logs)
+    ├── backups/        (backups)
+    ├── media/          (media)
+    ├── cache/          (cache)
+    ├── monitoring/     (monitoring)
+    ├── config/         (config)
+    └── metadata/       (metadata)
 ```
 
 ---
@@ -189,23 +135,14 @@ aws s3 ls s3://stream.wecare.digital/ --recursive
 
 ### base-wecare-digital/Build/
 - **Purpose**: Store all build artifacts
-- **Contents**:
-  - Next.js builds (.next, public, out)
-  - Amplify build outputs
-  - Lambda function builds
-  - Docker builds
-  - Build logs
+- **Contents**: Next.js builds, Amplify builds, Lambda builds, Docker builds, build logs
 - **Retention**: 7 days (auto-cleanup)
 - **Access**: CI/CD pipeline, deployment scripts
 - **Size Limit**: Monitor for growth
 
 ### base-wecare-digital/packages/
 - **Purpose**: Store all package files
-- **Contents**:
-  - NPM packages and dependencies
-  - Python packages and requirements
-  - Docker images and layers
-  - Archived packages
+- **Contents**: NPM packages, Python packages, Docker packages, archived packages
 - **Retention**: Keep latest 3 versions
 - **Access**: CI/CD pipeline, deployment scripts
 - **Size Limit**: Monitor for growth

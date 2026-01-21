@@ -72,13 +72,13 @@ export const EMAIL_CONFIG = {
 };
 
 // S3 Buckets - Consolidated to single bucket
+// Based on actual code usage analysis
 export const S3_CONFIG = {
   MEDIA_BUCKET: 'stream.wecare.digital',
   MEDIA_INBOUND_PREFIX: 'whatsapp-media/whatsapp-media-incoming/',
   MEDIA_OUTBOUND_PREFIX: 'whatsapp-media/whatsapp-media-outgoing/',
   REPORT_BUCKET: 'stream.wecare.digital',
   REPORT_PREFIX: 'base-wecare-digital/reports/',
-  DEPLOYMENT_PREFIX: 'base-wecare-digital/deployment/',
 };
 
 // SNS
