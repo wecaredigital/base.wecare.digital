@@ -157,13 +157,12 @@ httpApi.addRoutes({
 });
 
 // Bulk Job API routes
-const bulkJobCreateIntegration = new HttpLambdaIntegration('BulkJobCreateIntegration', backend.bulkJobCreate.resources.lambda);
 const bulkJobControlIntegration = new HttpLambdaIntegration('BulkJobControlIntegration', backend.bulkJobControl.resources.lambda);
 
 httpApi.addRoutes({
   path: '/bulk/jobs',
   methods: [HttpMethod.GET, HttpMethod.POST],
-  integration: bulkJobCreateIntegration,
+  integration: bulkJobControlIntegration,
 });
 
 httpApi.addRoutes({
