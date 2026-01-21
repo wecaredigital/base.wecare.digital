@@ -9,7 +9,6 @@ import { Topic } from 'aws-cdk-lib/aws-sns';
 import { LambdaSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 
 // Import Lambda functions
-import { authMiddleware } from './functions/auth-middleware/resource';
 import { contactsCreate } from './functions/contacts-create/resource';
 import { contactsRead } from './functions/contacts-read/resource';
 import { contactsUpdate } from './functions/contacts-update/resource';
@@ -20,8 +19,6 @@ import { inboundWhatsappHandler } from './functions/inbound-whatsapp-handler/res
 import { outboundWhatsapp } from './functions/outbound-whatsapp/resource';
 import { outboundSms } from './functions/outbound-sms/resource';
 import { outboundEmail } from './functions/outbound-email/resource';
-import { bulkJobCreate } from './functions/bulk-job-create/resource';
-import { bulkWorker } from './functions/bulk-worker/resource';
 import { bulkJobControl } from './functions/bulk-job-control/resource';
 import { dlqReplay } from './functions/dlq-replay/resource';
 import { aiQueryKb } from './functions/ai-query-kb/resource';
@@ -47,7 +44,6 @@ const backend = defineBackend({
   data,
   storage,
   // Lambda Functions
-  authMiddleware,
   contactsCreate,
   contactsRead,
   contactsUpdate,
@@ -58,8 +54,6 @@ const backend = defineBackend({
   outboundWhatsapp,
   outboundSms,
   outboundEmail,
-  bulkJobCreate,
-  bulkWorker,
   bulkJobControl,
   dlqReplay,
   aiQueryKb,
