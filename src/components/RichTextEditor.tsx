@@ -5,8 +5,8 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import styles from './RichTextEditor.module.css';
-import * as api from '../lib/api';
+import styles from '../styles/RichTextEditor.module.css';
+import * as api from '../api/client';
 
 interface RichTextEditorProps {
   value: string;

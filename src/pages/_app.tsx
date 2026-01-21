@@ -11,8 +11,8 @@ import Head from 'next/head';
 import { Amplify } from 'aws-amplify';
 import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
-import './Pages.css';
-import '../components/Layout.css';
+import '../styles/Pages.css';
+import '../styles/Layout.css';
 
 // Import Amplify outputs if available
 let amplifyConfig: any = null;

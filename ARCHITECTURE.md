@@ -1,102 +1,164 @@
-# Architecture
+# WECARE.DIGITAL Architecture
 
-## Overview
+## System Overview
 
-WECARE.DIGITAL is a multi-channel messaging platform built on AWS with Next.js frontend and serverless backend.
+WECARE.DIGITAL is a multi-channel messaging platform built on AWS with a Next.js frontend. It enables sending and receiving messages across WhatsApp, SMS, Email, Voice, and RCS channels.
 
-## Components
+## Technology Stack
 
-### Frontend (Next.js + React)
-- 34 pages across 10 modules
-- Real-time messaging dashboard
-- Contact management
-- Bulk messaging interface
-- Admin panel
+### Frontend
+- **Framework**: Next.js 14
+- **UI Library**: React 18 + TypeScript
+- **Styling**: CSS Modules
+- **State Management**: React hooks + Amplify Data API
+- **Authentication**: AWS Cognito (OAuth)
 
-### Backend (Serverless)
-
-#### Lambda Functions (17 total, Python 3.12)
-
-**Contact Management (5)**
-- contacts-create, contacts-read, contacts-update, contacts-delete, contacts-search
-
-**Messaging - Outbound (4)**
-- outbound-whatsapp, outbound-sms, outbound-email, outbound-voice
-
-**Messaging - Inbound & Read (2)**
-- inbound-whatsapp-handler, messages-read
-
-**Message Operations (1)**
-- messages-delete
-
-**Bulk Operations (1)**
-- bulk-job-control
-
-**AI Automation (2)**
-- ai-query-kb, ai-generate-response
-
-**Voice Operations (1)**
-- voice-calls-read
-
-**Operations (1)**
-- dlq-replay
-
-#### Database (DynamoDB, 12 tables)
-
-| Table | Purpose | TTL |
-|-------|---------|-----|
-| Contact | Contact records | None |
-| Message | All messages | 30 days |
-| BulkJob | Bulk job tracking | None |
-| BulkRecipient | Recipient status | None |
-| User | Platform users | None |
-| MediaFile | Media metadata | None |
-| DLQMessage | Failed messages | 7 days |
-| AuditLog | Audit trail | 180 days |
-| AIInteraction | AI logs | None |
-| RateLimitTracker | Rate limits | 24 hours |
-| SystemConfig | Configuration | None |
-| VoiceCall | Voice records | 90 days |
-
-#### API Gateway
-- HTTP API: k4vqzmi07b
-- 12 routes connected to Lambda functions
-- CORS enabled
-
-#### Authentication (Cognito)
-- User Pool: us-east-1_CC9u1fYh6
-- Groups: Viewer, Operator, Admin
-- OAuth domain: sso.wecare.digital
-
-#### Storage (S3)
-- Bucket: auth.wecare.digital
-- WhatsApp media files
-- Bedrock KB documents
-
-#### AppSync (GraphQL)
-- Endpoint: gvvw6q62urciljnrbsahsrxdzi.appsync-api.us-east-1.amazonaws.com
-- Schema: 12 DynamoDB tables
-
-## Deployment
-
-- **Region:** us-east-1
-- **Account:** 809904170947
-- **Framework:** Amplify Gen 2
-- **IaC:** TypeScript CDK
+### Backend
+- **Compute**: AWS Lambda (Python)
+- **Database**: DynamoDB (12 tables, on-demand)
+- **Storage**: S3 (media files)
+- **Messaging**: SQS (async processing)
+- **Monitoring**: CloudWatch (alarms, dashboards)
+- **Infrastructure**: AWS CDK (Amplify Gen 2)
 
 ## Data Flow
 
-1. Frontend sends request to API Gateway
-2. API Gateway routes to Lambda function
-3. Lambda queries DynamoDB
-4. Response returned to frontend
-5. Failed messages go to DLQ for retry
+### Inbound Messages
+1. External provider (WhatsApp, SMS, etc.) sends message
+2. `inbound-whatsapp-handler` Lambda processes message
+3. Message stored in DynamoDB
+4. Notification sent to admin dashboard
+
+### Outbound Messages
+1. Admin sends message via UI
+2. Message queued in SQS
+3. `outbound-whatsapp` Lambda processes queue
+4. Message sent to provider
+5. Status updated in DynamoDB
+
+### Bulk Operations
+1. Admin creates bulk job
+2. `bulk-job-control` Lambda manages job
+3. Messages queued for processing
+4. Status tracked per recipient
+5. Results aggregated in dashboard
+
+## Database Schema
+
+### Core Tables
+- **Contact**: User contact information with opt-in preferences
+- **Message**: All inbound/outbound messages (TTL: 30 days)
+- **User**: Platform users with RBAC roles
+
+### Operations
+- **BulkJob**: Bulk messaging job tracking
+- **BulkRecipient**: Individual recipient status per job
+- **DLQMessage**: Failed message retry queue (TTL: 7 days)
+
+### Metadata
+- **MediaFile**: WhatsApp media metadata
+- **VoiceCall**: Voice call records (TTL: 90 days)
+- **AIInteraction**: AI query/response logs
+- **AuditLog**: System audit trail (TTL: 180 days)
+- **RateLimitTracker**: Rate limiting counters (TTL: 24 hours)
+- **SystemConfig**: Configuration key-value store
+
+## Lambda Functions
+
+### Core (7 functions)
+- **contacts-create**: POST /contacts
+- **contacts-read**: GET /contacts/{id}
+- **contacts-update**: PUT /contacts/{id}
+- **contacts-delete**: DELETE /contacts/{id}
+- **contacts-search**: GET /contacts/search
+- **messages-read**: GET /messages
+- **messages-delete**: DELETE /messages/{id}
+
+### Messaging (3 functions)
+- **inbound-whatsapp-handler**: Webhook for inbound messages
+- **outbound-whatsapp**: Send WhatsApp messages
+- **voice-calls-read**: GET /voice-calls
+
+### Operations (2 functions)
+- **bulk-job-control**: Manage bulk jobs
+- **dlq-replay**: Replay failed messages
+
+## API Endpoints
+
+### Contacts
+- `POST /api/contacts` - Create contact
+- `GET /api/contacts/{id}` - Get contact
+- `PUT /api/contacts/{id}` - Update contact
+- `DELETE /api/contacts/{id}` - Delete contact
+- `GET /api/contacts/search` - Search contacts
+
+### Messages
+- `GET /api/messages` - List messages
+- `DELETE /api/messages/{id}` - Delete message
+
+### Bulk
+- `POST /api/bulk/jobs` - Create bulk job
+- `GET /api/bulk/jobs/{id}` - Get job status
+- `PUT /api/bulk/jobs/{id}` - Update job
 
 ## Security
 
-- Cognito authentication
-- IAM role-based access
-- HTTPS/TLS encryption
-- DynamoDB encryption
-- S3 bucket encryption
+- **Authentication**: AWS Cognito with OAuth
+- **Authorization**: Role-based access control (VIEWER, OPERATOR, ADMIN)
+- **Data Encryption**: S3 encryption at rest
+- **API Security**: AppSync GraphQL with Cognito auth
+- **Audit Logging**: All actions logged to DynamoDB
+
+## Monitoring
+
+### CloudWatch Alarms
+- Lambda error rate > 1%
+- DLQ depth > 10 messages
+
+### Dashboard
+- Message delivery by channel
+- DLQ depth tracking
+- Error rate monitoring
+
+## Deployment
+
+### Development
+```bash
+npm run amplify  # Start sandbox
+npm run dev      # Start Next.js dev server
+```
+
+### Production
+```bash
+npm run amplify:deploy  # Deploy to AWS
+npm run build           # Build Next.js
+npm run start           # Start production server
+```
+
+## Environment Variables
+
+- `NEXT_PUBLIC_GRAPHQL_ENDPOINT`: AppSync GraphQL endpoint
+- `AWS_REGION`: us-east-1
+- `AWS_ACCOUNT_ID`: 809904170947
+
+## Scaling Considerations
+
+- **DynamoDB**: On-demand billing (auto-scales)
+- **Lambda**: Concurrent execution limits (1000 default)
+- **SQS**: Unlimited queue depth
+- **S3**: Unlimited storage
+
+## Cost Optimization
+
+- DynamoDB on-demand (pay per request)
+- Lambda: ~9 functions, minimal compute
+- S3: Media storage only
+- CloudWatch: Basic monitoring
+
+## Future Enhancements
+
+- Multi-region deployment
+- Advanced analytics
+- Custom integrations
+- Webhook management
 - Rate limiting per channel

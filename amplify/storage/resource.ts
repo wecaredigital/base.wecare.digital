@@ -3,20 +3,33 @@ import { defineStorage } from '@aws-amplify/backend';
 /**
  * Storage Configuration
  * 
- * References existing S3 buckets:
- * - auth.wecare.digital: WhatsApp media files
- * - stream.wecare.digital: Reports and Bedrock KB documents
+ * Single bucket: stream.wecare.digital
  * 
- * Note: These buckets already exist, Amplify will reference them
+ * Structure:
+ * - whatsapp-media/whatsapp-media-incoming/*: Inbound WhatsApp media
+ * - whatsapp-media/whatsapp-media-outgoing/*: Outbound WhatsApp media
+ * - base-wecare-digital/: All other project resources
+ *   - Build/: Build artifacts
+ *   - packages/: Package files
+ *   - reports/: Bulk job reports
+ *   - bedrock/kb/whatsapp/: Bedrock KB documents
+ *   - deployment/: Deployment artifacts
+ *   - logs/: Application logs
+ *   - backups/: Backup files
  */
 export const storage = defineStorage({
   name: 'wecare-media',
-  // Reference existing bucket: auth.wecare.digital
+  // Reference consolidated bucket: stream.wecare.digital
   access: (allow) => ({
+    // WhatsApp media paths (original structure)
     'whatsapp-media/whatsapp-media-incoming/*': [
       allow.authenticated.to(['read', 'write']),
     ],
     'whatsapp-media/whatsapp-media-outgoing/*': [
+      allow.authenticated.to(['read', 'write']),
+    ],
+    // All other project resources under base-wecare-digital
+    'base-wecare-digital/*': [
       allow.authenticated.to(['read', 'write']),
     ],
   }),

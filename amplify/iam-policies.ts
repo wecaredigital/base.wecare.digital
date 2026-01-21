@@ -87,8 +87,8 @@ export const IAM_POLICIES = {
           's3:PutObject',
         ],
         Resource: [
-          'arn:aws:s3:::auth.wecare.digital/whatsapp-media/whatsapp-media-incoming/*',
-          'arn:aws:s3:::auth.wecare.digital/whatsapp-media/whatsapp-media-outgoing/*',
+          'arn:aws:s3:::stream.wecare.digital/whatsapp-media/whatsapp-media-incoming/*',
+          'arn:aws:s3:::stream.wecare.digital/whatsapp-media/whatsapp-media-outgoing/*',
         ],
       },
     ],

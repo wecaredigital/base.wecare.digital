@@ -71,13 +71,14 @@ export const EMAIL_CONFIG = {
   RATE_LIMIT: 10, // messages per second
 };
 
-// S3 Buckets
+// S3 Buckets - Consolidated to single bucket
 export const S3_CONFIG = {
-  MEDIA_BUCKET: 'auth.wecare.digital',
+  MEDIA_BUCKET: 'stream.wecare.digital',
   MEDIA_INBOUND_PREFIX: 'whatsapp-media/whatsapp-media-incoming/',
   MEDIA_OUTBOUND_PREFIX: 'whatsapp-media/whatsapp-media-outgoing/',
   REPORT_BUCKET: 'stream.wecare.digital',
   REPORT_PREFIX: 'base-wecare-digital/reports/',
+  DEPLOYMENT_PREFIX: 'base-wecare-digital/deployment/',
 };
 
 // SNS
