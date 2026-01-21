@@ -23,6 +23,9 @@
   },
   "devDependencies": {
     "@aws-amplify/backend-cli": "^1.8.2",
+    "@aws-amplify/backend-data": "^1.6.3",
+    "@aws-amplify/data-construct": "^1.16.3",
+    "@aws-amplify/graphql-schema-generator": "^0.11.12",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
