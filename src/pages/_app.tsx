@@ -13,6 +13,7 @@ import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import '../styles/Pages.css';
 import '../styles/Layout.css';
+import FloatingAgent from '../components/FloatingAgent';
 
 // Configure Amplify with Cognito Auth
 // User Pool: WECARE.DIGITAL (us-east-1_CC9u1fYh6)
@@ -60,7 +61,10 @@ export default function App({ Component, pageProps }: AppProps) {
         }}
       >
         {({ signOut, user }) => (
-          <Component {...pageProps} signOut={signOut} user={user} />
+          <>
+            <Component {...pageProps} signOut={signOut} user={user} />
+            <FloatingAgent />
+          </>
         )}
       </Authenticator>
     </>
