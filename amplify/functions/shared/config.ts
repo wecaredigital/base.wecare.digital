@@ -71,14 +71,14 @@ export const EMAIL_CONFIG = {
   RATE_LIMIT: 10, // messages per second
 };
 
-// S3 Buckets - Using auth.wecare.digital for WhatsApp media
-// Based on actual AWS configuration
+// S3 Buckets - Single bucket: auth.wecare.digital
+// All storage consolidated to one bucket
 export const S3_CONFIG = {
   MEDIA_BUCKET: 'auth.wecare.digital',
   MEDIA_INBOUND_PREFIX: 'whatsapp-media/whatsapp-media-incoming/',
   MEDIA_OUTBOUND_PREFIX: 'whatsapp-media/whatsapp-media-outgoing/',
-  REPORT_BUCKET: 'stream.wecare.digital',
-  REPORT_PREFIX: 'base-wecare-digital/reports/',
+  REPORT_BUCKET: 'auth.wecare.digital',
+  REPORT_PREFIX: 'reports/',
 };
 
 // SNS
