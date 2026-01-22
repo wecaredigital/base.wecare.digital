@@ -134,10 +134,23 @@ def _scan_messages(filter_parts: List[str], expression_values: Dict, limit: int,
         response = table.scan(**scan_kwargs)
         items = response.get('Items', [])
         
+        # Log sample data for debugging
+        sample_items = []
+        for item in items[:3]:
+            sample_items.append({
+                'id': item.get('id'),
+                'contactId': item.get('contactId'),
+                'direction': item.get('direction'),
+                'channel': item.get('channel'),
+                'timestamp': item.get('timestamp')
+            })
+        
         logger.info(json.dumps({
             'event': 'messages_scanned',
             'count': len(items),
-            'table': MESSAGE_TABLE
+            'table': MESSAGE_TABLE,
+            'filterParts': filter_parts,
+            'sampleItems': sample_items
         }))
         
         return items

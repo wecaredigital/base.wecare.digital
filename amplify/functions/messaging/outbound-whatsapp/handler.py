@@ -467,6 +467,13 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
         if filename and filename.strip() and filename not in ['undefined', 'null', 'File']:
             # Use provided filename - sanitize it
             sanitized_filename = _sanitize_filename(filename)
+            if not sanitized_filename or sanitized_filename == 'document':
+                logger.warning(json.dumps({
+                    'event': 'filename_sanitization_resulted_in_default',
+                    'originalFilename': filename,
+                    'sanitizedFilename': sanitized_filename,
+                    'messageId': message_id
+                }))
             s3_key = f"{MEDIA_PREFIX}{sanitized_filename}"
         else:
             # Generate filename from message_id with proper extension
@@ -616,7 +623,7 @@ def _sanitize_filename(filename: str, max_length: int = 240) -> str:
     
     WhatsApp filename requirements:
     - Maximum 240 characters
-    - Remove invalid characters
+    - Remove invalid characters but preserve common ones
     - Preserve file extension
     
     Args:
@@ -636,10 +643,10 @@ def _sanitize_filename(filename: str, max_length: int = 240) -> str:
     # Remove path separators if present
     filename = filename.split('/')[-1].split('\\')[-1]
     
-    # Remove invalid characters but keep dots for extension
-    # Valid characters: alphanumeric, dots, hyphens, underscores, spaces
+    # Remove only truly invalid characters for WhatsApp
+    # Keep: alphanumeric, dots, hyphens, underscores, spaces, parentheses
     import re
-    sanitized = re.sub(r'[^\w\s.-]', '', filename)
+    sanitized = re.sub(r'[^\w\s.\-()]+', '', filename, flags=re.UNICODE)
     
     # Replace multiple spaces with single space
     sanitized = re.sub(r'\s+', ' ', sanitized)
@@ -673,7 +680,8 @@ def _sanitize_filename(filename: str, max_length: int = 240) -> str:
         'original': filename,
         'sanitized': sanitized,
         'length': len(sanitized),
-        'maxLength': max_length
+        'maxLength': max_length,
+        'changed': filename != sanitized
     }))
     
     return sanitized

@@ -8,7 +8,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '../../../components/Layout';
 import RichTextEditor from '../../../components/RichTextEditor';
 import Toast, { useToast } from '../../../components/Toast';
-import * as api from '../../../lib/api';
+import * as api from '../../../api/client';
 
 interface PageProps {
   signOut?: () => void;
@@ -168,7 +168,20 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
   }, [selectedContact]);
 
   const filteredMessages = messages
-    .filter(m => selectedContact && m.contactId === selectedContact.id)
+    .filter(m => {
+      if (!selectedContact) return false;
+      // Match by contactId - handle both inbound and outbound
+      const contactMatch = m.contactId === selectedContact.id;
+      if (!contactMatch) {
+        console.debug('Message contactId mismatch:', {
+          messageContactId: m.contactId,
+          selectedContactId: selectedContact.id,
+          messageId: m.id,
+          direction: m.direction
+        });
+      }
+      return contactMatch;
+    })
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   const filteredContacts = contacts.filter(c => 
@@ -228,6 +241,14 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Validate filename - warn if it contains special characters
+    const validFilenameChars = /^[a-zA-Z0-9\s._\-()]+$/;
+    if (!validFilenameChars.test(file.name)) {
+      const invalidChars = file.name.replace(/[a-zA-Z0-9\s._\-()]/g, '').split('').filter((v, i, a) => a.indexOf(v) === i);
+      console.warn('Filename contains special characters that may be removed:', invalidChars);
+      toast.error(`Filename contains invalid characters: ${invalidChars.join(', ')}. They will be removed.`);
+    }
     
     // Validate file size based on type per AWS Social Messaging docs
     let maxSize = 5 * 1024 * 1024; // Default 5MB for images

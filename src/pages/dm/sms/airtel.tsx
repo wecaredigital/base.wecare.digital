@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Layout from '../../../components/Layout';
 import RichTextEditor from '../../../components/RichTextEditor';
-import * as api from '../../../lib/api';
+import * as api from '../../../api/client';
 
 interface PageProps {
   signOut?: () => void;
