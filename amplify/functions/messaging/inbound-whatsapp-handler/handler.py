@@ -332,6 +332,7 @@ def _process_message(
             message_id=message_id,
             contact_id=contact_id,
             content=content,
+            phone_number_id=aws_phone_number_id,
             request_id=request_id
         )
 
@@ -747,6 +748,47 @@ def _send_auto_reaction(contact_id: str, whatsapp_message_id: str,
         }))
 
 
+def _send_ai_auto_reply(contact_id: str, content: str, phone_number_id: str, request_id: str) -> None:
+    """
+    Send AI-generated auto-reply to WhatsApp.
+    Uses the same phone number that received the message.
+    """
+    if not content or not contact_id:
+        return
+    
+    try:
+        reply_payload = {
+            'body': json.dumps({
+                'contactId': contact_id,
+                'content': content,
+                'phoneNumberId': phone_number_id
+            })
+        }
+        
+        response = lambda_client.invoke(
+            FunctionName=OUTBOUND_WHATSAPP_FUNCTION,
+            InvocationType='Event',  # Async - don't wait for response
+            Payload=json.dumps(reply_payload)
+        )
+        
+        logger.info(json.dumps({
+            'event': 'ai_auto_reply_triggered',
+            'contactId': contact_id,
+            'contentLength': len(content),
+            'phoneNumberId': phone_number_id,
+            'statusCode': response.get('StatusCode'),
+            'requestId': request_id
+        }))
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'ai_auto_reply_error',
+            'contactId': contact_id,
+            'error': str(e),
+            'requestId': request_id
+        }))
+
+
 def _send_read_receipt(whatsapp_message_id: str, phone_number_id: str, request_id: str) -> None:
     """
     Send read receipt to WhatsApp per AWS docs.
@@ -816,14 +858,49 @@ def _is_ai_enabled() -> bool:
         return False
 
 
-def _process_ai_automation(message_id: str, contact_id: str, content: str, request_id: str) -> Optional[Dict]:
-    """Process AI automation for inbound message."""
-    if not _is_ai_enabled():
+def _process_ai_automation(message_id: str, contact_id: str, content: str, phone_number_id: str, request_id: str) -> Optional[Dict]:
+    """Process AI automation for inbound message and send auto-reply."""
+    ai_enabled = _is_ai_enabled()
+    logger.info(json.dumps({
+        'event': 'ai_automation_check',
+        'aiEnabled': ai_enabled,
+        'messageId': message_id,
+        'contentLength': len(content) if content else 0,
+        'requestId': request_id
+    }))
+    
+    if not ai_enabled:
         return None
     
     try:
+        logger.info(json.dumps({
+            'event': 'ai_query_kb_start',
+            'messageId': message_id,
+            'query': content[:100] if content else '',
+            'requestId': request_id
+        }))
         kb_result = _invoke_ai_query_kb(content, message_id, request_id)
-        return _invoke_ai_generate_response(content, kb_result, message_id, contact_id, request_id)
+        logger.info(json.dumps({
+            'event': 'ai_query_kb_result',
+            'messageId': message_id,
+            'hasResult': kb_result is not None,
+            'requestId': request_id
+        }))
+        
+        ai_response = _invoke_ai_generate_response(content, kb_result, message_id, contact_id, request_id)
+        
+        # Send auto-reply if we got a valid AI response
+        if ai_response and ai_response.get('suggestion'):
+            suggestion = ai_response.get('suggestion', '')
+            if suggestion and len(suggestion) > 5:  # Only send if meaningful response
+                _send_ai_auto_reply(
+                    contact_id=contact_id,
+                    content=suggestion,
+                    phone_number_id=phone_number_id,
+                    request_id=request_id
+                )
+        
+        return ai_response
     except Exception as e:
         logger.error(json.dumps({
             'event': 'ai_automation_error',
@@ -837,15 +914,35 @@ def _process_ai_automation(message_id: str, contact_id: str, content: str, reque
 def _invoke_ai_query_kb(query: str, message_id: str, request_id: str) -> Optional[Dict]:
     """Invoke ai-query-kb Lambda function."""
     try:
+        logger.info(json.dumps({
+            'event': 'invoking_ai_query_kb',
+            'functionName': AI_QUERY_KB_FUNCTION,
+            'messageId': message_id,
+            'requestId': request_id
+        }))
         response = lambda_client.invoke(
             FunctionName=AI_QUERY_KB_FUNCTION,
             InvocationType='RequestResponse',
             Payload=json.dumps({'query': query, 'messageId': message_id, 'requestId': request_id})
         )
-        if response.get('StatusCode') == 200:
-            return json.loads(json.loads(response['Payload'].read().decode('utf-8')).get('body', '{}'))
+        status_code = response.get('StatusCode')
+        logger.info(json.dumps({
+            'event': 'ai_query_kb_response',
+            'statusCode': status_code,
+            'messageId': message_id,
+            'requestId': request_id
+        }))
+        if status_code == 200:
+            payload = response['Payload'].read().decode('utf-8')
+            return json.loads(json.loads(payload).get('body', '{}'))
         return None
-    except Exception:
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'ai_query_kb_error',
+            'error': str(e),
+            'messageId': message_id,
+            'requestId': request_id
+        }))
         return None
 
 
