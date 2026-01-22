@@ -3,8 +3,12 @@
  * WECARE.DIGITAL Admin Platform
  * 
  * AI-powered assistant for task automation
- * Uses Bedrock AgentCore runtime for intelligent responses
- * Runtime: base_bedrock_agentcore-1XHDxj2o3Q
+ * Uses Bedrock Agent and Knowledge Base for intelligent responses
+ * 
+ * Bedrock Resources:
+ * - Agent ID: HQNT0JXN8G (base-bedrock-agent)
+ * - AgentCore Runtime: base_bedrock_agentcore-1XHDxj2o3Q
+ * - Knowledge Base: FZBPKGTOYE (base-wecare-digital-bedrock-kb)
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -24,6 +28,8 @@ interface ConversationContext {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
 const BEDROCK_AGENT_RUNTIME_ID = 'base_bedrock_agentcore-1XHDxj2o3Q';
+const BEDROCK_AGENT_ID = 'HQNT0JXN8G';
+const BEDROCK_KB_ID = 'FZBPKGTOYE';
 
 const FloatingAgent: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -188,7 +194,7 @@ const FloatingAgent: React.FC = () => {
           `Just type naturally!`;
       }
       
-      // AI fallback - use Bedrock AgentCore for intelligent responses
+      // AI fallback - use Bedrock Agent for intelligent responses
       const conversationHistory = messages
         .filter(m => m.role !== 'assistant' || m.content !== '...')
         .slice(-10)
@@ -200,7 +206,9 @@ const FloatingAgent: React.FC = () => {
         body: JSON.stringify({ 
           message: text,
           sessionId: sessionId,
+          agentId: BEDROCK_AGENT_ID,
           agentRuntimeId: BEDROCK_AGENT_RUNTIME_ID,
+          knowledgeBaseId: BEDROCK_KB_ID,
           conversationHistory
         }),
       });
