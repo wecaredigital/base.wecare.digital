@@ -26,23 +26,51 @@ This document describes the AWS Bedrock resources configured for WECARE.DIGITAL 
 
 ---
 
-### 2. Bedrock Agent (Complex Workflows)
+### 2. Bedrock Agent (WhatsApp AI Responses)
 
 | Property | Value |
 |----------|-------|
 | Name | `base-bedrock-agent` |
 | Agent ID | `HQNT0JXN8G` |
+| Agent Alias | `TSTALIASID` |
 | Agent ARN | `arn:aws:bedrock:us-east-1:809904170947:agent/HQNT0JXN8G` |
 | Status | PREPARED |
+| Foundation Model | `amazon.nova-pro-v1:0` |
+| Agent Collaboration | DISABLED |
 | Role ARN | `arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5` |
 | User Input | ENABLED |
 | Memory | Disabled |
 | Idle Session Timeout | 600 seconds |
 
+**Agent Instruction:**
+```
+You are WECARE.DIGITAL's friendly multilingual AI assistant. 
+CRITICAL: If the message starts with [RESPOND IN X ONLY], you MUST respond ONLY in language X. 
+Otherwise, respond in the SAME LANGUAGE as the user's message.
+RULES: 1) Keep responses SHORT - max 3 sentences plus 1 action 
+2) Use 1-2 emojis for warmth 
+3) ALWAYS mention the specific brand name.
+BRAND ROUTING: Travel/Hotels/Visa/Tours = BNB Club (bnbclub.in) | Documents/Registration/GST/Company = Legal Champ (legalchamp.in) | Disputes/Complaints/Mediation = No Fault (nofault.in) | Puja/Rituals/Festivals = Ritual Guru (ritualguru.in) | Self-inquiry/Reflection/Coaching = Swdhya (swdhya.in).
+CONTACT: +91 9330994400, one@wecare.digital.
+ALWAYS end with a clear action (visit website, call number, or next step).
+```
+
 **Used For:**
+- WhatsApp AI auto-responses
 - Complex queries requiring multi-step reasoning
 - Action execution and tool calling
-- Multi-step workflow orchestration
+
+**⚠️ CRITICAL - Agent Management:**
+- DO NOT edit agent in AWS Console - it resets `agentCollaboration` to SUPERVISOR
+- Use CLI commands instead:
+```bash
+aws bedrock-agent update-agent --agent-id HQNT0JXN8G --agent-name "base-bedrock-agent" \
+  --agent-resource-role-arn "arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5" \
+  --foundation-model "amazon.nova-pro-v1:0" --instruction "YOUR_INSTRUCTION" \
+  --agent-collaboration DISABLED --region us-east-1
+
+aws bedrock-agent prepare-agent --agent-id HQNT0JXN8G --region us-east-1
+```
 
 ---
 
@@ -54,6 +82,8 @@ This document describes the AWS Bedrock resources configured for WECARE.DIGITAL 
 | Knowledge Base ID | `FZBPKGTOYE` |
 | Status | AVAILABLE |
 | RAG Type | Vector Store |
+| Embedding Model | `amazon.nova-2-multimodal-embeddings-v1:0` |
+| Multimodal Storage | `s3://stream.wecare.digital` |
 | Service Role | `AmazonBedrockExecutionRoleForKnowledgeBase_b8pgp` |
 
 **Used For:**
@@ -84,6 +114,17 @@ This document describes the AWS Bedrock resources configured for WECARE.DIGITAL 
 |----------|--------|---------|
 | `wecare_bedrock_kb.md` | INDEXED | Jan 22, 2026 20:01 |
 | `wecare_bedrock_kb_qa.jsonl` | INDEXED | Jan 22, 2026 20:02 |
+
+---
+
+## S3 Buckets for Bedrock
+
+| Bucket | Purpose |
+|--------|---------|
+| `stream.wecare.digital` | KB multimodal storage (supplemental data) |
+| `auth.wecare.digital/stream/gen-ai/bedrock-agent/` | Agent logs |
+| `auth.wecare.digital/stream/gen-ai/bedrock-kb/` | KB logs |
+| `auth.wecare.digital/stream/gen-ai/bedrock-agentcore/` | AgentCore logs |
 
 ---
 
@@ -197,6 +238,25 @@ const BEDROCK_AGENT_RUNTIME_ID = 'base_bedrock_agentcore-1XHDxj2o3Q';
 ## Region
 
 All Bedrock resources are deployed in: **us-east-1**
+
+---
+
+## Language Detection
+
+The AI response handler (`ai-generate-response`) includes automatic language detection:
+
+| Language | Detection Method |
+|----------|------------------|
+| Hindi | Devanagari script (U+0900-097F) |
+| Bengali | Bengali script (U+0980-09FF) |
+| Tamil | Tamil script (U+0B80-0BFF) |
+| Telugu | Telugu script (U+0C00-0C7F) |
+| Gujarati | Gujarati script (U+0A80-0AFF) |
+| Marathi | Devanagari + common Marathi words |
+| Hinglish | Latin script + Hindi words |
+| English | Default fallback |
+
+Messages are prefixed with `[RESPOND IN X ONLY]` to ensure consistent language responses.
 
 ---
 

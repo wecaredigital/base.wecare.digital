@@ -264,16 +264,27 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 - IAM role-based access only
 - Encryption at rest: AES-256 (default)
 
-### 3.2 Reports Bucket
+### 3.2 Reports & Bedrock Logs Bucket
 
 **Bucket Name**: `stream.wecare.digital`  
 **Region**: us-east-1  
 **Status**: ✓ Exists  
-**Purpose**: Bulk message reports and Bedrock KB documents
+**Purpose**: Bulk message reports and Bedrock KB multimodal storage
 
 **Prefixes**:
 - Reports: `base-wecare-digital/reports/`
-- Bedrock KB: `base-wecare-digital/bedrock/kb/whatsapp/`
+- Bedrock KB multimodal: `/` (root - used by KB supplemental storage)
+
+**Bucket Policy**: Allows Bedrock service access for KB operations
+
+### 3.3 Bedrock Logs Folder (in auth.wecare.digital)
+
+**Location**: `s3://auth.wecare.digital/stream/gen-ai/`
+
+**Folder Structure**:
+- `stream/gen-ai/bedrock-agent/` - Agent logs and traces
+- `stream/gen-ai/bedrock-kb/` - Knowledge Base logs
+- `stream/gen-ai/bedrock-agentcore/` - AgentCore runtime logs
 
 **Lifecycle Policy**:
 - Reports expire after 90 days
