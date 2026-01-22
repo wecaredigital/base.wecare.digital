@@ -4,6 +4,12 @@ AI Generate Response Lambda Function
 Purpose: Generate AI response using Bedrock Agent with Knowledge Base
 Language detection ensures responses match user's language
 Prompts managed in AWS Console - no code changes needed
+
+Model Strategy (All Nova Lite - ~$0.06/1M input tokens):
+- WhatsApp Auto-Reply: Amazon Nova Lite
+- Knowledge Base RAG: Amazon Nova Lite  
+- Bedrock Agent: Amazon Nova Lite
+- FloatingAgent (internal): Amazon Nova Lite
 """
 
 import os
@@ -186,16 +192,21 @@ def _detect_language(text: str) -> Tuple[str, str]:
 
 
 def _query_knowledge_base(user_message: str, detected_lang: str, lang_name: str, request_id: str) -> str:
-    """Direct Knowledge Base query as fallback with language-aware prompt."""
+    """Direct Knowledge Base query as fallback with language-aware prompt.
+    
+    Uses Amazon Nova Lite for better quality FAQ responses.
+    Nova Lite: ~$0.06/1M input tokens - good balance of quality and cost.
+    """
     try:
         logger.info(json.dumps({
             'event': 'kb_query_start',
             'kbId': BEDROCK_KB_ID,
+            'model': 'amazon.nova-lite-v1:0',
             'detectedLanguage': lang_name,
             'requestId': request_id
         }))
         
-        # Language-specific prompt template
+        # Language-specific prompt template optimized for Nova Micro
         prompt_template = f"""You are WECARE.DIGITAL's friendly AI assistant.
 
 CRITICAL: You MUST respond ONLY in {lang_name}. Do not mix languages.
@@ -223,13 +234,14 @@ USER QUESTION ({lang_name}): $query$
 
 Respond helpfully in {lang_name} and end with a specific action."""
         
+        # Using Nova Lite for better quality WhatsApp FAQ responses
         response = bedrock_agent_runtime.retrieve_and_generate(
             input={'text': user_message},
             retrieveAndGenerateConfiguration={
                 'type': 'KNOWLEDGE_BASE',
                 'knowledgeBaseConfiguration': {
                     'knowledgeBaseId': BEDROCK_KB_ID,
-                    'modelArn': f'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0',
+                    'modelArn': 'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-lite-v1:0',
                     'generationConfiguration': {
                         'promptTemplate': {
                             'textPromptTemplate': prompt_template

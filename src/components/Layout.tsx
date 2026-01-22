@@ -62,7 +62,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       { path: '/bulk/voice', label: 'Voice' },
       { path: '/bulk/rcs', label: 'RCS' },
     ]},
-    { path: '/agent', label: 'Agent', icon: '⌘' },
     { path: '/admin', label: 'Settings', icon: '⚙', adminOnly: true },
   ];
 
@@ -177,7 +176,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
           {children}
         </main>
         
-        {/* Floating Agent Chatbot (CAS) */}
+        {/* Floating Agent Chatbot */}
         <FloatingAgent />
       </div>
     </>

@@ -1,13 +1,15 @@
 /**
- * Floating Agent - Free Flow Chat Interface
+ * Floating Agent - Internal Admin Chatbot
  * WECARE.DIGITAL Admin Platform
  * 
- * AI-powered assistant for task automation
- * Uses Bedrock Agent and Knowledge Base for intelligent responses
+ * AI-powered assistant for internal task automation
+ * Uses Amazon Bedrock AgentCore Runtime with Nova Lite
+ * 
+ * Model: Amazon Nova Lite (~$0.06/1M input tokens)
  * 
  * Bedrock Resources:
+ * - AgentCore Runtime: base_wecare-5VzKBb5zn4
  * - Agent ID: HQNT0JXN8G (base-bedrock-agent)
- * - AgentCore Runtime: base_bedrock_agentcore-1XHDxj2o3Q
  * - Knowledge Base: FZBPKGTOYE (base-wecare-digital-bedrock-kb)
  */
 
@@ -21,15 +23,11 @@ interface ChatMessage {
   status?: 'sending' | 'sent' | 'error';
 }
 
-interface ConversationContext {
-  sessionId: string;
-  history: { role: string; content: string }[];
-}
-
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
-const BEDROCK_AGENT_RUNTIME_ID = 'base_bedrock_agentcore-1XHDxj2o3Q';
-const BEDROCK_AGENT_ID = 'HQNT0JXN8G';
-const BEDROCK_KB_ID = 'FZBPKGTOYE';
+
+// AgentCore Runtime configuration
+const AGENTCORE_RUNTIME_ID = 'base_wecare-5VzKBb5zn4';
+const AGENTCORE_ENDPOINT_ARN = 'arn:aws:bedrock-agentcore:us-east-1:809904170947:runtime/base_wecare-5VzKBb5zn4/runtime-endpoint/DEFAULT';
 
 const FloatingAgent: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,7 +35,7 @@ const FloatingAgent: React.FC = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hi! I\'m your WECARE assistant powered by Bedrock AI. I can help you send messages, find contacts, check stats, and answer questions about your data. Just type what you need!',
+      content: 'Hi! I\'m your WECARE assistant. I can help you send messages, find contacts, check stats, and answer questions. Just type what you need!',
       timestamp: new Date(),
     }
   ]);
@@ -61,13 +59,13 @@ const FloatingAgent: React.FC = () => {
     }
   }, [isOpen]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
       inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 100) + 'px';
     }
   }, [input]);
+
 
   const processCommand = async (text: string): Promise<string> => {
     const lowerText = text.toLowerCase();
@@ -157,66 +155,30 @@ const FloatingAgent: React.FC = () => {
         const inbound = todayMessages.filter((m: any) => m.direction === 'INBOUND').length;
         const outbound = todayMessages.filter((m: any) => m.direction === 'OUTBOUND').length;
         
-        return `📊 Today's Stats:\n\n` +
-          `Messages: ${todayMessages.length}\n` +
-          `  ↙ Inbound: ${inbound}\n` +
-          `  ↗ Outbound: ${outbound}\n\n` +
-          `Total Contacts: ${contacts.length}`;
-      }
-      
-      // Status check
-      if (lowerText.includes('status') || lowerText.includes('recent') || lowerText.includes('check')) {
-        const res = await fetch(`${API_BASE}/messages?limit=5`);
-        const data = await res.json();
-        const recentMessages = data.messages || [];
-        
-        if (recentMessages.length === 0) {
-          return 'No recent messages found.';
-        }
-        
-        const results = recentMessages.slice(0, 5).map((m: any) => {
-          const dir = m.direction === 'INBOUND' ? '↙' : '↗';
-          const status = m.status?.toLowerCase() || 'unknown';
-          return `${dir} ${status} - "${(m.content || '').substring(0, 30)}..."`;
-        }).join('\n');
-        
-        return `Recent Messages:\n\n${results}`;
+        return `📊 Today's Stats:\n\nMessages: ${todayMessages.length}\n  ↙ Inbound: ${inbound}\n  ↗ Outbound: ${outbound}\n\nTotal Contacts: ${contacts.length}`;
       }
       
       // Help
       if (lowerText.includes('help') || lowerText.includes('what can')) {
-        return `I can help you with:\n\n` +
-          `• Send WhatsApp to +91... saying Hello\n` +
-          `• Find contact +91... or named John\n` +
-          `• Show today's stats\n` +
-          `• Check recent messages\n` +
-          `• Create contact +91... named John\n\n` +
-          `Just type naturally!`;
+        return `I can help you with:\n\n• Send WhatsApp to +91... saying Hello\n• Find contact +91... or named John\n• Show today's stats\n• Check recent messages\n\nJust type naturally!`;
       }
       
-      // AI fallback - use Bedrock Agent for intelligent responses
-      const conversationHistory = messages
-        .filter(m => m.role !== 'assistant' || m.content !== '...')
-        .slice(-10)
-        .map(m => ({ role: m.role, content: m.content }));
-
+      // AI fallback - use AgentCore Runtime with Nova Lite
       const aiRes = await fetch(`${API_BASE}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: text,
           sessionId: sessionId,
-          agentId: BEDROCK_AGENT_ID,
-          agentRuntimeId: BEDROCK_AGENT_RUNTIME_ID,
-          knowledgeBaseId: BEDROCK_KB_ID,
-          conversationHistory
+          agentcoreRuntimeId: AGENTCORE_RUNTIME_ID,
+          model: 'nova-lite',
+          context: 'internal-admin'
         }),
       });
       
       if (aiRes.ok) {
         const data = await aiRes.json();
-        return data.response || data.suggestedResponse || data.suggestion || 
-          'I can help you send messages, find contacts, or check stats. Try "help" for examples.';
+        return data.response || data.suggestion || 'I can help you send messages, find contacts, or check stats. Try "help" for examples.';
       }
       
       return 'I can help you send messages, find contacts, or check stats. Try "help" for examples.';
@@ -241,7 +203,6 @@ const FloatingAgent: React.FC = () => {
     setInput('');
     setIsLoading(true);
 
-    // Add loading indicator
     const loadingId = (Date.now() + 1).toString();
     setMessages(prev => [...prev, {
       id: loadingId,

@@ -8,25 +8,32 @@ This document describes the AWS Bedrock resources configured for WECARE.DIGITAL 
 
 ## Bedrock Resources
 
-### 1. AgentCore Runtime (Internal Chatbot)
+### 1. AgentCore Runtime (FloatingAgent - Internal Chatbot)
 
 | Property | Value |
 |----------|-------|
-| Name | `base_bedrock_agentcore` |
-| Runtime ID | `base_bedrock_agentcore-1XHDxj2o3Q` |
-| Runtime ARN | `arn:aws:bedrock-agentcore:us-east-1:809904170947:runtime/base_bedrock_agentcore-1XHDxj2o3Q` |
+| Name | `base_wecare` |
+| Runtime ID | `base_wecare-5VzKBb5zn4` |
+| Runtime ARN | `arn:aws:bedrock-agentcore:us-east-1:809904170947:runtime/base_wecare-5VzKBb5zn4` |
 | Status | READY |
-| Description | base-wecare-digital-bedrock-agentcore-runtime |
-| Idle Timeout | 600 seconds |
+| Source URI | `s3://auth.wecare.digital/stream/gen-ai/bedrock-agentcore/1769104756724-se99tt-stream_agent.zip` |
+| Entry Point | `main.py` |
+| Runtime | PYTHON_3_13 |
+| Protocol | HTTP |
+| Service Role | `AmazonBedrockAgentCoreRuntimeDefaultServiceRole-kxj3u` |
+| Endpoint | DEFAULT |
+| Endpoint ARN | `arn:aws:bedrock-agentcore:us-east-1:809904170947:runtime/base_wecare-5VzKBb5zn4/runtime-endpoint/DEFAULT` |
+| Idle Timeout | 900 seconds |
+| Max Lifetime | 28800 seconds |
 
 **Used For:**
-- FloatingAgent chatbot on all admin pages
-- Real-time AI assistance
+- FloatingAgent chatbot widget on all admin pages
+- Real-time AI assistance for internal tasks
 - Task automation (send messages, find contacts, check stats)
 
 ---
 
-### 2. Bedrock Agent (WhatsApp AI Responses)
+### 2. Bedrock Agent (WhatsApp AI Responses + FloatingAgent)
 
 | Property | Value |
 |----------|-------|
@@ -35,7 +42,7 @@ This document describes the AWS Bedrock resources configured for WECARE.DIGITAL 
 | Agent Alias | `TSTALIASID` |
 | Agent ARN | `arn:aws:bedrock:us-east-1:809904170947:agent/HQNT0JXN8G` |
 | Status | PREPARED |
-| Foundation Model | `amazon.nova-pro-v1:0` |
+| Foundation Model | `amazon.nova-lite-v1:0` |
 | Agent Collaboration | DISABLED |
 | Role ARN | `arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5` |
 | User Input | ENABLED |
@@ -64,9 +71,10 @@ ALWAYS end with a clear action (visit website, call number, or next step).
 - DO NOT edit agent in AWS Console - it resets `agentCollaboration` to SUPERVISOR
 - Use CLI commands instead:
 ```bash
+# Update Bedrock Agent to use Nova Lite
 aws bedrock-agent update-agent --agent-id HQNT0JXN8G --agent-name "base-bedrock-agent" \
   --agent-resource-role-arn "arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5" \
-  --foundation-model "amazon.nova-pro-v1:0" --instruction "YOUR_INSTRUCTION" \
+  --foundation-model "amazon.nova-lite-v1:0" --instruction "YOUR_INSTRUCTION" \
   --agent-collaboration DISABLED --region us-east-1
 
 aws bedrock-agent prepare-agent --agent-id HQNT0JXN8G --region us-east-1
@@ -119,12 +127,13 @@ aws bedrock-agent prepare-agent --agent-id HQNT0JXN8G --region us-east-1
 
 ## S3 Buckets for Bedrock
 
-| Bucket | Purpose |
-|--------|---------|
-| `stream.wecare.digital` | KB multimodal storage (supplemental data) |
-| `auth.wecare.digital/stream/gen-ai/bedrock-agent/` | Agent logs |
-| `auth.wecare.digital/stream/gen-ai/bedrock-kb/` | KB logs |
-| `auth.wecare.digital/stream/gen-ai/bedrock-agentcore/` | AgentCore logs |
+| Bucket | Path | Purpose |
+|--------|------|---------|
+| `stream.wecare.digital` | `/` | KB multimodal storage (supplemental data) |
+| `auth.wecare.digital` | `stream/gen-ai/agent/HQNT0JXN8G/` | Agent logs, traces, sessions |
+| `auth.wecare.digital` | `stream/gen-ai/agentcore/base_wecare-5VzKBb5zn4/` | AgentCore logs, traces, sessions |
+| `auth.wecare.digital` | `stream/gen-ai/bedrock-agentcore/` | AgentCore code artifacts (*.zip) |
+| `auth.wecare.digital` | `stream/gen-ai/knowledge-base/FZBPKGTOYE/` | KB documents, queries, logs |
 
 ---
 
@@ -222,16 +231,29 @@ aws bedrock-agent get-ingestion-job \
 The FloatingAgent component (`src/components/FloatingAgent.tsx`) uses:
 
 ```typescript
-const BEDROCK_AGENT_RUNTIME_ID = 'base_bedrock_agentcore-1XHDxj2o3Q';
+// AgentCore Runtime configuration
+const AGENTCORE_RUNTIME_ID = 'base_wecare-5VzKBb5zn4';
+const AGENTCORE_ENDPOINT_ARN = 'arn:aws:bedrock-agentcore:us-east-1:809904170947:runtime/base_wecare-5VzKBb5zn4/runtime-endpoint/DEFAULT';
 
 // AI fallback calls /ai/chat endpoint with:
 {
   message: text,
   sessionId: sessionId,
-  agentRuntimeId: BEDROCK_AGENT_RUNTIME_ID,
-  conversationHistory: [...]
+  agentcoreRuntimeId: AGENTCORE_RUNTIME_ID,
+  model: 'nova-lite',
+  context: 'internal-admin'
 }
 ```
+
+---
+
+## Model Configuration Summary
+
+| Resource | Model | Cost |
+|----------|-------|------|
+| AgentCore Runtime (FloatingAgent) | Nova Lite | ~$0.06/1M tokens |
+| Bedrock Agent (WhatsApp) | Nova Lite | ~$0.06/1M tokens |
+| Knowledge Base RAG | Nova Lite | ~$0.06/1M tokens |
 
 ---
 
