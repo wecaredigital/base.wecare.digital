@@ -1,8 +1,15 @@
 {
   "auth": {
-    "user_pool_id": "us-east-1_iLZRLIGJm",
+    "user_pool_id": "us-east-1_CC9u1fYh6",
     "aws_region": "us-east-1",
-    "user_pool_client_id": "5dbjf1pa6j3h02vjo8tno7tnog",
+    "user_pool_client_id": "5na5ba2pbpanm36138jdcd9gck",
+    "oauth": {
+      "domain": "sso.wecare.digital",
+      "scopes": ["openid", "email", "profile"],
+      "redirect_sign_in_uri": ["https://base.wecare.digital/", "https://base.dtiq7il2x5c5g.amplifyapp.com/", "http://localhost:3000/"],
+      "redirect_sign_out_uri": ["https://base.wecare.digital/", "https://base.dtiq7il2x5c5g.amplifyapp.com/", "http://localhost:3000/"],
+      "response_type": "code"
+    },
     "identity_pool_id": "us-east-1:ef6b783a-f0c5-4d2f-925d-9460e6a733ce",
     "mfa_methods": [],
     "standard_required_attributes": [

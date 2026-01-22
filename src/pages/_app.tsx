@@ -33,11 +33,14 @@ const getRedirectUri = () => {
 };
 
 // Configure Amplify with OAuth and Data API
+// User Pool: WECARE.DIGITAL (us-east-1_CC9u1fYh6)
+// App Client: WECARE.DIGITAL-Web (5na5ba2pbpanm36138jdcd9gck) - NO SECRET for browser apps
+// Custom Domain: https://sso.wecare.digital
 Amplify.configure({
   Auth: {
     Cognito: {
       userPoolId: amplifyConfig?.auth?.user_pool_id || 'us-east-1_CC9u1fYh6',
-      userPoolClientId: amplifyConfig?.auth?.user_pool_client_id || '390cro53nf7gerev44gnq7felt',
+      userPoolClientId: amplifyConfig?.auth?.user_pool_client_id || '5na5ba2pbpanm36138jdcd9gck',
       loginWith: {
         oauth: {
           domain: amplifyConfig?.auth?.oauth?.domain || 'sso.wecare.digital',

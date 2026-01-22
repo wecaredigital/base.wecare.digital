@@ -203,6 +203,7 @@ export interface Message {
   mediaId?: string;
   s3Key?: string;
   mediaUrl?: string;
+  messageType?: string;
   senderPhone?: string;
   senderName?: string;
   receivingPhone?: string;
@@ -251,6 +252,7 @@ function normalizeMessage(item: any): Message {
     mediaId: item.mediaId,
     s3Key: item.s3Key,
     mediaUrl: item.mediaUrl,  // Use pre-signed URL from API
+    messageType: item.messageType,  // image, video, audio, document, text
     senderPhone: item.senderPhone,
     senderName: item.senderName,
     receivingPhone: item.receivingPhone,

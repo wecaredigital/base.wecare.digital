@@ -187,6 +187,10 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
     if result.get('direction') == 'INBOUND' and 'senderName' not in result:
         result['senderName'] = result.get('senderPhone', 'Unknown')
     
+    # Ensure messageType is included
+    if 'messageType' not in result:
+        result['messageType'] = 'text'
+    
     # Generate pre-signed URL for media files if s3Key exists
     if result.get('s3Key') and result.get('mediaId'):
         try:

@@ -23,6 +23,8 @@ interface Message {
   contactId: string;
   whatsappMessageId?: string;
   mediaUrl?: string;
+  s3Key?: string;
+  messageType?: string;
   receivingPhone?: string;
   awsPhoneNumberId?: string;
 }
@@ -103,7 +105,10 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         status: m.status?.toLowerCase() || 'sent',
         contactId: m.contactId,
         whatsappMessageId: m.whatsappMessageId,
-        mediaUrl: m.s3Key ? `https://auth.wecare.digital/${m.s3Key}` : undefined,
+        // Use pre-signed URL from API, fallback to direct S3 URL
+        mediaUrl: m.mediaUrl || (m.s3Key ? `https://auth.wecare.digital.s3.amazonaws.com/${m.s3Key}` : undefined),
+        s3Key: m.s3Key,
+        messageType: m.messageType || (m.s3Key ? 'media' : 'text'),
       })));
     } catch (err) {
       setError('Failed to load data');
@@ -236,7 +241,29 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                   {filteredMessages.map(msg => (
                     <div key={msg.id} className={`message ${msg.direction}`}>
                       <div className="message-bubble">
-                        {msg.mediaUrl && <img src={msg.mediaUrl} alt="Media" className="message-media" />}
+                        {msg.mediaUrl && (
+                          <div className="media-container">
+                            {msg.messageType === 'image' || msg.s3Key?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                              <img src={msg.mediaUrl} alt="Media" className="message-media" />
+                            ) : msg.messageType === 'video' || msg.s3Key?.match(/\.(mp4|3gp|mov)$/i) ? (
+                              <video src={msg.mediaUrl} controls className="message-media" />
+                            ) : msg.messageType === 'audio' || msg.s3Key?.match(/\.(mp3|ogg|aac|amr|m4a)$/i) ? (
+                              <audio src={msg.mediaUrl} controls className="message-audio" />
+                            ) : (
+                              <div className="document-preview">📄 Document</div>
+                            )}
+                            <a 
+                              href={msg.mediaUrl} 
+                              download 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="download-btn"
+                              title="Download"
+                            >
+                              ⬇️
+                            </a>
+                          </div>
+                        )}
                         <div className="message-text">{msg.content}</div>
                         <div className="message-footer">
                           <span className="message-time">
@@ -325,6 +352,11 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .message-bubble { background: #fff; padding: 8px 12px; border-radius: 8px; max-width: 100%; }
         .message.outbound .message-bubble { background: #dcf8c6; }
         .message-media { max-width: 200px; border-radius: 8px; margin-bottom: 8px; }
+        .media-container { position: relative; display: inline-block; }
+        .message-audio { max-width: 200px; }
+        .document-preview { background: #f0f0f0; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; }
+        .download-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.5); color: #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; opacity: 0.8; transition: opacity 0.2s; }
+        .download-btn:hover { opacity: 1; background: rgba(0,0,0,0.7); }
         .message-text { font-size: 14px; line-height: 1.4; word-wrap: break-word; }
         .message-footer { display: flex; justify-content: flex-end; gap: 4px; margin-top: 4px; }
         .message-time { font-size: 11px; color: #999; }
