@@ -1,0 +1,192 @@
+# WECARE.DIGITAL - Bedrock Knowledge Base Documentation
+
+## Overview
+
+This document describes the AWS Bedrock resources configured for WECARE.DIGITAL AI automation.
+
+---
+
+## Bedrock Resources
+
+### 1. AgentCore Runtime (Internal Chatbot)
+
+| Property | Value |
+|----------|-------|
+| Name | `base_bedrock_agentcore` |
+| Runtime ID | `base_bedrock_agentcore-1XHDxj2o3Q` |
+| Runtime ARN | `arn:aws:bedrock-agentcore:us-east-1:809904170947:runtime/base_bedrock_agentcore-1XHDxj2o3Q` |
+| Status | READY |
+| Description | base-wecare-digital-bedrock-agentcore-runtime |
+| Idle Timeout | 600 seconds |
+
+**Used For:**
+- FloatingAgent chatbot on all admin pages
+- Real-time AI assistance
+- Task automation (send messages, find contacts, check stats)
+
+---
+
+### 2. Bedrock Agent (Complex Workflows)
+
+| Property | Value |
+|----------|-------|
+| Name | `base-bedrock-agent` |
+| Agent ID | `HQNT0JXN8G` |
+| Agent ARN | `arn:aws:bedrock:us-east-1:809904170947:agent/HQNT0JXN8G` |
+| Status | PREPARED |
+| Role ARN | `arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5` |
+| User Input | ENABLED |
+| Memory | Disabled |
+| Idle Session Timeout | 600 seconds |
+
+**Used For:**
+- Complex queries requiring multi-step reasoning
+- Action execution and tool calling
+- Multi-step workflow orchestration
+
+---
+
+### 3. Knowledge Base (RAG)
+
+| Property | Value |
+|----------|-------|
+| Name | `base-wecare-digital-bedrock-kb` |
+| Knowledge Base ID | `FZBPKGTOYE` |
+| Status | AVAILABLE |
+| RAG Type | Vector Store |
+| Service Role | `AmazonBedrockExecutionRoleForKnowledgeBase_b8pgp` |
+
+**Used For:**
+- WhatsApp AI auto-responses
+- Document search and retrieval
+- FAQ answers using RAG (Retrieval-Augmented Generation)
+
+#### Data Sources
+
+| Data Source | ID | Type | Description |
+|-------------|-----|------|-------------|
+| Website Crawler | `8KHGUUWYJ8` | WEB | Crawls https://www.wecare.digital/ (up to 25,000 pages) |
+| S3 Documents | `AXR9PXIVUK` | S3 (CUSTOM) | Auto-syncs documents from S3 bucket |
+
+**Website Crawler Configuration:**
+- Seed URL: `https://www.wecare.digital/`
+- Rate Limit: 300 requests
+- Max Pages: 25,000
+- User Agent: `bedrockbot_11afc6db-3d3e-495d-b578-e3aaf9b4d479`
+
+---
+
+## DynamoDB Configuration Tables
+
+### SystemConfigTable (`base-wecare-digital-SystemConfigTable`)
+
+| configKey | Description |
+|-----------|-------------|
+| `ai_automation_enabled` | Enable/disable AI automation for inbound messages (value: `true`) |
+| `bedrock_agent` | Agent configuration (ID, ARN, status) |
+| `bedrock_knowledge_base` | Knowledge Base configuration (ID, name, status) |
+| `bedrock_agent_runtime` | AgentCore runtime configuration (ID, ARN, status) |
+
+### AIInteractionsTable (`base-wecare-digital-AIInteractionsTable`)
+
+Stores AI interaction records:
+- `interactionId` - Unique ID
+- `messageId` - Related inbound message ID
+- `query` - User's question/message
+- `response` - AI-generated response
+- `approved` - Whether response was approved/sent
+- `timestamp` - Interaction timestamp
+
+---
+
+## Lambda Functions
+
+| Function | Purpose |
+|----------|---------|
+| `wecare-ai-query-kb` | Query Knowledge Base for relevant context |
+| `wecare-ai-generate-response` | Generate AI response using KB context |
+| `wecare-inbound-whatsapp` | Process inbound messages, trigger AI automation |
+
+### Environment Variables (wecare-inbound-whatsapp)
+
+```
+SYSTEM_CONFIG_TABLE=base-wecare-digital-SystemConfigTable
+AI_INTERACTIONS_TABLE=base-wecare-digital-AIInteractionsTable
+AI_QUERY_KB_FUNCTION=wecare-ai-query-kb
+AI_GENERATE_RESPONSE_FUNCTION=wecare-ai-generate-response
+```
+
+---
+
+## AI Automation Flow
+
+```
+1. Inbound WhatsApp Message
+   ↓
+2. wecare-inbound-whatsapp Lambda
+   ↓
+3. Check AI enabled (SystemConfigTable.ai_automation_enabled)
+   ↓
+4. If enabled & text message:
+   ↓
+5. Invoke wecare-ai-query-kb (query Knowledge Base)
+   ↓
+6. Invoke wecare-ai-generate-response (generate suggestion)
+   ↓
+7. Store in AIInteractionsTable (for review/approval)
+```
+
+---
+
+## Ingestion Jobs
+
+To sync Knowledge Base with latest content:
+
+```bash
+# Start website crawler ingestion
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id FZBPKGTOYE \
+  --data-source-id 8KHGUUWYJ8 \
+  --region us-east-1
+
+# Start S3 documents ingestion
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id FZBPKGTOYE \
+  --data-source-id AXR9PXIVUK \
+  --region us-east-1
+
+# Check ingestion status
+aws bedrock-agent get-ingestion-job \
+  --knowledge-base-id FZBPKGTOYE \
+  --data-source-id 8KHGUUWYJ8 \
+  --ingestion-job-id <JOB_ID> \
+  --region us-east-1
+```
+
+---
+
+## FloatingAgent Integration
+
+The FloatingAgent component (`src/components/FloatingAgent.tsx`) uses:
+
+```typescript
+const BEDROCK_AGENT_RUNTIME_ID = 'base_bedrock_agentcore-1XHDxj2o3Q';
+
+// AI fallback calls /ai/chat endpoint with:
+{
+  message: text,
+  sessionId: sessionId,
+  agentRuntimeId: BEDROCK_AGENT_RUNTIME_ID,
+  conversationHistory: [...]
+}
+```
+
+---
+
+## Region
+
+All Bedrock resources are deployed in: **us-east-1**
+
+---
+
+*Last Updated: January 22, 2026*
