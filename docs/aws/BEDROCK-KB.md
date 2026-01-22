@@ -63,16 +63,26 @@ This document describes the AWS Bedrock resources configured for WECARE.DIGITAL 
 
 #### Data Sources
 
-| Data Source | ID | Type | Description |
-|-------------|-----|------|-------------|
-| Website Crawler | `8KHGUUWYJ8` | WEB | Crawls https://www.wecare.digital/ (up to 25,000 pages) |
-| S3 Documents | `AXR9PXIVUK` | S3 (CUSTOM) | Auto-syncs documents from S3 bucket |
+| Data Source | ID | Type | Status | Description |
+|-------------|-----|------|--------|-------------|
+| Website Crawler | `8KHGUUWYJ8` | WEB | AVAILABLE | Crawls https://www.wecare.digital/ (up to 25,000 pages) |
+| Custom Documents | `AXR9PXIVUK` | CUSTOM | AVAILABLE | Manual document uploads for KB training |
 
 **Website Crawler Configuration:**
 - Seed URL: `https://www.wecare.digital/`
 - Rate Limit: 300 requests
 - Max Pages: 25,000
 - User Agent: `bedrockbot_11afc6db-3d3e-495d-b578-e3aaf9b4d479`
+
+**Custom Documents (AXR9PXIVUK):**
+- Type: Custom (manual upload)
+- Chunking Strategy: Default
+- Parsing Strategy: Default
+- Data Deletion Policy: DELETE
+
+| Document | Status | Updated |
+|----------|--------|---------|
+| `wecare_bedrock_kb.md` | INDEXED | Jan 22, 2026 |
 
 ---
 
@@ -149,7 +159,7 @@ aws bedrock-agent start-ingestion-job \
   --data-source-id 8KHGUUWYJ8 \
   --region us-east-1
 
-# Start S3 documents ingestion
+# Start custom documents ingestion (after adding new docs)
 aws bedrock-agent start-ingestion-job \
   --knowledge-base-id FZBPKGTOYE \
   --data-source-id AXR9PXIVUK \
