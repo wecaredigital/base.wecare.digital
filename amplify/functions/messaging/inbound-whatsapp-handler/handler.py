@@ -30,12 +30,12 @@ social_messaging = boto3.client('socialmessaging', region_name=os.environ.get('A
 s3 = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 lambda_client = boto3.client('lambda', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
-# Environment variables
-CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'Contact')
-MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'Message')
-MEDIA_FILES_TABLE = os.environ.get('MEDIA_FILES_TABLE', 'MediaFile')
-SYSTEM_CONFIG_TABLE = os.environ.get('SYSTEM_CONFIG_TABLE', 'SystemConfig')
-AI_INTERACTIONS_TABLE = os.environ.get('AI_INTERACTIONS_TABLE', 'AIInteraction')
+# Environment variables - use actual table names
+CONTACTS_TABLE = os.environ.get('CONTACTS_TABLE', 'base-wecare-digital-ContactsTable')
+MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'base-wecare-digital-WhatsAppInboundTable')
+MEDIA_FILES_TABLE = os.environ.get('MEDIA_FILES_TABLE', 'base-wecare-digital-MediaFilesTable')
+SYSTEM_CONFIG_TABLE = os.environ.get('SYSTEM_CONFIG_TABLE', 'base-wecare-digital-SystemConfigTable')
+AI_INTERACTIONS_TABLE = os.environ.get('AI_INTERACTIONS_TABLE', 'base-wecare-digital-AIInteractionsTable')
 INBOUND_DLQ_URL = os.environ.get('INBOUND_DLQ_URL', '')
 MEDIA_BUCKET = os.environ.get('MEDIA_BUCKET', 'auth.wecare.digital')
 MEDIA_PREFIX = os.environ.get('MEDIA_INBOUND_PREFIX', 'whatsapp-media/whatsapp-media-incoming/')
@@ -799,14 +799,20 @@ def _send_read_receipt(whatsapp_message_id: str, phone_number_id: str, request_i
 # ============================================================================
 
 def _is_ai_enabled() -> bool:
-    """Check if AI automation is enabled in SystemConfig."""
+    """
+    Check if AI automation is enabled in SystemConfig.
+    Returns False silently if table doesn't exist (AI not configured).
+    """
     try:
         config_table = dynamodb.Table(SYSTEM_CONFIG_TABLE)
         response = config_table.get_item(Key={'configKey': 'ai_automation_enabled'})
         item = response.get('Item', {})
         return item.get('configValue', 'false').lower() == 'true'
-    except Exception as e:
-        logger.warning(f"Failed to check AI config: {str(e)}")
+    except dynamodb.meta.client.exceptions.ResourceNotFoundException:
+        # SystemConfig table doesn't exist - AI not configured, this is expected
+        return False
+    except Exception:
+        # Any other error - silently disable AI (not critical for message processing)
         return False
 
 

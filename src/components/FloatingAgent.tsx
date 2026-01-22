@@ -3,7 +3,8 @@
  * WECARE.DIGITAL Admin Platform
  * 
  * AI-powered assistant for task automation
- * Uses Bedrock for intelligent responses
+ * Uses Bedrock AgentCore runtime for intelligent responses
+ * Runtime: base_bedrock_agentcore-1XHDxj2o3Q
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -16,7 +17,13 @@ interface ChatMessage {
   status?: 'sending' | 'sent' | 'error';
 }
 
+interface ConversationContext {
+  sessionId: string;
+  history: { role: string; content: string }[];
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
+const BEDROCK_AGENT_RUNTIME_ID = 'base_bedrock_agentcore-1XHDxj2o3Q';
 
 const FloatingAgent: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -24,12 +31,13 @@ const FloatingAgent: React.FC = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hi! I\'m your WECARE assistant. I can help you send messages, find contacts, check stats, and more. Just type what you need!',
+      content: 'Hi! I\'m your WECARE assistant powered by Bedrock AI. I can help you send messages, find contacts, check stats, and answer questions about your data. Just type what you need!',
       timestamp: new Date(),
     }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -180,16 +188,26 @@ const FloatingAgent: React.FC = () => {
           `Just type naturally!`;
       }
       
-      // AI fallback for general queries
-      const aiRes = await fetch(`${API_BASE}/ai/generate`, {
+      // AI fallback - use Bedrock AgentCore for intelligent responses
+      const conversationHistory = messages
+        .filter(m => m.role !== 'assistant' || m.content !== '...')
+        .slice(-10)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const aiRes = await fetch(`${API_BASE}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messageContent: text }),
+        body: JSON.stringify({ 
+          message: text,
+          sessionId: sessionId,
+          agentRuntimeId: BEDROCK_AGENT_RUNTIME_ID,
+          conversationHistory
+        }),
       });
       
       if (aiRes.ok) {
         const data = await aiRes.json();
-        return data.suggestedResponse || data.suggestion || 
+        return data.response || data.suggestedResponse || data.suggestion || 
           'I can help you send messages, find contacts, or check stats. Try "help" for examples.';
       }
       
