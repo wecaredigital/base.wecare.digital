@@ -9,8 +9,8 @@ All storage is consolidated to a single S3 bucket for simplicity.
 auth.wecare.digital/
 ├── download/                           # File downloads
 ├── upload/                             # File uploads
-├── reports/                            # Bulk job reports and exports
-│   └── .placeholder
+├── stream/                             # Bulk job reports and exports
+│   └── media/m/wecare-digital.ico      # Favicon
 ├── whatsapp-media/
 │   ├── whatsapp-media-incoming/        # Inbound media from customers
 │   │   └── {uuid}.jpg{whatsapp-media-id}.jpeg
@@ -28,7 +28,7 @@ auth.wecare.digital/
 | `wecare-inbound-whatsapp` | `MEDIA_BUCKET=auth.wecare.digital` | `whatsapp-media/whatsapp-media-incoming/` | Download inbound media |
 | `wecare-outbound-whatsapp` | `MEDIA_BUCKET=auth.wecare.digital` | `whatsapp-media/whatsapp-media-outgoing/` | Upload outbound media |
 | `wecare-messages-read` | `MEDIA_BUCKET=auth.wecare.digital` | `whatsapp-media/*` | Generate pre-signed URLs |
-| `wecare-bulk-worker` | `REPORT_BUCKET=auth.wecare.digital` | `reports/` | Export bulk job results |
+| `wecare-bulk-worker` | `REPORT_BUCKET=auth.wecare.digital` | `stream/` | Export bulk job results |
 
 ---
 
@@ -53,7 +53,7 @@ MEDIA_BUCKET: 'auth.wecare.digital'
 MEDIA_INBOUND_PREFIX: 'whatsapp-media/whatsapp-media-incoming/'
 MEDIA_OUTBOUND_PREFIX: 'whatsapp-media/whatsapp-media-outgoing/'
 REPORT_BUCKET: 'auth.wecare.digital'
-REPORT_PREFIX: 'reports/'
+REPORT_PREFIX: 'stream/'
 ```
 
 ---

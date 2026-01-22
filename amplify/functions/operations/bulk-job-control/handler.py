@@ -28,8 +28,8 @@ s3 = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 BULK_JOBS_TABLE = os.environ.get('BULK_JOBS_TABLE', 'BulkJobs')
 BULK_RECIPIENTS_TABLE = os.environ.get('BULK_RECIPIENTS_TABLE', 'BulkRecipients')
 BULK_QUEUE_URL = os.environ.get('BULK_QUEUE_URL', '')
-REPORT_BUCKET = os.environ.get('REPORT_BUCKET', 'stream.wecare.digital')
-REPORT_PREFIX = os.environ.get('REPORT_PREFIX', 'base-wecare-digital/reports/')
+REPORT_BUCKET = os.environ.get('REPORT_BUCKET', 'auth.wecare.digital')
+REPORT_PREFIX = os.environ.get('REPORT_PREFIX', 'stream/')
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:

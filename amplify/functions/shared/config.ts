@@ -78,7 +78,7 @@ export const S3_CONFIG = {
   MEDIA_INBOUND_PREFIX: 'whatsapp-media/whatsapp-media-incoming/',
   MEDIA_OUTBOUND_PREFIX: 'whatsapp-media/whatsapp-media-outgoing/',
   REPORT_BUCKET: 'auth.wecare.digital',
-  REPORT_PREFIX: 'reports/',
+  REPORT_PREFIX: 'stream/',
 };
 
 // SNS

@@ -8,7 +8,7 @@ import { defineStorage } from '@aws-amplify/backend';
  * Structure:
  * - whatsapp-media/whatsapp-media-incoming/: Inbound WhatsApp media
  * - whatsapp-media/whatsapp-media-outgoing/: Outbound WhatsApp media
- * - reports/: Bulk job reports and exports
+ * - stream/: Bulk job reports and exports
  */
 export const storage = defineStorage({
   name: 'wecare-media',
@@ -22,7 +22,7 @@ export const storage = defineStorage({
       allow.authenticated.to(['read', 'write']),
     ],
     // Reports folder
-    'reports/*': [
+    'stream/*': [
       allow.authenticated.to(['read', 'write']),
     ],
   }),

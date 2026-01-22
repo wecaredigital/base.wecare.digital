@@ -39,8 +39,8 @@ export default function App({ Component, pageProps }: AppProps) {
     <>
       <Head>
         <title>WECARE.DIGITAL</title>
-        <link rel="icon" href="https://d.wecare.digital/media/m/wecare-digital.ico" />
-        <link rel="shortcut icon" href="https://d.wecare.digital/media/m/wecare-digital.ico" />
+        <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
+        <link rel="shortcut icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
       </Head>
       <Authenticator
