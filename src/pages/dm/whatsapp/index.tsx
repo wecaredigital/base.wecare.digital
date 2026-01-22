@@ -24,6 +24,7 @@ interface Message {
   contactId: string;
   whatsappMessageId?: string | null;
   mediaUrl?: string | null;
+  messageType?: string | null;  // image, video, audio, document, sticker, text
   receivingPhone?: string | null;
   awsPhoneNumberId?: string | null;
   senderName?: string | null;
@@ -136,6 +137,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
         contactId: m.contactId,
         whatsappMessageId: m.whatsappMessageId,
         mediaUrl: m.mediaUrl,  // Use pre-signed URL from API
+        messageType: m.messageType,  // image, video, audio, document, sticker, text
         receivingPhone: m.receivingPhone,
         awsPhoneNumberId: m.awsPhoneNumberId,
         senderName: m.senderName,  // Sender's WhatsApp profile name
@@ -415,6 +417,50 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
+  // Helper to detect media type from messageType, content, or URL
+  const getMediaType = (msg: Message): 'image' | 'video' | 'audio' | 'document' | 'sticker' | null => {
+    if (!msg.mediaUrl) return null;
+    
+    // First check messageType field from API
+    const msgType = msg.messageType?.toLowerCase();
+    if (msgType === 'image') return 'image';
+    if (msgType === 'video') return 'video';
+    if (msgType === 'audio' || msgType === 'voice') return 'audio';
+    if (msgType === 'document') return 'document';
+    if (msgType === 'sticker') return 'sticker';
+    
+    // Fallback: check content text
+    const content = (msg.content || '').toLowerCase();
+    if (content.includes('image') || content.includes('photo')) return 'image';
+    if (content.includes('video')) return 'video';
+    if (content.includes('audio') || content.includes('voice') || content.includes('ptt')) return 'audio';
+    if (content.includes('document') || content.includes('file')) return 'document';
+    if (content.includes('sticker')) return 'sticker';
+    
+    // Fallback: check URL extension
+    const url = msg.mediaUrl.toLowerCase();
+    if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif')) return 'image';
+    if (url.includes('.webp')) return 'sticker';
+    if (url.includes('.mp4') || url.includes('.3gp') || url.includes('.mov')) return 'video';
+    if (url.includes('.mp3') || url.includes('.ogg') || url.includes('.aac') || url.includes('.amr') || url.includes('.m4a') || url.includes('.opus')) return 'audio';
+    if (url.includes('.pdf') || url.includes('.doc') || url.includes('.xls') || url.includes('.ppt') || url.includes('.txt')) return 'document';
+    
+    // Default to document for unknown types
+    return 'document';
+  };
+
+  // Get icon for media type
+  const getMediaIcon = (type: string | null): string => {
+    switch (type) {
+      case 'image': return '🖼️';
+      case 'video': return '🎬';
+      case 'audio': return '🎵';
+      case 'sticker': return '😀';
+      case 'document': return '📄';
+      default: return '📎';
+    }
+  };
+
   return (
     <Layout user={user} onSignOut={signOut}>
       <Toast toasts={toast.toasts} onRemove={toast.removeToast} />
@@ -578,50 +624,67 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                         )}
                         {msg.mediaUrl && (
                           <div className="message-media-container">
-                            {msg.mediaUrl && (msg.content?.toLowerCase().includes('image') || msg.content?.toLowerCase().includes('.jpg') || msg.content?.toLowerCase().includes('.png') || msg.content?.toLowerCase().includes('.jpeg') || msg.content?.toLowerCase().includes('.webp') || msg.mediaUrl?.includes('.jpg') || msg.mediaUrl?.includes('.png') || msg.mediaUrl?.includes('.jpeg')) ? (
-                              <a href={msg.mediaUrl} target="_blank" rel="noopener noreferrer">
-                                <img 
-                                  src={msg.mediaUrl} 
-                                  alt="Image" 
-                                  className="message-media message-image"
-                                  onError={(e) => {
-                                    console.error('Image load error:', msg.mediaUrl);
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                  }}
-                                />
-                              </a>
-                            ) : msg.mediaUrl && (msg.content?.toLowerCase().includes('video') || msg.content?.toLowerCase().includes('.mp4') || msg.mediaUrl?.includes('.mp4') || msg.mediaUrl?.includes('.3gp')) ? (
-                              <video 
-                                src={msg.mediaUrl} 
-                                controls 
-                                className="message-media message-video"
-                                onError={(e) => {
-                                  console.error('Video load error:', msg.mediaUrl);
-                                  (e.target as HTMLVideoElement).style.display = 'none';
-                                }}
-                              />
-                            ) : msg.mediaUrl && (msg.content?.toLowerCase().includes('audio') || msg.content?.toLowerCase().includes('.mp3') || msg.content?.toLowerCase().includes('.ogg') || msg.mediaUrl?.includes('.mp3') || msg.mediaUrl?.includes('.ogg') || msg.mediaUrl?.includes('.aac')) ? (
-                              <audio 
-                                src={msg.mediaUrl} 
-                                controls 
-                                className="message-media message-audio"
-                                onError={(e) => {
-                                  console.error('Audio load error:', msg.mediaUrl);
-                                  (e.target as HTMLAudioElement).style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <div className="message-media message-document">
-                                <a 
-                                  href={msg.mediaUrl} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="document-link"
-                                >
-                                  📄 View/Download Document
-                                </a>
-                              </div>
-                            )}
+                            {(() => {
+                              const mediaType = getMediaType(msg);
+                              
+                              if (mediaType === 'image' || mediaType === 'sticker') {
+                                return (
+                                  <a href={msg.mediaUrl} target="_blank" rel="noopener noreferrer">
+                                    <img 
+                                      src={msg.mediaUrl} 
+                                      alt={mediaType === 'sticker' ? 'Sticker' : 'Image'} 
+                                      className={`message-media ${mediaType === 'sticker' ? 'message-sticker' : 'message-image'}`}
+                                      onError={(e) => {
+                                        console.error('Image load error:', msg.mediaUrl);
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                      }}
+                                    />
+                                  </a>
+                                );
+                              }
+                              
+                              if (mediaType === 'video') {
+                                return (
+                                  <video 
+                                    src={msg.mediaUrl} 
+                                    controls 
+                                    className="message-media message-video"
+                                    onError={(e) => {
+                                      console.error('Video load error:', msg.mediaUrl);
+                                      (e.target as HTMLVideoElement).style.display = 'none';
+                                    }}
+                                  />
+                                );
+                              }
+                              
+                              if (mediaType === 'audio') {
+                                return (
+                                  <audio 
+                                    src={msg.mediaUrl} 
+                                    controls 
+                                    className="message-media message-audio"
+                                    onError={(e) => {
+                                      console.error('Audio load error:', msg.mediaUrl);
+                                      (e.target as HTMLAudioElement).style.display = 'none';
+                                    }}
+                                  />
+                                );
+                              }
+                              
+                              // Document or unknown type
+                              return (
+                                <div className="message-media message-document">
+                                  <a 
+                                    href={msg.mediaUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="document-link"
+                                  >
+                                    {getMediaIcon(mediaType)} View/Download File
+                                  </a>
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                         <div className="message-content">{msg.content}</div>
@@ -652,8 +715,9 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                               rel="noopener noreferrer"
                               className="media-download-btn"
                               title="Open media in new tab"
+                              download
                             >
-                              🔗
+                              ⬇️
                             </a>
                           )}
                         </div>

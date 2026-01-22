@@ -971,6 +971,12 @@ body {
   width: 250px;
 }
 
+.message-sticker {
+  max-width: 150px;
+  max-height: 150px;
+  background: transparent;
+}
+
 .message-document {
   background: #f0f2f5;
   padding: 12px;
