@@ -68,6 +68,8 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [contactsPage, setContactsPage] = useState(1);
+  const CONTACTS_PER_PAGE = 20;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -188,6 +190,18 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.phone.includes(searchQuery)
   );
+
+  // Pagination for contacts
+  const totalContactPages = Math.ceil(filteredContacts.length / CONTACTS_PER_PAGE);
+  const paginatedContacts = filteredContacts.slice(
+    (contactsPage - 1) * CONTACTS_PER_PAGE,
+    contactsPage * CONTACTS_PER_PAGE
+  );
+
+  // Reset page when search changes
+  useEffect(() => {
+    setContactsPage(1);
+  }, [searchQuery]);
 
   const handleSend = async () => {
     if (!selectedContact || (!messageText.trim() && !mediaFile) || sending) return;
@@ -322,12 +336,12 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
   };
 
   const handleDeleteContact = async (contact: Contact) => {
-    if (!confirm(`Delete contact "${contact.name}"? This will also remove all messages.`)) return;
+    if (!confirm(`Delete contact "${contact.name}"?\n\nNote: Messages will remain in the database.`)) return;
     setDeleting(contact.id);
     try {
       const success = await api.deleteContact(contact.id);
       if (success) {
-        toast.success('Contact deleted');
+        toast.success('Contact deleted (messages preserved)');
         setSelectedContact(null);
         await loadData();
       } else {
@@ -335,6 +349,49 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
       }
     } catch (err) {
       toast.error('Delete error occurred');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleClearAllMessages = async () => {
+    if (!selectedContact) return;
+    const contactMessages = filteredMessages;
+    if (contactMessages.length === 0) {
+      toast.error('No messages to clear');
+      return;
+    }
+    if (!confirm(`Clear all ${contactMessages.length} messages for "${selectedContact.name}"?\n\nThis will delete all messages but keep the contact.`)) return;
+    
+    setDeleting('clearing');
+    try {
+      let deleted = 0;
+      let failed = 0;
+      
+      // Delete messages in batches to avoid overwhelming the API
+      for (const msg of contactMessages) {
+        try {
+          const direction = msg.direction === 'inbound' ? 'INBOUND' : 'OUTBOUND';
+          const success = await api.deleteMessage(msg.id, direction);
+          if (success) {
+            deleted++;
+          } else {
+            failed++;
+          }
+        } catch (e) {
+          failed++;
+          console.error('Failed to delete message:', msg.id, e);
+        }
+      }
+      
+      if (deleted > 0) {
+        toast.success(`Cleared ${deleted} messages${failed > 0 ? ` (${failed} failed)` : ''}`);
+      } else {
+        toast.error('Failed to clear messages');
+      }
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to clear messages');
     } finally {
       setDeleting(null);
     }
@@ -377,7 +434,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
           </div>
           
           <div className="contacts-list">
-            {filteredContacts.map(contact => {
+            {paginatedContacts.map(contact => {
               const wabaInfo = getWabaInfo(contact.lastWabaId);
               return (
                 <div
@@ -427,6 +484,25 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                 {searchQuery ? 'No contacts found' : 'No WhatsApp conversations yet'}
               </div>
             )}
+
+            {/* Pagination Controls */}
+            {totalContactPages > 1 && (
+              <div className="contacts-pagination">
+                <button 
+                  onClick={() => setContactsPage(p => Math.max(1, p - 1))}
+                  disabled={contactsPage === 1}
+                >
+                  ←
+                </button>
+                <span>{contactsPage} / {totalContactPages}</span>
+                <button 
+                  onClick={() => setContactsPage(p => Math.min(totalContactPages, p + 1))}
+                  disabled={contactsPage === totalContactPages}
+                >
+                  →
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -458,6 +534,14 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                       </option>
                     ))}
                   </select>
+                  <button 
+                    className="clear-chat-btn"
+                    onClick={handleClearAllMessages}
+                    disabled={deleting === 'clearing' || filteredMessages.length === 0}
+                    title="Clear all messages for this contact"
+                  >
+                    {deleting === 'clearing' ? '...' : '🗑️'}
+                  </button>
                 </div>
               </div>
 

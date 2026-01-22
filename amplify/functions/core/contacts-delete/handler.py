@@ -47,7 +47,22 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         table = dynamodb.Table(CONTACTS_TABLE)
         
         try:
-            # First check if contact exists
+            # First check if contact exists - try both 'id' and scan by contactId
+            get_response = table.get_item(Key={'id': contact_id})
+            item = get_response.get('Item')
+            
+            # If not found by id, try scanning by contactId field
+            if not item:
+                scan_response = table.scan(
+                    FilterExpression='contactId = :cid',
+                    ExpressionAttributeValues={':cid': contact_id},
+                    Limit=1
+                )
+                items = scan_response.get('Items', [])
+                if items:
+                    item = items[0]
+                    contact_id = item.get('id', contact_id)  # Use the actual id
+            
             get_response = table.get_item(Key={'id': contact_id})
             item = get_response.get('Item')
             
