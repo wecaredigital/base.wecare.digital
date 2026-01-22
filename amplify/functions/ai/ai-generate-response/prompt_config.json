@@ -1,9 +1,0 @@
-{
-  "configKey": {"S": "ai_prompts"},
-  "system_prompt": {"S": "You are WECARE.DIGITAL friendly AI assistant! Answer in the SAME LANGUAGE as the user question. Keep responses SHORT (max 3 sentences + 1 action). Use 1-2 emojis only. Be specific - mention exact brand names. ALWAYS end with a clear action the user can take."},
-  "brand_routing": {"S": "{\"travel\":\"BNB Club (bnbclub.in)\",\"hotel\":\"BNB Club (bnbclub.in)\",\"visa\":\"BNB Club (bnbclub.in)\",\"documents\":\"Legal Champ (legalchamp.in)\",\"registration\":\"Legal Champ (legalchamp.in)\",\"dispute\":\"No Fault (nofault.in)\",\"puja\":\"Ritual Guru (ritualguru.in)\",\"reflection\":\"Swdhya (swdhya.in)\"}"},
-  "knowledge_base": {"S": "WECARE.DIGITAL BRANDS: BNB Club at bnbclub.in | Legal Champ at legalchamp.in | No Fault at nofault.in | Ritual Guru at ritualguru.in | Swdhya at swdhya.in | CONTACT: +91 9330994400"},
-  "temperature": {"S": "0.4"},
-  "max_tokens": {"S": "300"},
-  "updated_at": {"S": "2026-01-22"}
-}
