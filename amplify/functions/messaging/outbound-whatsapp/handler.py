@@ -453,40 +453,33 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
     Supports all AWS Social Messaging media types per documentation.
     Requirements 5.5, 5.6, 5.7
     
-    Returns: (s3_key, whatsapp_media_id, filename)
+    Returns: (s3_key, whatsapp_media_id, display_filename)
     """
-    import subprocess
-    import json as json_module
+    import base64
     
     try:
         # Generate S3 key with proper extension
         extension = _get_media_extension(media_type)
         
-        # Determine filename to use
-        # Priority: provided filename > generate from message_id
-        sanitized_filename = None
-        if filename and filename.strip() and filename not in ['undefined', 'null', 'File']:
-            # Use provided filename - sanitize it
-            sanitized_filename = _sanitize_filename(filename)
-            if not sanitized_filename or sanitized_filename == 'document':
-                logger.warning(json.dumps({
-                    'event': 'filename_sanitization_resulted_in_default',
-                    'originalFilename': filename,
-                    'sanitizedFilename': sanitized_filename,
-                    'messageId': message_id
-                }))
-            s3_key = f"{MEDIA_PREFIX}{sanitized_filename}"
-        else:
-            # Generate filename from message_id with proper extension
-            sanitized_filename = f"{message_id}{extension}"
-            s3_key = f"{MEDIA_PREFIX}{sanitized_filename}"
+        # S3 key uses message_id for uniqueness (short, predictable)
+        # Display filename is sanitized original name for WhatsApp document messages
+        s3_key = f"{MEDIA_PREFIX}{message_id}{extension}"
+        
+        # Sanitize display filename for WhatsApp (max 240 chars)
+        display_filename = None
+        if filename and filename.strip() and filename not in ['undefined', 'null', 'File', 'Blob']:
+            display_filename = _sanitize_filename(filename, max_length=240)
+        
+        # If no valid filename, generate one
+        if not display_filename or display_filename == 'document':
+            display_filename = f"file_{message_id[:8]}{extension}"
         
         logger.info(json.dumps({
             'event': 'media_upload_start',
             'messageId': message_id,
             'mediaType': media_type,
             'providedFilename': filename,
-            'sanitizedFilename': sanitized_filename,
+            'displayFilename': display_filename,
             's3Key': s3_key,
             'requestId': request_id
         }))
@@ -513,7 +506,6 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
                 logger.warning(f"Could not validate S3 file size: {str(e)}")
         else:
             # Assume base64 encoded - decode and upload
-            import base64
             try:
                 file_content = base64.b64decode(media_file)
             except Exception as e:
@@ -537,7 +529,15 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
                 }))
                 return None, None, None
             
-            # Upload to S3
+            logger.info(json.dumps({
+                'event': 'media_uploading_to_s3',
+                's3Key': s3_key,
+                'fileSize': file_size,
+                'mediaType': media_type,
+                'requestId': request_id
+            }))
+            
+            # Upload to S3 using streaming for large files
             s3.put_object(
                 Bucket=MEDIA_BUCKET,
                 Key=s3_key,
@@ -549,7 +549,7 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
             'event': 'media_uploaded_to_s3',
             's3Key': s3_key,
             'mediaType': media_type,
-            'filename': sanitized_filename,
+            'displayFilename': display_filename,
             'requestId': request_id
         }))
         
@@ -569,7 +569,7 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
                 logger.error(json.dumps({
                     'event': 'media_registration_no_id',
                     's3Key': s3_key,
-                    'response': response,
+                    'response': str(response),
                     'requestId': request_id
                 }))
                 return None, None, None
@@ -579,7 +579,7 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
                 's3Key': s3_key,
                 'mediaId': whatsapp_media_id,
                 'mediaType': media_type,
-                'filename': sanitized_filename,
+                'displayFilename': display_filename,
                 'phoneNumberId': phone_number_id,
                 'requestId': request_id
             }))
@@ -601,11 +601,11 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
             's3Key': s3_key,
             'mediaId': whatsapp_media_id,
             'mediaType': media_type,
-            'filename': sanitized_filename,
+            'displayFilename': display_filename,
             'requestId': request_id
         }))
         
-        return s3_key, whatsapp_media_id, sanitized_filename
+        return s3_key, whatsapp_media_id, display_filename
         
     except Exception as e:
         logger.error(json.dumps({
