@@ -461,18 +461,18 @@ def _upload_media(media_file: str, media_type: str, message_id: str, phone_numbe
         # Generate S3 key with proper extension
         extension = _get_media_extension(media_type)
         
-        # S3 key uses message_id for uniqueness (short, predictable)
-        # Display filename is sanitized original name for WhatsApp document messages
-        s3_key = f"{MEDIA_PREFIX}{message_id}{extension}"
+        # S3 key: short format wecare-{8char_uuid}.ext (max ~50 chars total)
+        short_id = message_id[:8]
+        s3_key = f"{MEDIA_PREFIX}wecare-{short_id}{extension}"
         
-        # Sanitize display filename for WhatsApp (max 240 chars)
+        # Display filename for WhatsApp (max 240 chars) - use original name if valid
         display_filename = None
         if filename and filename.strip() and filename not in ['undefined', 'null', 'File', 'Blob']:
             display_filename = _sanitize_filename(filename, max_length=240)
         
         # If no valid filename, generate one
         if not display_filename or display_filename == 'document':
-            display_filename = f"file_{message_id[:8]}{extension}"
+            display_filename = f"wecare-{short_id}{extension}"
         
         logger.info(json.dumps({
             'event': 'media_upload_start',
