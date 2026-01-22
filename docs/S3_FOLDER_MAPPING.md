@@ -1,53 +1,107 @@
 # S3 Bucket and Folder Mapping
 
-## Primary Media Bucket: `auth.wecare.digital`
+## Overview
 
-This bucket stores all WhatsApp media files (images, videos, audio, documents).
+The WECARE.DIGITAL platform uses **2 S3 buckets** for different purposes:
 
-### Folder Structure:
+| Bucket | Purpose | Status |
+|--------|---------|--------|
+| `auth.wecare.digital` | WhatsApp media files (images, videos, audio, documents) | ✅ ACTIVE |
+| `stream.wecare.digital` | Reports, Bedrock KB documents | ✅ ACTIVE |
+
+---
+
+## Bucket 1: `auth.wecare.digital` (WhatsApp Media)
+
+**Purpose**: Stores all WhatsApp media files for inbound and outbound messages.
+
+### Current Contents (as of 2026-01-22):
 ```
 auth.wecare.digital/
-├── whatsapp-media/
-│   ├── whatsapp-media-incoming/    # Inbound media from customers
-│   │   └── {message-uuid}.{ext}    # Files may have WhatsApp media ID appended
-│   └── whatsapp-media-outgoing/    # Outbound media sent to customers
-│       └── {message-uuid}.{ext}
+├── download/                           # Empty placeholder
+├── upload/                             # Empty placeholder
+├── error.html                          # Error page
+└── whatsapp-media/
+    ├── whatsapp-media-incoming/        # 15 media files (inbound from customers)
+    │   └── {uuid}.jpg{whatsapp-media-id}.jpeg
+    └── whatsapp-media-outgoing/        # Multiple media files (outbound to customers)
+        └── {uuid}.{ext}
 ```
 
 ### File Naming Convention:
-- **Stored in DB**: `whatsapp-media/whatsapp-media-incoming/{uuid}.jpg`
-- **Actual S3 Key**: `whatsapp-media/whatsapp-media-incoming/{uuid}.jpg{whatsapp-media-id}.jpeg`
+- **Inbound files**: AWS EUM Social API appends WhatsApp media ID to filename
+  - Stored in DB: `whatsapp-media/whatsapp-media-incoming/{uuid}.jpg`
+  - Actual S3 key: `whatsapp-media/whatsapp-media-incoming/{uuid}.jpg{whatsapp-media-id}.jpeg`
+- **Outbound files**: Standard naming with UUID
+  - S3 key: `whatsapp-media/whatsapp-media-outgoing/{uuid}.{ext}`
 
-The AWS EUM Social API appends the WhatsApp media ID to the filename when downloading media.
-The `messages-read` Lambda searches S3 with prefix to find the actual file.
+### Lambda Functions Using This Bucket:
 
-## Secondary Bucket: `stream.wecare.digital`
+| Function | Environment Variable | Operation |
+|----------|---------------------|-----------|
+| `wecare-inbound-whatsapp` | `MEDIA_BUCKET=auth.wecare.digital` | Download inbound media |
+| `wecare-outbound-whatsapp` | `MEDIA_BUCKET=auth.wecare.digital` | Upload outbound media |
+| `wecare-messages-read` | `MEDIA_BUCKET=auth.wecare.digital` | Generate pre-signed URLs |
 
-Used for reports and other non-media files.
+---
 
-### Folder Structure:
+## Bucket 2: `stream.wecare.digital` (Reports & AI)
+
+**Purpose**: Stores generated reports and Bedrock Knowledge Base documents.
+
+### Current Contents (as of 2026-01-22):
 ```
 stream.wecare.digital/
+├── error.html                          # Error page
 └── base-wecare-digital/
-    └── reports/                    # Generated reports
+    └── reports/                        # Generated reports
+        └── .placeholder                # Placeholder file
 ```
 
-## Lambda Functions Using S3
+### Planned Usage:
+- Bulk job reports (CSV exports)
+- AI Knowledge Base documents
+- System logs and analytics
 
-| Function | Bucket | Prefix | Operation |
-|----------|--------|--------|-----------|
-| `inbound-whatsapp-handler` | auth.wecare.digital | whatsapp-media/whatsapp-media-incoming/ | Write (download media) |
-| `outbound-whatsapp` | auth.wecare.digital | whatsapp-media/whatsapp-media-outgoing/ | Write (upload media) |
-| `messages-read` | auth.wecare.digital | whatsapp-media/* | Read (generate pre-signed URLs) |
+### Lambda Functions Using This Bucket:
+- `wecare-bulk-worker` (future) - Export bulk job results
+- `wecare-ai-query-kb` (future) - Bedrock KB document storage
 
-## Environment Variables
+---
 
-```typescript
-// Lambda environment variables
-MEDIA_BUCKET: 'auth.wecare.digital'
-MEDIA_INBOUND_PREFIX: 'whatsapp-media/whatsapp-media-incoming/'
-MEDIA_OUTBOUND_PREFIX: 'whatsapp-media/whatsapp-media-outgoing/'
+## Lambda Environment Variables (Verified)
+
+### wecare-messages-read
+```json
+{
+  "MEDIA_BUCKET": "auth.wecare.digital",
+  "INBOUND_TABLE": "base-wecare-digital-WhatsAppInboundTable",
+  "OUTBOUND_TABLE": "base-wecare-digital-WhatsAppOutboundTable",
+  "LOG_LEVEL": "INFO"
+}
 ```
+
+### wecare-inbound-whatsapp
+```json
+{
+  "MEDIA_BUCKET": "auth.wecare.digital",
+  "CONTACTS_TABLE": "base-wecare-digital-ContactsTable",
+  "MESSAGES_TABLE": "base-wecare-digital-WhatsAppInboundTable",
+  "SEND_MODE": "LIVE"
+}
+```
+
+### wecare-outbound-whatsapp
+```json
+{
+  "MEDIA_BUCKET": "auth.wecare.digital",
+  "CONTACTS_TABLE": "base-wecare-digital-ContactsTable",
+  "MESSAGES_TABLE": "base-wecare-digital-WhatsAppOutboundTable",
+  "SEND_MODE": "LIVE"
+}
+```
+
+---
 
 ## IAM Permissions Required
 
@@ -62,34 +116,49 @@ MEDIA_OUTBOUND_PREFIX: 'whatsapp-media/whatsapp-media-outgoing/'
   ],
   "Resource": [
     "arn:aws:s3:::auth.wecare.digital",
-    "arn:aws:s3:::auth.wecare.digital/whatsapp-media/*"
+    "arn:aws:s3:::auth.wecare.digital/whatsapp-media/*",
+    "arn:aws:s3:::stream.wecare.digital",
+    "arn:aws:s3:::stream.wecare.digital/base-wecare-digital/*"
   ]
 }
 ```
 
+---
+
 ## DynamoDB Tables
 
-| Table | Purpose |
-|-------|---------|
-| `base-wecare-digital-WhatsAppInboundTable` | Inbound messages with s3Key |
-| `base-wecare-digital-WhatsAppOutboundTable` | Outbound messages with s3Key |
-| `base-wecare-digital-ContactsTable` | Contact information |
+| Table | Purpose | S3 Key Field |
+|-------|---------|--------------|
+| `base-wecare-digital-WhatsAppInboundTable` | Inbound messages | `s3Key` |
+| `base-wecare-digital-WhatsAppOutboundTable` | Outbound messages | `s3Key` |
+| `base-wecare-digital-ContactsTable` | Contact information | N/A |
+
+---
 
 ## Pre-signed URL Generation
 
-The `messages-read` Lambda:
-1. Reads messages from DynamoDB
-2. For each message with `s3Key`, searches S3 with prefix to find actual file
-3. Generates pre-signed URL with 1-hour expiry
-4. Returns `mediaUrl` in API response
+The `wecare-messages-read` Lambda:
+1. Reads messages from DynamoDB (both Inbound and Outbound tables)
+2. For each message with `s3Key`:
+   - Searches S3 with prefix to find actual file (handles WhatsApp media ID suffix)
+   - Generates pre-signed URL with 1-hour expiry
+   - Sets `ResponseContentDisposition: inline` for browser viewing
+3. Returns `mediaUrl` and `actualS3Key` in API response
+
+---
 
 ## Troubleshooting
 
 ### "NoSuchKey" Error
-If you see this error, the stored `s3Key` doesn't match the actual S3 file.
-The fix: `messages-read` now searches S3 with prefix to find the actual file.
+**Cause**: Stored `s3Key` doesn't match actual S3 file (WhatsApp media ID appended)
+**Fix**: `messages-read` Lambda now searches S3 with prefix to find actual file
 
 ### Media Not Displaying
-1. Check CloudWatch logs for `messages-read` Lambda
+1. Check CloudWatch logs: `aws logs tail /aws/lambda/wecare-messages-read --since 30m`
 2. Look for `s3_key_found` or `s3_key_not_found` events
-3. Verify the file exists in S3 with the expected prefix
+3. Verify file exists: `aws s3 ls s3://auth.wecare.digital/whatsapp-media/whatsapp-media-incoming/`
+
+### Verify Lambda Config
+```bash
+aws lambda get-function-configuration --function-name wecare-messages-read --query "Environment.Variables"
+```
