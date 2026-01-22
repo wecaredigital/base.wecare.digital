@@ -82,7 +82,8 @@ This document describes the AWS Bedrock resources configured for WECARE.DIGITAL 
 
 | Document | Status | Updated |
 |----------|--------|---------|
-| `wecare_bedrock_kb.md` | INDEXED | Jan 22, 2026 |
+| `wecare_bedrock_kb.md` | INDEXED | Jan 22, 2026 20:01 |
+| `wecare_bedrock_kb_qa.jsonl` | INDEXED | Jan 22, 2026 20:02 |
 
 ---
 
