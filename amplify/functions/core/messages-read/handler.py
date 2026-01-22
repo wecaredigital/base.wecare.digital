@@ -189,8 +189,10 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
         result['direction'] = result['direction'].upper()
     
     # Ensure sender name is included for inbound messages
-    if result.get('direction') == 'INBOUND' and 'senderName' not in result:
-        result['senderName'] = result.get('senderPhone', 'Unknown')
+    # Use senderName from DB, fall back to senderPhone, then 'Unknown'
+    if result.get('direction') == 'INBOUND':
+        if not result.get('senderName'):
+            result['senderName'] = result.get('senderPhone', 'Unknown')
     
     # Ensure messageType is included
     if 'messageType' not in result:

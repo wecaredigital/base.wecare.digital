@@ -114,16 +114,31 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 # Determine AWS phone number ID for this WABA
                 aws_phone_number_id = _get_aws_phone_number_id(display_phone_number, phone_number_id)
                 
+                # Extract contacts info (contains profile names)
+                # WhatsApp webhook format: contacts array has wa_id and profile.name
+                contacts_info = value.get('contacts', [])
+                contacts_map = {}
+                for contact_info in contacts_info:
+                    wa_id = contact_info.get('wa_id', '')
+                    profile_name = contact_info.get('profile', {}).get('name', '')
+                    if wa_id:
+                        contacts_map[wa_id] = profile_name
+                
                 # Process incoming messages
                 for message in value.get('messages', []):
                     try:
+                        # Get sender's profile name from contacts array
+                        sender_phone = message.get('from', '')
+                        sender_profile_name = contacts_map.get(sender_phone, '')
+                        
                         _process_message(
                             message=message,
                             metadata=metadata,
                             request_id=request_id,
                             receiving_phone=display_phone_number,
                             aws_phone_number_id=aws_phone_number_id,
-                            meta_waba_ids=meta_waba_ids
+                            meta_waba_ids=meta_waba_ids,
+                            sender_profile_name=sender_profile_name
                         )
                         processed_count += 1
                     except Exception as e:
@@ -200,7 +215,8 @@ def _process_message(
     request_id: str,
     receiving_phone: str,
     aws_phone_number_id: str,
-    meta_waba_ids: list
+    meta_waba_ids: list,
+    sender_profile_name: str = ''
 ) -> None:
     """
     Process a single inbound message.
@@ -211,9 +227,10 @@ def _process_message(
     msg_type = message.get('type', 'text')
     timestamp = int(message.get('timestamp', time.time()))
     
-    # Extract sender name from profile if available
-    sender_name = ''
-    if 'profile' in message:
+    # Use sender profile name from contacts array (passed in)
+    # Fall back to checking message.profile if not provided
+    sender_name = sender_profile_name
+    if not sender_name and 'profile' in message:
         sender_name = message.get('profile', {}).get('name', '')
     
     # Deduplicate using whatsappMessageId
