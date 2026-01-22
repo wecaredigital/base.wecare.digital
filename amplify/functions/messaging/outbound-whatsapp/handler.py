@@ -35,7 +35,7 @@ MESSAGES_TABLE = os.environ.get('MESSAGES_TABLE', 'Message')
 MEDIA_FILES_TABLE = os.environ.get('MEDIA_FILES_TABLE', 'MediaFile')
 RATE_LIMIT_TABLE = os.environ.get('RATE_LIMIT_TABLE', 'RateLimitTracker')
 MEDIA_BUCKET = os.environ.get('MEDIA_BUCKET', 'auth.wecare.digital')
-MEDIA_PREFIX = os.environ.get('MEDIA_OUTBOUND_PREFIX', 'media/')
+MEDIA_PREFIX = os.environ.get('MEDIA_OUTBOUND_PREFIX', 'whatsapp-media/whatsapp-media-outgoing/')
 
 # WhatsApp Phone Number IDs (Allowlist) - Requirement 3.2
 PHONE_NUMBER_ID_1 = os.environ.get('WHATSAPP_PHONE_NUMBER_ID_1', 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54')
@@ -73,6 +73,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         phone_number_id = body.get('phoneNumberId', PHONE_NUMBER_ID_1)
         media_file = body.get('mediaFile')  # S3 key or base64
         media_type = body.get('mediaType')  # image, video, audio, document
+        media_filename = body.get('mediaFileName')  # Original filename for documents
         is_template = body.get('isTemplate', False)
         template_name = body.get('templateName')
         template_params = body.get('templateParams', [])
@@ -126,7 +127,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Requirement 5.2: LIVE mode - call API
         return _handle_live_send(
             message_id, contact_id, recipient_phone, phone_number_id,
-            content, media_file, media_type, is_template, template_name,
+            content, media_file, media_type, media_filename, is_template, template_name,
             template_params, within_window, request_id
         )
         
@@ -301,7 +302,7 @@ def _handle_reaction_send(message_id: str, contact_id: str, recipient_phone: str
 
 def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
                       phone_number_id: str, content: str, media_file: Optional[str],
-                      media_type: Optional[str], is_template: bool, template_name: Optional[str],
+                      media_type: Optional[str], media_filename: Optional[str], is_template: bool, template_name: Optional[str],
                       template_params: list, within_window: bool, request_id: str) -> Dict[str, Any]:
     """
     Handle LIVE mode - call AWS EUM Social API.
@@ -314,9 +315,9 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         
         # Requirements 5.5, 5.6, 5.7: Handle media upload
         if media_file and media_type:
-            # Extract filename from media_file if it's a path
-            filename = None
-            if isinstance(media_file, str) and '/' in media_file:
+            # Use provided filename from frontend, or extract from path
+            filename = media_filename
+            if not filename and isinstance(media_file, str) and '/' in media_file:
                 filename = media_file.split('/')[-1]
             
             s3_key, whatsapp_media_id, stored_filename = _upload_media(media_file, media_type, message_id, phone_number_id, request_id, filename)
