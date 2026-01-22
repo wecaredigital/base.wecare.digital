@@ -2,7 +2,7 @@
 AI Generate Response Lambda Function
 
 Purpose: Generate AI response using Bedrock Agent with Knowledge Base
-Multi-language support handled by Bedrock Agent
+Language detection ensures responses match user's language
 Prompts managed in AWS Console - no code changes needed
 """
 
@@ -11,7 +11,8 @@ import json
 import logging
 import boto3
 import uuid
-from typing import Dict, Any
+import re
+from typing import Dict, Any, Tuple
 
 # Configure logging
 logger = logging.getLogger()
@@ -79,11 +80,19 @@ def _invoke_bedrock_agent(user_message: str, request_id: str) -> str:
         # Generate unique session ID for conversation
         session_id = str(uuid.uuid4())
         
+        # Detect user's language and create language-aware prompt
+        detected_lang, lang_name = _detect_language(user_message)
+        
+        # Prepend language instruction to ensure consistent response language
+        language_instruction = f"[RESPOND IN {lang_name.upper()} ONLY] "
+        enhanced_message = language_instruction + user_message
+        
         logger.info(json.dumps({
             'event': 'bedrock_agent_invoke',
             'agentId': BEDROCK_AGENT_ID,
             'sessionId': session_id,
             'messageLength': len(user_message),
+            'detectedLanguage': lang_name,
             'requestId': request_id
         }))
         
@@ -92,7 +101,7 @@ def _invoke_bedrock_agent(user_message: str, request_id: str) -> str:
             agentId=BEDROCK_AGENT_ID,
             agentAliasId=BEDROCK_AGENT_ALIAS,
             sessionId=session_id,
-            inputText=user_message,
+            inputText=enhanced_message,
             enableTrace=False
         )
         
@@ -108,12 +117,13 @@ def _invoke_bedrock_agent(user_message: str, request_id: str) -> str:
             logger.info(json.dumps({
                 'event': 'bedrock_agent_success',
                 'responseLength': len(completion),
+                'detectedLanguage': lang_name,
                 'requestId': request_id
             }))
             return completion.strip()
         
         # Fallback to Knowledge Base direct query if agent returns empty
-        return _query_knowledge_base(user_message, request_id)
+        return _query_knowledge_base(user_message, detected_lang, lang_name, request_id)
         
     except Exception as e:
         logger.error(json.dumps({
@@ -122,31 +132,76 @@ def _invoke_bedrock_agent(user_message: str, request_id: str) -> str:
             'requestId': request_id
         }))
         # Fallback to Knowledge Base direct query
-        return _query_knowledge_base(user_message, request_id)
+        detected_lang, lang_name = _detect_language(user_message)
+        return _query_knowledge_base(user_message, detected_lang, lang_name, request_id)
 
 
-def _query_knowledge_base(user_message: str, request_id: str) -> str:
-    """Direct Knowledge Base query as fallback."""
+def _detect_language(text: str) -> Tuple[str, str]:
+    """
+    Detect language from text using character patterns.
+    Returns (language_code, language_name) tuple.
+    """
+    if not text:
+        return ('en', 'English')
+    
+    # Hindi/Devanagari script detection (U+0900 to U+097F)
+    hindi_pattern = re.compile(r'[\u0900-\u097F]')
+    if hindi_pattern.search(text):
+        return ('hi', 'Hindi')
+    
+    # Bengali script detection (U+0980 to U+09FF)
+    bengali_pattern = re.compile(r'[\u0980-\u09FF]')
+    if bengali_pattern.search(text):
+        return ('bn', 'Bengali')
+    
+    # Tamil script detection (U+0B80 to U+0BFF)
+    tamil_pattern = re.compile(r'[\u0B80-\u0BFF]')
+    if tamil_pattern.search(text):
+        return ('ta', 'Tamil')
+    
+    # Telugu script detection (U+0C00 to U+0C7F)
+    telugu_pattern = re.compile(r'[\u0C00-\u0C7F]')
+    if telugu_pattern.search(text):
+        return ('te', 'Telugu')
+    
+    # Gujarati script detection (U+0A80 to U+0AFF)
+    gujarati_pattern = re.compile(r'[\u0A80-\u0AFF]')
+    if gujarati_pattern.search(text):
+        return ('gu', 'Gujarati')
+    
+    # Marathi uses Devanagari, check for common Marathi words
+    marathi_words = ['आहे', 'काय', 'मला', 'तुम्ही', 'आम्ही']
+    if any(word in text for word in marathi_words):
+        return ('mr', 'Marathi')
+    
+    # Hinglish detection (Hindi words in Latin script)
+    hinglish_words = ['kya', 'hai', 'kaise', 'mujhe', 'aap', 'hum', 'tum', 'kab', 'kahan', 'kyun', 'nahi', 'haan', 'theek', 'accha', 'bahut', 'acha']
+    text_lower = text.lower()
+    hinglish_count = sum(1 for word in hinglish_words if word in text_lower)
+    if hinglish_count >= 2:
+        return ('hi-Latn', 'Hinglish')
+    
+    # Default to English
+    return ('en', 'English')
+
+
+def _query_knowledge_base(user_message: str, detected_lang: str, lang_name: str, request_id: str) -> str:
+    """Direct Knowledge Base query as fallback with language-aware prompt."""
     try:
         logger.info(json.dumps({
             'event': 'kb_query_start',
             'kbId': BEDROCK_KB_ID,
+            'detectedLanguage': lang_name,
             'requestId': request_id
         }))
         
-        response = bedrock_agent_runtime.retrieve_and_generate(
-            input={'text': user_message},
-            retrieveAndGenerateConfiguration={
-                'type': 'KNOWLEDGE_BASE',
-                'knowledgeBaseConfiguration': {
-                    'knowledgeBaseId': BEDROCK_KB_ID,
-                    'modelArn': f'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0',
-                    'generationConfiguration': {
-                        'promptTemplate': {
-                            'textPromptTemplate': """You are WECARE.DIGITAL's friendly AI assistant.
+        # Language-specific prompt template
+        prompt_template = f"""You are WECARE.DIGITAL's friendly AI assistant.
+
+CRITICAL: You MUST respond ONLY in {lang_name}. Do not mix languages.
 
 INSTRUCTIONS:
-- Answer in the SAME LANGUAGE as the user's question
+- Respond ONLY in {lang_name} language
 - Keep responses SHORT (2-3 sentences max)
 - Use 1-2 emojis for warmth
 - Always mention the specific brand name
@@ -164,9 +219,20 @@ CONTACT: +91 9330994400 | one@wecare.digital
 CONTEXT FROM KNOWLEDGE BASE:
 $search_results$
 
-USER QUESTION: $query$
+USER QUESTION ({lang_name}): $query$
 
-Respond helpfully and end with a specific action."""
+Respond helpfully in {lang_name} and end with a specific action."""
+        
+        response = bedrock_agent_runtime.retrieve_and_generate(
+            input={'text': user_message},
+            retrieveAndGenerateConfiguration={
+                'type': 'KNOWLEDGE_BASE',
+                'knowledgeBaseConfiguration': {
+                    'knowledgeBaseId': BEDROCK_KB_ID,
+                    'modelArn': f'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0',
+                    'generationConfiguration': {
+                        'promptTemplate': {
+                            'textPromptTemplate': prompt_template
                         }
                     }
                 }
@@ -179,11 +245,12 @@ Respond helpfully and end with a specific action."""
             logger.info(json.dumps({
                 'event': 'kb_query_success',
                 'responseLength': len(output),
+                'detectedLanguage': lang_name,
                 'requestId': request_id
             }))
             return output.strip()
         
-        return _get_fallback_response()
+        return _get_fallback_response(lang_name)
         
     except Exception as e:
         logger.error(json.dumps({
@@ -191,9 +258,19 @@ Respond helpfully and end with a specific action."""
             'error': str(e),
             'requestId': request_id
         }))
-        return _get_fallback_response()
+        return _get_fallback_response(lang_name)
 
 
-def _get_fallback_response() -> str:
-    """Return a friendly fallback response."""
-    return "Hi! 👋 Thanks for reaching out to WECARE.DIGITAL. For quick help, call us at +91 9330994400 or email one@wecare.digital. We're here to help! 😊"
+def _get_fallback_response(lang_name: str = 'English') -> str:
+    """Return a friendly fallback response in the detected language."""
+    fallback_responses = {
+        'Hindi': "नमस्ते! 👋 WECARE.DIGITAL से संपर्क करने के लिए धन्यवाद। त्वरित सहायता के लिए +91 9330994400 पर कॉल करें या one@wecare.digital पर ईमेल करें। 😊",
+        'Bengali': "নমস্কার! 👋 WECARE.DIGITAL-এ যোগাযোগ করার জন্য ধন্যবাদ। দ্রুত সাহায্যের জন্য +91 9330994400-এ কল করুন বা one@wecare.digital-এ ইমেল করুন। 😊",
+        'Hinglish': "Hi! 👋 WECARE.DIGITAL se contact karne ke liye thanks. Quick help ke liye +91 9330994400 pe call karein ya one@wecare.digital pe email karein. 😊",
+        'Tamil': "வணக்கம்! 👋 WECARE.DIGITAL-ஐ தொடர்பு கொண்டதற்கு நன்றி। விரைவான உதவிக்கு +91 9330994400 அழைக்கவும் அல்லது one@wecare.digital மின்னஞ்சல் அனுப்பவும். 😊",
+        'Telugu': "నమస్కారం! 👋 WECARE.DIGITAL ని సంప్రదించినందుకు ధన్యవాదాలు। త్వరిత సహాయం కోసం +91 9330994400 కు కాల్ చేయండి లేదా one@wecare.digital కు ఇమెయిల్ చేయండి. 😊",
+        'Gujarati': "નમસ્તે! 👋 WECARE.DIGITAL નો સંપર્ક કરવા બદલ આભાર. ઝડપી મદદ માટે +91 9330994400 પર કૉલ કરો અથવા one@wecare.digital પર ઇમેઇલ કરો. 😊",
+        'Marathi': "नमस्कार! 👋 WECARE.DIGITAL शी संपर्क साधल्याबद्दल धन्यवाद। जलद मदतीसाठी +91 9330994400 वर कॉल करा किंवा one@wecare.digital वर ईमेल करा. 😊",
+    }
+    
+    return fallback_responses.get(lang_name, "Hi! 👋 Thanks for reaching out to WECARE.DIGITAL. For quick help, call us at +91 9330994400 or email one@wecare.digital. We're here to help! 😊")
