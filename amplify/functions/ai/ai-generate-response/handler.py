@@ -1,37 +1,40 @@
 """
 AI Generate Response Lambda Function
 
-Purpose: Generate AI response using Bedrock based on KB context
-Multi-language support for Indian languages
-Uses Amazon Nova Micro for fast, friendly responses
+Purpose: Generate AI response using Bedrock Agent with Knowledge Base
+Multi-language support handled by Bedrock Agent
+Prompts managed in AWS Console - no code changes needed
 """
 
 import os
 import json
 import logging
 import boto3
-from typing import Dict, Any, Optional
+import uuid
+from typing import Dict, Any
 
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 # AWS clients
-bedrock_runtime = boto3.client('bedrock-runtime', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+bedrock_agent_runtime = boto3.client('bedrock-agent-runtime', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Environment variables
 SEND_MODE = os.environ.get('SEND_MODE', 'LIVE')
-BEDROCK_MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'amazon.nova-micro-v1:0')
+BEDROCK_AGENT_ID = os.environ.get('BEDROCK_AGENT_ID', 'HQNT0JXN8G')
+BEDROCK_AGENT_ALIAS = os.environ.get('BEDROCK_AGENT_ALIAS', 'TSTALIASID')
 BEDROCK_KB_ID = os.environ.get('BEDROCK_KB_ID', 'FZBPKGTOYE')
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """Generate AI response based on user message and KB context."""
+    """Generate AI response using Bedrock Agent."""
     request_id = context.aws_request_id if context else 'local'
     
     logger.info(json.dumps({
         'event': 'ai_generate_start',
         'sendMode': SEND_MODE,
+        'agentId': BEDROCK_AGENT_ID,
         'requestId': request_id
     }))
     
@@ -40,19 +43,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     try:
         message_content = event.get('messageContent', '')
-        kb_context = event.get('kbContext', {})
         message_id = event.get('messageId', '')
         contact_id = event.get('contactId', '')
         
         if not message_content:
             return {'statusCode': 200, 'body': json.dumps({'suggestion': ''})}
         
-        # Extract KB results
-        kb_results = kb_context.get('results', []) if kb_context else []
-        context_text = '\n'.join([r.get('text', '')[:400] for r in kb_results[:3]]) if kb_results else ''
-        
-        # Generate response
-        suggestion = _generate_friendly_response(message_content, context_text, request_id)
+        # Generate response using Bedrock Agent
+        suggestion = _invoke_bedrock_agent(message_content, request_id)
         
         logger.info(json.dumps({
             'event': 'ai_generate_complete',
@@ -72,302 +70,130 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(json.dumps({'event': 'ai_generate_error', 'error': str(e), 'requestId': request_id}))
-        return {'statusCode': 200, 'body': json.dumps({'suggestion': '', 'error': str(e)})}
+        return {'statusCode': 200, 'body': json.dumps({'suggestion': _get_fallback_response(), 'error': str(e)})}
 
 
-def _generate_friendly_response(user_message: str, kb_context: str, request_id: str) -> str:
-    """Generate a warm, friendly response with multi-language support."""
+def _invoke_bedrock_agent(user_message: str, request_id: str) -> str:
+    """Invoke Bedrock Agent with Knowledge Base for response generation."""
     try:
-        detected_lang = _detect_language(user_message)
+        # Generate unique session ID for conversation
+        session_id = str(uuid.uuid4())
         
-        # Friendly greetings in different languages
-        greetings = {
-            'hi': 'नमस्ते! 🙏',
-            'bn': 'নমস্কার! 🙏',
-            'ta': 'வணக்கம்! 🙏',
-            'te': 'నమస్కారం! 🙏',
-            'mr': 'नमस्कार! 🙏',
-            'gu': 'નમસ્તે! 🙏',
-            'kn': 'ನಮಸ್ಕಾರ! 🙏',
-            'ml': 'നമസ്കാരം! 🙏',
-            'pa': 'ਸਤ ਸ੍ਰੀ ਅਕਾਲ! 🙏',
-            'or': 'ନମସ୍କାର! 🙏',
-            'en': 'Hi there! 👋'
-        }
-        
-        greeting = greetings.get(detected_lang, greetings['en'])
-
-        # Language instructions for natural responses
-        lang_config = {
-            'hi': {
-                'name': 'Hindi',
-                'instruction': 'जवाब हिंदी में दें। सरल और मिलनसार भाषा का प्रयोग करें।',
-                'closing': 'और कुछ मदद चाहिए? 😊'
-            },
-            'bn': {
-                'name': 'Bengali', 
-                'instruction': 'বাংলায় উত্তর দিন। সহজ এবং বন্ধুত্বপূর্ণ ভাষা ব্যবহার করুন।',
-                'closing': 'আর কিছু সাহায্য দরকার? 😊'
-            },
-            'ta': {
-                'name': 'Tamil',
-                'instruction': 'தமிழில் பதிலளிக்கவும். எளிய மற்றும் நட்பான மொழியைப் பயன்படுத்தவும்.',
-                'closing': 'வேறு ஏதாவது உதவி வேண்டுமா? 😊'
-            },
-            'te': {
-                'name': 'Telugu',
-                'instruction': 'తెలుగులో సమాధానం ఇవ్వండి. సరళమైన మరియు స్నేహపూర్వక భాషను ఉపయోగించండి.',
-                'closing': 'మరేదైనా సహాయం కావాలా? 😊'
-            },
-            'mr': {
-                'name': 'Marathi',
-                'instruction': 'मराठीत उत्तर द्या. सोपी आणि मैत्रीपूर्ण भाषा वापरा.',
-                'closing': 'आणखी काही मदत हवी का? 😊'
-            },
-            'gu': {
-                'name': 'Gujarati',
-                'instruction': 'ગુજરાતીમાં જવાબ આપો. સરળ અને મૈત્રીપૂર્ણ ભાષાનો ઉપયોગ કરો.',
-                'closing': 'બીજું કંઈ મદદ જોઈએ? 😊'
-            },
-            'kn': {
-                'name': 'Kannada',
-                'instruction': 'ಕನ್ನಡದಲ್ಲಿ ಉತ್ತರಿಸಿ. ಸರಳ ಮತ್ತು ಸ್ನೇಹಪರ ಭಾಷೆಯನ್ನು ಬಳಸಿ.',
-                'closing': 'ಇನ್ನೇನಾದರೂ ಸಹಾಯ ಬೇಕೇ? 😊'
-            },
-            'ml': {
-                'name': 'Malayalam',
-                'instruction': 'മലയാളത്തിൽ മറുപടി നൽകുക. ലളിതവും സൗഹൃദപരവുമായ ഭാഷ ഉപയോഗിക്കുക.',
-                'closing': 'മറ്റെന്തെങ്കിലും സഹായം വേണോ? 😊'
-            },
-            'pa': {
-                'name': 'Punjabi',
-                'instruction': 'ਪੰਜਾਬੀ ਵਿੱਚ ਜਵਾਬ ਦਿਓ। ਸਰਲ ਅਤੇ ਦੋਸਤਾਨਾ ਭਾਸ਼ਾ ਵਰਤੋ।',
-                'closing': 'ਹੋਰ ਕੋਈ ਮਦਦ ਚਾਹੀਦੀ ਹੈ? 😊'
-            },
-            'or': {
-                'name': 'Odia',
-                'instruction': 'ଓଡ଼ିଆରେ ଉତ୍ତର ଦିଅନ୍ତୁ। ସରଳ ଏବଂ ବନ୍ଧୁତ୍ୱପୂର୍ଣ୍ଣ ଭାଷା ବ୍ୟବହାର କରନ୍ତୁ।',
-                'closing': 'ଆଉ କିଛି ସାହାଯ୍ୟ ଦରକାର? 😊'
-            },
-            'en': {
-                'name': 'English',
-                'instruction': 'Respond in English. Use simple, warm and friendly language.',
-                'closing': 'Need anything else? 😊'
-            }
-        }
-        
-        lang = lang_config.get(detected_lang, lang_config['en'])
-
-        # Comprehensive knowledge base with brand websites
-        knowledge = """
-🏢 WECARE.DIGITAL BRANDS & SERVICES:
-
-🌍 BNB CLUB (bnbclub.in) - Travel & Stays
-- Hotels, tours, visa assistance
-- Corporate travel (MICE) & solo trips (FIT)
-- Medical tourism with RX Slot appointments
-- Action: Book at bnbclub.in or call +91 9330994400
-
-🎪 EXPO WEEK (expoweek.in) - Travel Discovery
-- Digital travel expo
-- Destination guides & offers
-- Curated experiences
-- Action: Explore at expoweek.in
-
-📋 LEGAL CHAMP (legalchamp.in) - Business Docs
-- Company registration, GST, compliance
-- Document preparation & filing
-- Affordable business support
-- Action: Start at legalchamp.in
-
-⚖️ NO FAULT (nofault.in) - Dispute Resolution
-- Online Dispute Resolution (ODR)
-- Secure, structured process
-- Fair mediation
-- Action: File case at nofault.in
-
-🙏 RITUAL GURU (ritualguru.in) - Puja Kits
-- Temple-grade puja kits
-- Festival & vrat essentials
-- Worldwide delivery
-- Action: Order at ritualguru.in
-
-💭 SWDHYA (swdhya.in) - Self-Inquiry
-- Reflection-led conversations
-- Personal clarity & growth
-- Action: Connect at swdhya.in
-
-📞 CONTACT: +91 9330994400 | one@wecare.digital
-⏰ HOURS: Mon-Fri 9AM-6PM IST (Self-service 24/7)
-💳 PAYMENTS: UPI, Cards, Net Banking, eGift Cards"""
-
-        # Build the friendly system prompt with specific brand routing
-        system_prompt = f"""You are WECARE.DIGITAL's friendly AI assistant! 🤖✨
-
-{lang['instruction']}
-
-BRAND ROUTING - Always mention the specific brand:
-• Travel, hotels, tours, visa, flights → Mention "BNB Club" 🌍
-• Events, expo, destinations → Mention "EXPO WEEK" 🎪
-• Documents, registration, compliance, GST, company → Mention "Legal Champ" 📋
-• Disputes, complaints, resolution, mediation → Mention "No Fault" ⚖️
-• Puja, rituals, festivals, religious items → Mention "Ritual Guru" 🙏
-• Self-help, reflection, clarity, coaching → Mention "Swdhya" 💭
-
-ACTION-ORIENTED RESPONSES - Always end with a clear next step:
-• For bookings: "Visit bnbclub.in or call +91 9330994400 to book now!"
-• For documents: "Start your application at legalchamp.in today!"
-• For disputes: "File your case at nofault.in - it's quick and secure!"
-• For puja kits: "Order your kit at ritualguru.in - we deliver worldwide!"
-• For tracking: "Share your reference ID and I'll check the status for you."
-• For general help: "Call us at +91 9330994400 or email one@wecare.digital"
-
-KNOWLEDGE BASE:
-{knowledge}
-
-ADDITIONAL CONTEXT FROM KB:
-{kb_context if kb_context else 'No additional context available.'}
-
-RESPONSE STYLE:
-1. Answer in the SAME LANGUAGE as the user's question
-2. Keep it SHORT - max 3 sentences + 1 action
-3. Use 1-2 emojis only (not more)
-4. Be specific - mention exact brand names
-5. ALWAYS end with a clear action the user can take
-6. Never say "I don't know" - instead guide them to the right place
-
-EXAMPLE RESPONSES:
-User: "I want to book a hotel"
-Good: "BNB Club can help you find the perfect stay! 🏨 Visit bnbclub.in or call +91 9330994400 to book."
-
-User: "How to register my company?"
-Good: "Legal Champ handles all business registrations! 📋 Start at legalchamp.in or WhatsApp us your requirements."
-
-User: "I have a complaint"
-Good: "No Fault is our dispute resolution platform. ⚖️ File your case at nofault.in for quick, fair resolution."
-
-        # Build the user message with greeting context
-        user_prompt = f"User message: {user_message}\n\nRespond warmly starting with appropriate greeting if this seems like a new conversation."
-
-        # Call Amazon Nova Micro
-        request_body = {
-            "messages": [
-                {"role": "user", "content": [{"text": f"{system_prompt}\n\n{user_prompt}"}]}
-            ],
-            "inferenceConfig": {
-                "maxTokens": 300,
-                "temperature": 0.4,
-                "topP": 0.9
-            }
-        }
-
         logger.info(json.dumps({
-            'event': 'bedrock_invoke',
-            'model': BEDROCK_MODEL_ID,
-            'detectedLang': detected_lang,
+            'event': 'bedrock_agent_invoke',
+            'agentId': BEDROCK_AGENT_ID,
+            'sessionId': session_id,
+            'messageLength': len(user_message),
             'requestId': request_id
         }))
-
-        response = bedrock_runtime.invoke_model(
-            modelId=BEDROCK_MODEL_ID,
-            contentType='application/json',
-            accept='application/json',
-            body=json.dumps(request_body)
+        
+        # Invoke Bedrock Agent
+        response = bedrock_agent_runtime.invoke_agent(
+            agentId=BEDROCK_AGENT_ID,
+            agentAliasId=BEDROCK_AGENT_ALIAS,
+            sessionId=session_id,
+            inputText=user_message,
+            enableTrace=False
         )
-
-        response_body = json.loads(response['body'].read())
         
-        # Extract text from Nova response
-        if 'output' in response_body and 'message' in response_body['output']:
-            content = response_body['output']['message'].get('content', [])
-            if content and len(content) > 0:
-                return content[0].get('text', '')
+        # Extract response from event stream
+        completion = ""
+        for event in response.get('completion', []):
+            if 'chunk' in event:
+                chunk_data = event['chunk']
+                if 'bytes' in chunk_data:
+                    completion += chunk_data['bytes'].decode('utf-8')
         
-        # Fallback for different response formats
-        if 'content' in response_body:
-            content = response_body['content']
-            if isinstance(content, list) and len(content) > 0:
-                return content[0].get('text', '')
-            elif isinstance(content, str):
-                return content
-
-        logger.warning(json.dumps({
-            'event': 'unexpected_response_format',
-            'response': str(response_body)[:500],
-            'requestId': request_id
-        }))
+        if completion:
+            logger.info(json.dumps({
+                'event': 'bedrock_agent_success',
+                'responseLength': len(completion),
+                'requestId': request_id
+            }))
+            return completion.strip()
         
-        return f"{greeting} Thanks for reaching out! How can I help you today? 😊"
-
+        # Fallback to Knowledge Base direct query if agent returns empty
+        return _query_knowledge_base(user_message, request_id)
+        
     except Exception as e:
         logger.error(json.dumps({
-            'event': 'generate_response_error',
+            'event': 'bedrock_agent_error',
             'error': str(e),
             'requestId': request_id
         }))
-        return "Hi! 👋 Thanks for your message. I'm having a small hiccup right now. Please try again or call us at +91 9330994400 for immediate help! 😊"
+        # Fallback to Knowledge Base direct query
+        return _query_knowledge_base(user_message, request_id)
 
 
-def _detect_language(text: str) -> str:
-    """Detect language from text using Unicode character ranges."""
-    if not text:
-        return 'en'
-    
-    # Count characters in different scripts
-    script_counts = {
-        'hi': 0,  # Devanagari (Hindi, Marathi, Sanskrit)
-        'bn': 0,  # Bengali
-        'ta': 0,  # Tamil
-        'te': 0,  # Telugu
-        'gu': 0,  # Gujarati
-        'kn': 0,  # Kannada
-        'ml': 0,  # Malayalam
-        'pa': 0,  # Gurmukhi (Punjabi)
-        'or': 0,  # Odia
-        'en': 0   # Latin (English)
-    }
-    
-    for char in text:
-        code = ord(char)
+def _query_knowledge_base(user_message: str, request_id: str) -> str:
+    """Direct Knowledge Base query as fallback."""
+    try:
+        logger.info(json.dumps({
+            'event': 'kb_query_start',
+            'kbId': BEDROCK_KB_ID,
+            'requestId': request_id
+        }))
         
-        # Devanagari (Hindi, Marathi)
-        if 0x0900 <= code <= 0x097F:
-            script_counts['hi'] += 1
-        # Bengali
-        elif 0x0980 <= code <= 0x09FF:
-            script_counts['bn'] += 1
-        # Tamil
-        elif 0x0B80 <= code <= 0x0BFF:
-            script_counts['ta'] += 1
-        # Telugu
-        elif 0x0C00 <= code <= 0x0C7F:
-            script_counts['te'] += 1
-        # Gujarati
-        elif 0x0A80 <= code <= 0x0AFF:
-            script_counts['gu'] += 1
-        # Kannada
-        elif 0x0C80 <= code <= 0x0CFF:
-            script_counts['kn'] += 1
-        # Malayalam
-        elif 0x0D00 <= code <= 0x0D7F:
-            script_counts['ml'] += 1
-        # Gurmukhi (Punjabi)
-        elif 0x0A00 <= code <= 0x0A7F:
-            script_counts['pa'] += 1
-        # Odia
-        elif 0x0B00 <= code <= 0x0B7F:
-            script_counts['or'] += 1
-        # Latin (English)
-        elif 0x0041 <= code <= 0x007A:
-            script_counts['en'] += 1
-    
-    # Find the dominant script
-    max_count = 0
-    detected = 'en'
-    
-    for lang, count in script_counts.items():
-        if count > max_count:
-            max_count = count
-            detected = lang
-    
-    return detected
+        response = bedrock_agent_runtime.retrieve_and_generate(
+            input={'text': user_message},
+            retrieveAndGenerateConfiguration={
+                'type': 'KNOWLEDGE_BASE',
+                'knowledgeBaseConfiguration': {
+                    'knowledgeBaseId': BEDROCK_KB_ID,
+                    'modelArn': f'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0',
+                    'generationConfiguration': {
+                        'promptTemplate': {
+                            'textPromptTemplate': """You are WECARE.DIGITAL's friendly AI assistant.
+
+INSTRUCTIONS:
+- Answer in the SAME LANGUAGE as the user's question
+- Keep responses SHORT (2-3 sentences max)
+- Use 1-2 emojis for warmth
+- Always mention the specific brand name
+- End with a clear action (website, phone, or next step)
+
+BRANDS:
+- Travel/Hotels/Visa → BNB Club (bnbclub.in)
+- Documents/Registration/GST → Legal Champ (legalchamp.in)
+- Disputes/Complaints → No Fault (nofault.in)
+- Puja/Rituals → Ritual Guru (ritualguru.in)
+- Self-inquiry/Reflection → Swdhya (swdhya.in)
+
+CONTACT: +91 9330994400 | one@wecare.digital
+
+CONTEXT FROM KNOWLEDGE BASE:
+$search_results$
+
+USER QUESTION: $query$
+
+Respond helpfully and end with a specific action."""
+                        }
+                    }
+                }
+            }
+        )
+        
+        output = response.get('output', {}).get('text', '')
+        
+        if output:
+            logger.info(json.dumps({
+                'event': 'kb_query_success',
+                'responseLength': len(output),
+                'requestId': request_id
+            }))
+            return output.strip()
+        
+        return _get_fallback_response()
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'kb_query_error',
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return _get_fallback_response()
+
+
+def _get_fallback_response() -> str:
+    """Return a friendly fallback response."""
+    return "Hi! 👋 Thanks for reaching out to WECARE.DIGITAL. For quick help, call us at +91 9330994400 or email one@wecare.digital. We're here to help! 😊"
