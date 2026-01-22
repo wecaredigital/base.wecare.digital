@@ -453,13 +453,13 @@ def _download_media(whatsapp_media_id: str, message_id: str, media_type: str,
     """
     Download media file from WhatsApp using AWS EUM Social API.
     Per AWS docs: get_whatsapp_message_media downloads to S3 and returns mimeType + fileSize.
-    The API handles the S3 upload, we just need to find the actual key.
+    Uses short filename format: wecare-digital-{8chars}.ext
     """
     try:
-        # Build S3 key - AWS may append metadata, so we use a prefix
-        extension = _get_media_extension(media_type)
-        s3_key_prefix = f"{MEDIA_PREFIX}{message_id}"
-        s3_key = f"{s3_key_prefix}{extension}"
+        # Build S3 key with short format: wecare-digital-{8chars}.ext
+        short_id = message_id[:8]
+        extension = _get_extension_from_type(media_type)
+        s3_key = f"{MEDIA_PREFIX}wecare-digital-{short_id}{extension}"
         
         logger.info(json.dumps({
             'event': 'media_download_start',
@@ -491,14 +491,15 @@ def _download_media(whatsapp_media_id: str, message_id: str, media_type: str,
             'requestId': request_id
         }))
         
-        # AWS EUM Social API may append metadata to the S3 key
-        # List S3 with prefix to find the actual file that was created
+        # AWS EUM Social API appends WhatsApp media ID to the S3 key
+        # Find the actual file that was created
         actual_s3_key = s3_key
+        s3_key_prefix = f"{MEDIA_PREFIX}wecare-digital-{short_id}"
         try:
             s3_response = s3.list_objects_v2(
                 Bucket=MEDIA_BUCKET,
                 Prefix=s3_key_prefix,
-                MaxKeys=1
+                MaxKeys=5
             )
             if s3_response.get('Contents'):
                 actual_s3_key = s3_response['Contents'][0]['Key']
@@ -516,7 +517,6 @@ def _download_media(whatsapp_media_id: str, message_id: str, media_type: str,
                 'usingFallback': s3_key,
                 'requestId': request_id
             }))
-            actual_s3_key = s3_key
         
         logger.info(json.dumps({
             'event': 'media_downloaded',
@@ -541,18 +541,30 @@ def _download_media(whatsapp_media_id: str, message_id: str, media_type: str,
         return None
 
 
-def _get_media_extension(media_type: str) -> str:
-    """Get file extension based on media type per AWS Social Messaging docs."""
-    extensions = {
+def _get_extension_from_type(media_type: str) -> str:
+    """Get file extension based on WhatsApp message type (image, video, audio, document, sticker)."""
+    type_extensions = {
+        'image': '.jpeg',
+        'video': '.mp4',
+        'audio': '.ogg',
+        'document': '.pdf',
+        'sticker': '.webp'
+    }
+    return type_extensions.get(media_type, '.bin')
+
+
+def _get_extension_from_mime(mime_type: str) -> str:
+    """Get file extension based on MIME type per AWS Social Messaging supported formats."""
+    mime_extensions = {
         # Image formats (max 5MB)
-        'image/jpeg': '.jpg',
+        'image/jpeg': '.jpeg',
         'image/png': '.png',
-        'image': '.jpg',
+        'image/webp': '.webp',
         
         # Video formats (max 16MB)
         'video/mp4': '.mp4',
+        'video/3gpp': '.3gp',
         'video/3gp': '.3gp',
-        'video': '.mp4',
         
         # Audio formats (max 16MB)
         'audio/aac': '.aac',
@@ -560,7 +572,6 @@ def _get_media_extension(media_type: str) -> str:
         'audio/mpeg': '.mp3',
         'audio/mp4': '.m4a',
         'audio/ogg': '.ogg',
-        'audio': '.ogg',
         
         # Document formats (max 100MB)
         'application/pdf': '.pdf',
@@ -571,39 +582,51 @@ def _get_media_extension(media_type: str) -> str:
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
         'application/vnd.ms-powerpoint': '.ppt',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
-        'document': '.pdf',
+    }
+    return mime_extensions.get(mime_type, '.bin')
+
+
+def _store_media_record(message_id: str, s3_key: str, media_data: Dict, whatsapp_media_id: str) -> Optional[str]:
+    """
+    Store media file record in MediaFiles table.
+    Returns file_id if successful, None if table doesn't exist or write fails.
+    This is optional - the s3Key is stored directly in the message record.
+    """
+    try:
+        file_id = str(uuid.uuid4())
+        now = int(time.time())
         
-        # Sticker formats (max 500KB animated, 100KB static)
-        'image/webp': '.webp',
-        'sticker': '.webp'
-    }
-    
-    if media_type in extensions:
-        return extensions[media_type]
-    
-    prefix = media_type.split('/')[0] if '/' in media_type else media_type
-    return extensions.get(prefix, '.bin')
-
-
-def _store_media_record(message_id: str, s3_key: str, media_data: Dict, whatsapp_media_id: str) -> str:
-    """Store media file record in MediaFiles table."""
-    file_id = str(uuid.uuid4())
-    now = int(time.time())
-    
-    media_record = {
-        'fileId': file_id,
-        'messageId': message_id,
-        's3Key': s3_key,
-        'contentType': media_data.get('mime_type', ''),
-        'size': Decimal(str(media_data.get('file_size', 0))) if media_data.get('file_size') else None,
-        'whatsappMediaId': whatsapp_media_id,
-        'uploadedAt': Decimal(str(now)),
-    }
-    
-    media_table = dynamodb.Table(MEDIA_FILES_TABLE)
-    media_table.put_item(Item={k: v for k, v in media_record.items() if v is not None})
-    
-    return file_id
+        media_record = {
+            'fileId': file_id,
+            'messageId': message_id,
+            's3Key': s3_key,
+            'contentType': media_data.get('mime_type', ''),
+            'size': Decimal(str(media_data.get('file_size', 0))) if media_data.get('file_size') else None,
+            'whatsappMediaId': whatsapp_media_id,
+            'uploadedAt': Decimal(str(now)),
+        }
+        
+        media_table = dynamodb.Table(MEDIA_FILES_TABLE)
+        media_table.put_item(Item={k: v for k, v in media_record.items() if v is not None})
+        
+        logger.info(json.dumps({
+            'event': 'media_record_stored',
+            'fileId': file_id,
+            'messageId': message_id,
+            's3Key': s3_key
+        }))
+        
+        return file_id
+    except Exception as e:
+        # MediaFile table may not exist - this is OK, s3Key is stored in message record
+        logger.warning(json.dumps({
+            'event': 'media_record_store_skipped',
+            'messageId': message_id,
+            's3Key': s3_key,
+            'error': str(e),
+            'note': 'MediaFile table write failed, but s3Key is stored in message record'
+        }))
+        return None
 
 
 def _process_status(status: Dict, request_id: str) -> None:

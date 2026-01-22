@@ -205,6 +205,7 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
             s3_key = result['s3Key']
             media_id = result.get('mediaId')
             message_id = result.get('messageId') or result.get('id')
+            message_type = result.get('messageType', 'document')
             
             logger.info(json.dumps({
                 'event': 'generating_presigned_url',
@@ -223,12 +224,17 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
                 # Use CloudFront CDN URL instead of pre-signed S3 URL
                 cdn_url = f"https://{MEDIA_CDN_DOMAIN}/{actual_s3_key}"
                 result['mediaUrl'] = cdn_url
-                result['actualS3Key'] = actual_s3_key  # Include actual key for debugging
+                result['actualS3Key'] = actual_s3_key
+                
+                # Generate clean display filename: wecare-digital-{8chars}.ext
+                display_filename = _get_display_filename(actual_s3_key, message_id, message_type)
+                result['displayFilename'] = display_filename
                 
                 logger.info(json.dumps({
                     'event': 'cdn_url_generated',
                     'storedS3Key': s3_key,
                     'actualS3Key': actual_s3_key,
+                    'displayFilename': display_filename,
                     'mediaId': media_id,
                     'messageId': message_id,
                     'cdnUrl': cdn_url
@@ -254,6 +260,23 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
             result['mediaUrl'] = None
     
     return result
+
+
+def _get_display_filename(s3_key: str, message_id: str, message_type: str) -> str:
+    """
+    Generate clean display filename: wecare-digital-{8chars}.ext
+    Extracts extension from actual S3 key.
+    """
+    # Get extension from actual S3 key
+    ext = '.bin'
+    if '.' in s3_key:
+        # Get the last extension (e.g., .jpeg from ...1234567890.jpeg)
+        ext = '.' + s3_key.rsplit('.', 1)[-1]
+    
+    # Use first 8 chars of message_id
+    short_id = (message_id or 'unknown')[:8]
+    
+    return f"wecare-digital-{short_id}{ext}"
 
 
 def _find_actual_s3_key(stored_key: str, message_id: str) -> Optional[str]:

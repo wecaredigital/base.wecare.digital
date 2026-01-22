@@ -29,6 +29,9 @@ export const IAM_POLICIES = {
           'dynamodb:Scan',
         ],
         Resource: [
+          // Actual tables used by the system (base-wecare-digital-* prefix)
+          'arn:aws:dynamodb:us-east-1:809904170947:table/base-wecare-digital-*',
+          // Legacy table patterns (for backwards compatibility)
           'arn:aws:dynamodb:us-east-1:809904170947:table/Contact-*',
           'arn:aws:dynamodb:us-east-1:809904170947:table/Message-*',
           'arn:aws:dynamodb:us-east-1:809904170947:table/BulkJob-*',

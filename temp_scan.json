@@ -1,0 +1,261 @@
+﻿{
+    "Items": [
+        {
+            "content": {
+                "S": "Hi"
+            },
+            "senderPhone": {
+                "S": "447447840003"
+            },
+            "receivingPhone": {
+                "S": "919903300044"
+            },
+            "messageType": {
+                "S": "text"
+            },
+            "timestamp": {
+                "N": "1769078348"
+            },
+            "status": {
+                "S": "received"
+            },
+            "createdAt": {
+                "N": "1769078349"
+            },
+            "whatsappMessageId": {
+                "S": "wamid.HBgMNDQ3NDQ3ODQwMDAzFQIAEhggQUNFM0NERTg5RDlGOTJFRjg2RjQyRDUzNzMwMzY5RjkA"
+            },
+            "channel": {
+                "S": "whatsapp"
+            },
+            "contactId": {
+                "S": "6fd0e009-c553-4671-a5e3-36127d4d962d"
+            },
+            "messageId": {
+                "S": "5bbe28a9-96ae-4b80-bb3e-ff6571d17494"
+            },
+            "expiresAt": {
+                "N": "1771670349"
+            },
+            "senderName": {
+                "S": "~"
+            },
+            "direction": {
+                "S": "inbound"
+            },
+            "awsPhoneNumberId": {
+                "S": "phone-number-id-1447bc72d1b040f4bf2341c9e04b2e06"
+            },
+            "id": {
+                "S": "5bbe28a9-96ae-4b80-bb3e-ff6571d17494"
+            },
+            "metaWabaIds": {
+                "L": [
+                    {
+                        "M": {
+                            "arn": {
+                                "S": "arn:aws:social-messaging:us-east-1:809904170947:waba/9bbe054d8404487397c38a9d197bc44a"
+                            },
+                            "wabaId": {
+                                "S": "1390647332755815"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "content": {
+                "S": "Hi"
+            },
+            "senderPhone": {
+                "S": "447447840003"
+            },
+            "receivingPhone": {
+                "S": "919330994400"
+            },
+            "messageType": {
+                "S": "text"
+            },
+            "timestamp": {
+                "N": "1769078341"
+            },
+            "status": {
+                "S": "received"
+            },
+            "createdAt": {
+                "N": "1769078343"
+            },
+            "whatsappMessageId": {
+                "S": "wamid.HBgMNDQ3NDQ3ODQwMDAzFQIAEhggQUNBNzg3MDcxRjk5MTI1MkM5QUNENDU4NUY2RDc4MjYA"
+            },
+            "channel": {
+                "S": "whatsapp"
+            },
+            "contactId": {
+                "S": "6fd0e009-c553-4671-a5e3-36127d4d962d"
+            },
+            "messageId": {
+                "S": "fd9a59d6-1e4d-4fa6-a3e8-fc37f8be6109"
+            },
+            "expiresAt": {
+                "N": "1771670343"
+            },
+            "senderName": {
+                "S": "~"
+            },
+            "direction": {
+                "S": "inbound"
+            },
+            "awsPhoneNumberId": {
+                "S": "phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54"
+            },
+            "id": {
+                "S": "fd9a59d6-1e4d-4fa6-a3e8-fc37f8be6109"
+            },
+            "metaWabaIds": {
+                "L": [
+                    {
+                        "M": {
+                            "arn": {
+                                "S": "arn:aws:social-messaging:us-east-1:809904170947:waba/0aae9cf04cf24c66960f291c793359b4"
+                            },
+                            "wabaId": {
+                                "S": "1347766229904230"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "content": {
+                "S": "Hi"
+            },
+            "senderPhone": {
+                "S": "447447840003"
+            },
+            "receivingPhone": {
+                "S": "919330994400"
+            },
+            "messageType": {
+                "S": "text"
+            },
+            "timestamp": {
+                "N": "1769077637"
+            },
+            "status": {
+                "S": "received"
+            },
+            "createdAt": {
+                "N": "1769077639"
+            },
+            "whatsappMessageId": {
+                "S": "wamid.HBgMNDQ3NDQ3ODQwMDAzFQIAEhggQUM4RDFGNThBNkM2NEE4QUVENDI5MjFFMTcyQjJFQkMA"
+            },
+            "channel": {
+                "S": "whatsapp"
+            },
+            "contactId": {
+                "S": "047087e2-0a74-4a17-90c2-c64e836c1a59"
+            },
+            "messageId": {
+                "S": "b085bd87-264a-434d-8abe-a3072489e469"
+            },
+            "expiresAt": {
+                "N": "1771669639"
+            },
+            "senderName": {
+                "S": "~"
+            },
+            "direction": {
+                "S": "inbound"
+            },
+            "awsPhoneNumberId": {
+                "S": "phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54"
+            },
+            "id": {
+                "S": "b085bd87-264a-434d-8abe-a3072489e469"
+            },
+            "metaWabaIds": {
+                "L": [
+                    {
+                        "M": {
+                            "arn": {
+                                "S": "arn:aws:social-messaging:us-east-1:809904170947:waba/0aae9cf04cf24c66960f291c793359b4"
+                            },
+                            "wabaId": {
+                                "S": "1347766229904230"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "content": {
+                "S": "Hi"
+            },
+            "senderPhone": {
+                "S": "447447840003"
+            },
+            "receivingPhone": {
+                "S": "919903300044"
+            },
+            "messageType": {
+                "S": "text"
+            },
+            "timestamp": {
+                "N": "1769077578"
+            },
+            "status": {
+                "S": "received"
+            },
+            "createdAt": {
+                "N": "1769077579"
+            },
+            "whatsappMessageId": {
+                "S": "wamid.HBgMNDQ3NDQ3ODQwMDAzFQIAEhggQUM2MEYxNzI3NTE5OERFMjhEMDRGQzExMkFCN0JDMUYA"
+            },
+            "channel": {
+                "S": "whatsapp"
+            },
+            "contactId": {
+                "S": "047087e2-0a74-4a17-90c2-c64e836c1a59"
+            },
+            "messageId": {
+                "S": "fea72fdc-5e37-4c8c-8ca2-7a0875dc9174"
+            },
+            "expiresAt": {
+                "N": "1771669579"
+            },
+            "senderName": {
+                "S": "~"
+            },
+            "direction": {
+                "S": "inbound"
+            },
+            "awsPhoneNumberId": {
+                "S": "phone-number-id-1447bc72d1b040f4bf2341c9e04b2e06"
+            },
+            "id": {
+                "S": "fea72fdc-5e37-4c8c-8ca2-7a0875dc9174"
+            },
+            "metaWabaIds": {
+                "L": [
+                    {
+                        "M": {
+                            "arn": {
+                                "S": "arn:aws:social-messaging:us-east-1:809904170947:waba/9bbe054d8404487397c38a9d197bc44a"
+                            },
+                            "wabaId": {
+                                "S": "1390647332755815"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "content": {
+                "S": 

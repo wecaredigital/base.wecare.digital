@@ -223,12 +223,16 @@ def _handle_reaction_send(message_id: str, contact_id: str, recipient_phone: str
     """
     Send a reaction to a WhatsApp message.
     Uses AWS EUM Social SendWhatsAppMessage API with reaction type.
+    Per AWS docs: reaction payload requires message_id from the original message.
     """
     try:
-        # Normalize phone number - WhatsApp API expects digits only without + prefix
-        formatted_phone = _normalize_phone_number(recipient_phone)
+        # Normalize phone number and add + prefix for reactions
+        # AWS docs example: "to":"'{PHONE_NUMBER}'" - try with + prefix
+        digits_only = _normalize_phone_number(recipient_phone)
+        formatted_phone = f"+{digits_only}" if not digits_only.startswith('+') else digits_only
         
-        # Build reaction payload per WhatsApp Cloud API spec
+        # Build reaction payload per AWS Social Messaging docs
+        # https://docs.aws.amazon.com/social-messaging/latest/userguide/receive-message.html
         reaction_payload = {
             'messaging_product': 'whatsapp',
             'recipient_type': 'individual',
@@ -245,6 +249,7 @@ def _handle_reaction_send(message_id: str, contact_id: str, recipient_phone: str
             'to': formatted_phone,
             'reactionMessageId': reaction_message_id,
             'emoji': reaction_emoji,
+            'payload': reaction_payload,
             'requestId': request_id
         }))
         
@@ -290,14 +295,20 @@ def _handle_reaction_send(message_id: str, contact_id: str, recipient_phone: str
         }
         
     except Exception as e:
+        error_msg = str(e)
+        # Log detailed error for debugging
         logger.error(json.dumps({
             'event': 'reaction_send_error',
             'messageId': message_id,
-            'error': str(e),
+            'reactionMessageId': reaction_message_id,
+            'recipientPhone': recipient_phone,
+            'formattedPhone': _normalize_phone_number(recipient_phone),
+            'phoneNumberId': phone_number_id,
+            'error': error_msg,
             'requestId': request_id
         }))
         _emit_delivery_metric('failed', is_template=False)
-        return _error_response(500, f'Failed to send reaction: {str(e)}')
+        return _error_response(500, f'Failed to send reaction: {error_msg}')
 
 
 def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
