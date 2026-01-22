@@ -6,5 +6,9 @@ export const contactsDelete = defineFunction({
   runtime: 20,
   timeoutSeconds: 30,
   memoryMB: 256,
-  environment: { AWS_REGION: 'us-east-1', LOG_LEVEL: 'INFO' },
+  environment: { 
+    AWS_REGION: 'us-east-1', 
+    CONTACTS_TABLE: 'base-wecare-digital-ContactsTable',
+    LOG_LEVEL: 'INFO' 
+  },
 });

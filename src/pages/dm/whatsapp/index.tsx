@@ -494,17 +494,19 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                         )}
                         {msg.mediaUrl && (
                           <div className="message-media-container">
-                            {msg.content && msg.content.toLowerCase().includes('image') || msg.content && msg.content.toLowerCase().includes('.jpg') || msg.content && msg.content.toLowerCase().includes('.png') ? (
-                              <img 
-                                src={msg.mediaUrl} 
-                                alt="Image" 
-                                className="message-media message-image"
-                                onError={(e) => {
-                                  console.error('Image load error:', msg.mediaUrl);
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                              />
-                            ) : msg.content && msg.content.toLowerCase().includes('video') || msg.content && msg.content.toLowerCase().includes('.mp4') ? (
+                            {msg.mediaUrl && (msg.content?.toLowerCase().includes('image') || msg.content?.toLowerCase().includes('.jpg') || msg.content?.toLowerCase().includes('.png') || msg.content?.toLowerCase().includes('.jpeg') || msg.content?.toLowerCase().includes('.webp') || msg.mediaUrl?.includes('.jpg') || msg.mediaUrl?.includes('.png') || msg.mediaUrl?.includes('.jpeg')) ? (
+                              <a href={msg.mediaUrl} target="_blank" rel="noopener noreferrer">
+                                <img 
+                                  src={msg.mediaUrl} 
+                                  alt="Image" 
+                                  className="message-media message-image"
+                                  onError={(e) => {
+                                    console.error('Image load error:', msg.mediaUrl);
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              </a>
+                            ) : msg.mediaUrl && (msg.content?.toLowerCase().includes('video') || msg.content?.toLowerCase().includes('.mp4') || msg.mediaUrl?.includes('.mp4') || msg.mediaUrl?.includes('.3gp')) ? (
                               <video 
                                 src={msg.mediaUrl} 
                                 controls 
@@ -514,7 +516,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                                   (e.target as HTMLVideoElement).style.display = 'none';
                                 }}
                               />
-                            ) : msg.content && msg.content.toLowerCase().includes('audio') || msg.content && msg.content.toLowerCase().includes('.mp3') || msg.content && msg.content.toLowerCase().includes('.ogg') ? (
+                            ) : msg.mediaUrl && (msg.content?.toLowerCase().includes('audio') || msg.content?.toLowerCase().includes('.mp3') || msg.content?.toLowerCase().includes('.ogg') || msg.mediaUrl?.includes('.mp3') || msg.mediaUrl?.includes('.ogg') || msg.mediaUrl?.includes('.aac')) ? (
                               <audio 
                                 src={msg.mediaUrl} 
                                 controls 
@@ -532,7 +534,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                                   rel="noopener noreferrer"
                                   className="document-link"
                                 >
-                                  📄 Download Document
+                                  📄 View/Download Document
                                 </a>
                               </div>
                             )}
@@ -562,11 +564,12 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                           {msg.mediaUrl && (
                             <a 
                               href={msg.mediaUrl} 
-                              download 
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="media-download-btn"
-                              title="Download media"
+                              title="Open media in new tab"
                             >
-                              ⬇️
+                              🔗
                             </a>
                           )}
                         </div>

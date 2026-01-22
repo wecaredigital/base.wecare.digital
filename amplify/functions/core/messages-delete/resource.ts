@@ -7,7 +7,8 @@ export const messagesDelete = defineFunction({
   timeoutSeconds: 30,
   memoryMB: 256,
   environment: {
-    WHATSAPP_INBOUND_TABLE: 'base-wecare-digital-WhatsAppInboundTable',
-    WHATSAPP_OUTBOUND_TABLE: 'base-wecare-digital-WhatsAppOutboundTable',
+    AWS_REGION: 'us-east-1',
+    INBOUND_TABLE: 'base-wecare-digital-WhatsAppInboundTable',
+    OUTBOUND_TABLE: 'base-wecare-digital-WhatsAppOutboundTable',
   },
 });

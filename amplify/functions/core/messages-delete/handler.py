@@ -1,6 +1,7 @@
 """
 Messages Delete Lambda Handler
 Deletes messages from WhatsAppInboundTable or WhatsAppOutboundTable
+ONLY deletes messages - does NOT delete contacts
 """
 
 import json
@@ -9,13 +10,17 @@ import boto3
 from botocore.exceptions import ClientError
 
 # Initialize DynamoDB
-dynamodb = boto3.resource('dynamodb')
+dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
-# Table names from environment
-MESSAGE_TABLE = os.environ.get('MESSAGE_TABLE', 'Message')
+# Table names - actual tables used by the system
+INBOUND_TABLE = os.environ.get('INBOUND_TABLE', 'base-wecare-digital-WhatsAppInboundTable')
+OUTBOUND_TABLE = os.environ.get('OUTBOUND_TABLE', 'base-wecare-digital-WhatsAppOutboundTable')
 
 def handler(event, context):
-    """Delete a message by ID"""
+    """
+    Delete a message by ID from the appropriate table.
+    ONLY deletes the message - does NOT affect contacts.
+    """
     print(f"Event: {json.dumps(event)}")
     
     # CORS headers
@@ -42,13 +47,27 @@ def handler(event, context):
                 'body': json.dumps({'error': 'messageId is required'})
             }
         
-        # Use Message table (unified for inbound/outbound)
-        table = dynamodb.Table(MESSAGE_TABLE)
+        # Get direction from query params to determine which table
+        query_params = event.get('queryStringParameters', {}) or {}
+        direction = query_params.get('direction', 'INBOUND').upper()
         
-        # Delete the message
-        table.delete_item(Key={'messageId': message_id})
+        # Select table based on direction
+        if direction == 'OUTBOUND':
+            table_name = OUTBOUND_TABLE
+        else:
+            table_name = INBOUND_TABLE
         
-        print(f"Deleted message {message_id} from {MESSAGE_TABLE}")
+        table = dynamodb.Table(table_name)
+        
+        # Delete the message using 'id' as the key (matches the table schema)
+        try:
+            table.delete_item(Key={'id': message_id})
+            print(f"Deleted message {message_id} from {table_name}")
+        except ClientError as e:
+            # Try with 'messageId' key if 'id' fails
+            if 'ValidationException' in str(e):
+                table.delete_item(Key={'messageId': message_id})
+                print(f"Deleted message {message_id} from {table_name} using messageId key")
         
         return {
             'statusCode': 200,
@@ -56,7 +75,8 @@ def handler(event, context):
             'body': json.dumps({
                 'success': True,
                 'messageId': message_id,
-                'message': 'Message deleted successfully'
+                'table': table_name,
+                'message': 'Message deleted successfully (contact NOT affected)'
             })
         }
         

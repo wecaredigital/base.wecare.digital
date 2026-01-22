@@ -15,7 +15,7 @@ import os
 import json
 import logging
 import boto3
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from decimal import Decimal
 
 # Configure logging
@@ -197,34 +197,55 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
         result['messageType'] = 'text'
     
     # Generate pre-signed URL for media files if s3Key exists
-    if result.get('s3Key') and result.get('mediaId'):
+    if result.get('s3Key'):
         try:
             s3_key = result['s3Key']
             media_id = result.get('mediaId')
+            message_id = result.get('messageId') or result.get('id')
             
             logger.info(json.dumps({
                 'event': 'generating_presigned_url',
                 's3Key': s3_key,
                 'mediaId': media_id,
                 'bucket': MEDIA_BUCKET,
-                'messageId': result.get('messageId')
+                'messageId': message_id
             }))
             
-            # Generate pre-signed URL for the S3 key
-            presigned_url = s3_client.generate_presigned_url(
-                'get_object',
-                Params={'Bucket': MEDIA_BUCKET, 'Key': s3_key},
-                ExpiresIn=PRESIGNED_URL_EXPIRY
-            )
-            result['mediaUrl'] = presigned_url
+            # AWS EUM Social API may append WhatsApp media ID to the S3 key
+            # The stored s3Key might not match the actual file in S3
+            # Search S3 with prefix to find the actual file
+            actual_s3_key = _find_actual_s3_key(s3_key, message_id)
             
-            logger.info(json.dumps({
-                'event': 'presigned_url_generated',
-                's3Key': s3_key,
-                'mediaId': media_id,
-                'messageId': result.get('messageId'),
-                'urlLength': len(presigned_url)
-            }))
+            if actual_s3_key:
+                # Generate pre-signed URL for the actual S3 key
+                presigned_url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={
+                        'Bucket': MEDIA_BUCKET, 
+                        'Key': actual_s3_key,
+                        'ResponseContentDisposition': 'inline'  # Open in browser
+                    },
+                    ExpiresIn=PRESIGNED_URL_EXPIRY
+                )
+                result['mediaUrl'] = presigned_url
+                result['actualS3Key'] = actual_s3_key  # Include actual key for debugging
+                
+                logger.info(json.dumps({
+                    'event': 'presigned_url_generated',
+                    'storedS3Key': s3_key,
+                    'actualS3Key': actual_s3_key,
+                    'mediaId': media_id,
+                    'messageId': message_id,
+                    'urlLength': len(presigned_url)
+                }))
+            else:
+                logger.warning(json.dumps({
+                    'event': 'media_file_not_found_in_s3',
+                    's3Key': s3_key,
+                    'mediaId': media_id,
+                    'messageId': message_id
+                }))
+                result['mediaUrl'] = None
             
         except Exception as e:
             logger.error(json.dumps({
@@ -235,7 +256,92 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
                 'error': str(e),
                 'errorType': type(e).__name__
             }))
-            # Don't set mediaUrl if generation fails - frontend will handle missing URL
             result['mediaUrl'] = None
     
     return result
+
+
+def _find_actual_s3_key(stored_key: str, message_id: str) -> Optional[str]:
+    """
+    Find the actual S3 key by searching with prefix.
+    AWS EUM Social API appends WhatsApp media ID to the filename.
+    Example: stored as '...uuid.jpg' but actual file is '...uuid.jpg1234567890.jpeg'
+    """
+    try:
+        # First try the exact key
+        try:
+            s3_client.head_object(Bucket=MEDIA_BUCKET, Key=stored_key)
+            return stored_key  # Exact key exists
+        except s3_client.exceptions.ClientError as e:
+            if e.response['Error']['Code'] != '404':
+                raise
+            # Key doesn't exist, search with prefix
+        
+        # Extract prefix (path without extension or with partial filename)
+        # stored_key: whatsapp-media/whatsapp-media-incoming/uuid.jpg
+        # We need to search for: whatsapp-media/whatsapp-media-incoming/uuid
+        
+        # Remove extension to get base prefix
+        if '.' in stored_key:
+            base_prefix = stored_key.rsplit('.', 1)[0]
+        else:
+            base_prefix = stored_key
+        
+        logger.info(json.dumps({
+            'event': 's3_prefix_search',
+            'storedKey': stored_key,
+            'searchPrefix': base_prefix,
+            'bucket': MEDIA_BUCKET
+        }))
+        
+        # List objects with prefix
+        response = s3_client.list_objects_v2(
+            Bucket=MEDIA_BUCKET,
+            Prefix=base_prefix,
+            MaxKeys=5
+        )
+        
+        contents = response.get('Contents', [])
+        if contents:
+            # Return the first matching file (should be only one)
+            actual_key = contents[0]['Key']
+            logger.info(json.dumps({
+                'event': 's3_key_found',
+                'storedKey': stored_key,
+                'actualKey': actual_key,
+                'matchCount': len(contents)
+            }))
+            return actual_key
+        
+        # If no match with base prefix, try the full stored key as prefix
+        # (in case the file has additional suffix)
+        response = s3_client.list_objects_v2(
+            Bucket=MEDIA_BUCKET,
+            Prefix=stored_key,
+            MaxKeys=5
+        )
+        
+        contents = response.get('Contents', [])
+        if contents:
+            actual_key = contents[0]['Key']
+            logger.info(json.dumps({
+                'event': 's3_key_found_with_full_prefix',
+                'storedKey': stored_key,
+                'actualKey': actual_key
+            }))
+            return actual_key
+        
+        logger.warning(json.dumps({
+            'event': 's3_key_not_found',
+            'storedKey': stored_key,
+            'searchPrefix': base_prefix
+        }))
+        return None
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 's3_key_search_error',
+            'storedKey': stored_key,
+            'error': str(e)
+        }))
+        return None
