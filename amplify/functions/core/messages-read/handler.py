@@ -30,6 +30,7 @@ s3_client = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'us-east
 INBOUND_TABLE = os.environ.get('INBOUND_TABLE', 'base-wecare-digital-WhatsAppInboundTable')
 OUTBOUND_TABLE = os.environ.get('OUTBOUND_TABLE', 'base-wecare-digital-WhatsAppOutboundTable')
 MEDIA_BUCKET = os.environ.get('MEDIA_BUCKET', 'auth.wecare.digital')
+MEDIA_CDN_DOMAIN = os.environ.get('MEDIA_CDN_DOMAIN', 'auth.wecare.digital')  # CloudFront domain
 
 # Pagination defaults
 DEFAULT_LIMIT = 50
@@ -219,26 +220,18 @@ def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
             actual_s3_key = _find_actual_s3_key(s3_key, message_id)
             
             if actual_s3_key:
-                # Generate pre-signed URL for the actual S3 key
-                presigned_url = s3_client.generate_presigned_url(
-                    'get_object',
-                    Params={
-                        'Bucket': MEDIA_BUCKET, 
-                        'Key': actual_s3_key,
-                        'ResponseContentDisposition': 'inline'  # Open in browser
-                    },
-                    ExpiresIn=PRESIGNED_URL_EXPIRY
-                )
-                result['mediaUrl'] = presigned_url
+                # Use CloudFront CDN URL instead of pre-signed S3 URL
+                cdn_url = f"https://{MEDIA_CDN_DOMAIN}/{actual_s3_key}"
+                result['mediaUrl'] = cdn_url
                 result['actualS3Key'] = actual_s3_key  # Include actual key for debugging
                 
                 logger.info(json.dumps({
-                    'event': 'presigned_url_generated',
+                    'event': 'cdn_url_generated',
                     'storedS3Key': s3_key,
                     'actualS3Key': actual_s3_key,
                     'mediaId': media_id,
                     'messageId': message_id,
-                    'urlLength': len(presigned_url)
+                    'cdnUrl': cdn_url
                 }))
             else:
                 logger.warning(json.dumps({
