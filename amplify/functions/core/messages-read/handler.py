@@ -26,9 +26,9 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 s3_client = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
-# DynamoDB table names (Amplify Gen 2 schema)
-# All messages (inbound/outbound) are stored in the Message table
-MESSAGE_TABLE = os.environ.get('MESSAGE_TABLE', 'Message')
+# DynamoDB table names - actual tables used by the system
+INBOUND_TABLE = os.environ.get('INBOUND_TABLE', 'base-wecare-digital-WhatsAppInboundTable')
+OUTBOUND_TABLE = os.environ.get('OUTBOUND_TABLE', 'base-wecare-digital-WhatsAppOutboundTable')
 MEDIA_BUCKET = os.environ.get('MEDIA_BUCKET', 'auth.wecare.digital')
 
 # Pagination defaults
@@ -119,49 +119,54 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 
 def _scan_messages(filter_parts: List[str], expression_values: Dict, limit: int, direction: str = '') -> List[Dict]:
-    """Scan Message table and return results."""
+    """Scan both Inbound and Outbound tables and return combined results."""
     all_messages = []
     
-    try:
-        table = dynamodb.Table(MESSAGE_TABLE)
-        scan_kwargs = {'Limit': limit}
-        
-        # Build filter expression
-        if filter_parts:
-            scan_kwargs['FilterExpression'] = ' AND '.join(filter_parts)
-            scan_kwargs['ExpressionAttributeValues'] = expression_values
-        
-        response = table.scan(**scan_kwargs)
-        items = response.get('Items', [])
-        
-        # Log sample data for debugging
-        sample_items = []
-        for item in items[:3]:
-            sample_items.append({
-                'id': item.get('id'),
-                'contactId': item.get('contactId'),
-                'direction': item.get('direction'),
-                'channel': item.get('channel'),
-                'timestamp': item.get('timestamp')
-            })
-        
-        logger.info(json.dumps({
-            'event': 'messages_scanned',
-            'count': len(items),
-            'table': MESSAGE_TABLE,
-            'filterParts': filter_parts,
-            'sampleItems': sample_items
-        }))
-        
-        return items
-        
-    except Exception as e:
-        logger.error(json.dumps({
-            'event': 'scan_messages_error',
-            'error': str(e),
-            'table': MESSAGE_TABLE
-        }))
-        return []
+    # Determine which tables to scan based on direction filter
+    tables_to_scan = []
+    if not direction or direction == 'INBOUND':
+        tables_to_scan.append(('inbound', INBOUND_TABLE))
+    if not direction or direction == 'OUTBOUND':
+        tables_to_scan.append(('outbound', OUTBOUND_TABLE))
+    
+    for dir_type, table_name in tables_to_scan:
+        try:
+            table = dynamodb.Table(table_name)
+            scan_kwargs = {'Limit': limit * 2}  # Get more to allow for filtering
+            
+            # Build filter expression (exclude direction since we're scanning specific tables)
+            table_filter_parts = [p for p in filter_parts if 'direction' not in p]
+            table_expression_values = {k: v for k, v in expression_values.items() if k != ':dir'}
+            
+            if table_filter_parts:
+                scan_kwargs['FilterExpression'] = ' AND '.join(table_filter_parts)
+                scan_kwargs['ExpressionAttributeValues'] = table_expression_values
+            
+            response = table.scan(**scan_kwargs)
+            items = response.get('Items', [])
+            
+            # Ensure direction is set correctly based on table
+            for item in items:
+                if 'direction' not in item:
+                    item['direction'] = dir_type
+            
+            all_messages.extend(items)
+            
+            logger.info(json.dumps({
+                'event': 'messages_scanned',
+                'count': len(items),
+                'table': table_name,
+                'direction': dir_type
+            }))
+            
+        except Exception as e:
+            logger.error(json.dumps({
+                'event': 'scan_messages_error',
+                'error': str(e),
+                'table': table_name
+            }))
+    
+    return all_messages
 
 
 def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:

@@ -14,65 +14,22 @@ import '@aws-amplify/ui-react/styles.css';
 import '../styles/Pages.css';
 import '../styles/Layout.css';
 
-// Import Amplify outputs if available
-let amplifyConfig: any = null;
-try {
-  amplifyConfig = require('../../amplify_outputs.json');
-} catch {
-  // Fallback config if amplify_outputs.json not available
-}
-
-// Determine current origin for redirect URIs
-const getRedirectUri = () => {
-  if (typeof window !== 'undefined') {
-    const origin = window.location.origin;
-    // Return origin with trailing slash
-    return origin.endsWith('/') ? origin : `${origin}/`;
-  }
-  return 'https://base.wecare.digital/';
-};
-
-// Configure Amplify with OAuth and Data API
+// Configure Amplify with Cognito Auth
 // User Pool: WECARE.DIGITAL (us-east-1_CC9u1fYh6)
-// App Client: WECARE.DIGITAL-Web (5na5ba2pbpanm36138jdcd9gck) - NO SECRET for browser apps
+// App Client: WECARE.DIGITAL (5na5ba2pbpanm36138jdcd9gck) - NO SECRET for browser apps
 // Custom Domain: https://sso.wecare.digital
 Amplify.configure({
   Auth: {
     Cognito: {
-      userPoolId: amplifyConfig?.auth?.user_pool_id || 'us-east-1_CC9u1fYh6',
-      userPoolClientId: amplifyConfig?.auth?.user_pool_client_id || '5na5ba2pbpanm36138jdcd9gck',
-      loginWith: {
-        oauth: {
-          domain: amplifyConfig?.auth?.oauth?.domain || 'sso.wecare.digital',
-          scopes: amplifyConfig?.auth?.oauth?.scopes || ['openid', 'email', 'profile'],
-          redirectSignIn: amplifyConfig?.auth?.oauth?.redirect_sign_in_uri || [
-            'https://base.wecare.digital/',
-            'https://base.dtiq7il2x5c5g.amplifyapp.com/',
-            'http://localhost:3000/'
-          ],
-          redirectSignOut: amplifyConfig?.auth?.oauth?.redirect_sign_out_uri || [
-            'https://base.wecare.digital/',
-            'https://base.dtiq7il2x5c5g.amplifyapp.com/',
-            'http://localhost:3000/'
-          ],
-          responseType: 'code'
-        }
-      }
-    }
-  },
-  // Data API configuration - uses AppSync GraphQL
-  API: {
-    GraphQL: {
-      endpoint: amplifyConfig?.data?.url || process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || '',
-      region: amplifyConfig?.data?.aws_region || 'us-east-1',
-      defaultAuthMode: 'userPool'
+      userPoolId: 'us-east-1_CC9u1fYh6',
+      userPoolClientId: '5na5ba2pbpanm36138jdcd9gck',
     }
   },
   // Storage configuration
   Storage: {
     S3: {
-      bucket: amplifyConfig?.storage?.bucket_name || 'auth.wecare.digital',
-      region: amplifyConfig?.storage?.aws_region || 'us-east-1'
+      bucket: 'auth.wecare.digital',
+      region: 'us-east-1'
     }
   }
 });
