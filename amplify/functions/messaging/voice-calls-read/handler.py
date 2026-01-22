@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)
 dynamodb = boto3.resource('dynamodb')
 VOICE_CALLS_TABLE = os.environ.get('VOICE_CALLS_TABLE', 'VoiceCall')
 
-def lambda_handler(event, context):
+def handler(event, context):
     """Main handler for reading voice calls"""
     logger.info(f"Event received: {json.dumps(event)}")
     
