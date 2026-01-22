@@ -10,13 +10,48 @@ auth.wecare.digital/
 ├── download/                           # File downloads
 ├── upload/                             # File uploads
 ├── stream/                             # Bulk job reports and exports
-│   └── media/m/wecare-digital.ico      # Favicon
+│   ├── media/m/wecare-digital.ico      # Favicon
+│   └── gen-ai/                         # Bedrock AI resources
+│       ├── agent/
+│       │   └── HQNT0JXN8G/             # base-bedrock-agent
+│       │       ├── traces/             # Agent execution traces
+│       │       ├── logs/               # Agent logs
+│       │       ├── sessions/           # Session data
+│       │       └── invocations/        # Invocation records
+│       ├── agentcore/
+│       │   └── base_bedrock_agentcore-1XHDxj2o3Q/  # Internal chatbot runtime
+│       │       ├── traces/             # Runtime traces
+│       │       ├── logs/               # Runtime logs
+│       │       └── sessions/           # Session data
+│       └── knowledge-base/
+│           └── FZBPKGTOYE/             # base-wecare-digital-bedrock-kb
+│               ├── queries/            # Query logs
+│               ├── documents/          # Document uploads
+│               ├── ingestion/          # Ingestion job logs
+│               └── logs/               # KB logs
 ├── whatsapp-media/
 │   ├── whatsapp-media-incoming/        # Inbound media from customers
 │   │   └── {uuid}.jpg{whatsapp-media-id}.jpeg
 │   └── whatsapp-media-outgoing/        # Outbound media to customers
 │       └── {uuid}.{ext}
 └── error.html
+```
+
+---
+
+## Bedrock Resources S3 Mapping
+
+| Resource | Type | ID | S3 Path |
+|----------|------|-----|---------|
+| base-bedrock-agent | Agent | HQNT0JXN8G | `stream/gen-ai/agent/HQNT0JXN8G/` |
+| base_bedrock_agentcore | AgentCore Runtime | base_bedrock_agentcore-1XHDxj2o3Q | `stream/gen-ai/agentcore/base_bedrock_agentcore-1XHDxj2o3Q/` |
+| base-wecare-digital-bedrock-kb | Knowledge Base | FZBPKGTOYE | `stream/gen-ai/knowledge-base/FZBPKGTOYE/` |
+
+### Additional Bucket for KB Multimodal Storage
+
+```
+stream.wecare.digital/                  # KB supplemental data storage (required by KB config)
+└── (multimodal embeddings storage)
 ```
 
 ---
