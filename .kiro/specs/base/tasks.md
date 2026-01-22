@@ -379,7 +379,7 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
 - [ ] 13. Checkpoint - Ensure bulk and DLQ tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 14. Implement AI automation (optional)
+- [x] 14. Implement AI automation
   - [x] 14.1 Create ai-query-kb Lambda function
     - Call Bedrock RetrieveAndGenerate API
     - Pass query to Knowledge Base FZBPKGTOYE
@@ -392,11 +392,10 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
     - **Validates: Requirements 15.1**
   
   - [x] 14.3 Create ai-generate-response Lambda function
-    - Call Bedrock Agent HQNT0JXN8G
-    - Pass message content and context
-    - Generate response suggestion
-    - Store in AIInteractions table with approved=False
-    - Return suggestion to operator (never auto-send)
+    - Call Bedrock Agent HQNT0JXN8G (amazon.nova-pro-v1:0 model)
+    - Prompts managed in AWS Console - no code deployment needed
+    - Fallback to Knowledge Base direct query if agent fails
+    - Store in AIInteractions table
     - _Requirements: 15.2, 15.3_
   
   - [ ]* 14.4 Write property test for AI response approval
@@ -406,11 +405,17 @@ This implementation plan breaks down the WECARE.DIGITAL Admin Platform into disc
   - [x] 14.5 Integrate AI into inbound-whatsapp-handler
     - Check if AI automation is enabled in SystemConfig
     - If enabled: call ai-query-kb and ai-generate-response
-    - If disabled: skip AI processing
+    - Auto-reply to WhatsApp with AI response
     - Respect SEND_MODE: DRY_RUN prevents sending AI responses
     - _Requirements: 15.4, 15.7_
   
-  - [ ]* 14.6 Write property test for AI toggle
+  - [x] 14.6 Configure Bedrock Agent for production
+    - Fixed agentCollaboration DISABLED (was causing prepare failure)
+    - Agent status: PREPARED and ready
+    - **CRITICAL**: Use CLI to update agent, not AWS Console (Console resets collaboration to SUPERVISOR)
+    - _Requirements: 15.2_
+  
+  - [ ]* 14.7 Write property test for AI toggle
     - **Property 66: AI Disabled Skips AI Processing**
     - **Validates: Requirements 15.4**
 

@@ -406,14 +406,14 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 
 **Agent ID**: `HQNT0JXN8G`  
 **Agent Name**: base-bedrock-agent  
+**Agent Alias**: `TSTALIASID`  
 **Purpose**: Generate automated responses for WhatsApp customer inquiries  
-**Status**: NOT_PREPARED (needs preparation before use)  
+**Status**: ✓ PREPARED (Ready for use)  
 **Foundation Model**: amazon.nova-pro-v1:0  
 **Orchestration Type**: DEFAULT  
+**Agent Collaboration**: DISABLED  
 **Idle Session TTL**: 600 seconds (10 minutes)  
 **Memory**: SESSION_SUMMARY enabled (30 days, max 20 recent sessions)
-
-**Note**: Agent status "NOT_PREPARED" is normal - it will be prepared automatically during first use.
 
 **Agent Execution Role**:
 - **Role ARN**: `arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5`
@@ -427,19 +427,44 @@ https://cognito-idp.us-east-1.amazonaws.com/us-east-1_CC9u1fYh6/.well-known/jwks
 - Generate contextual responses for WhatsApp users
 - Session memory with automatic summarization
 - Tool/function calling for actions
-- Operator approval required before sending
+- Auto-reply to WhatsApp messages when AI automation enabled
 
 **Integration**: Used by `ai-generate-response` Lambda function for WhatsApp inbound message processing
 
+**⚠️ CRITICAL - Agent Management**:
+- **DO NOT edit agent in AWS Console** - it resets `agentCollaboration` to SUPERVISOR causing prepare failure
+- Use CLI commands instead:
+```bash
+# Update agent settings
+aws bedrock-agent update-agent --agent-id HQNT0JXN8G --agent-name "base-bedrock-agent" \
+  --agent-resource-role-arn "arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5" \
+  --foundation-model "amazon.nova-pro-v1:0" --instruction "YOUR_INSTRUCTION" \
+  --agent-collaboration DISABLED --region us-east-1
+
+# Prepare agent after changes
+aws bedrock-agent prepare-agent --agent-id HQNT0JXN8G --region us-east-1
+```
+
 ---
 
-#### Agent 2: Internal Admin Dashboard Agent
+#### Agent 2: Internal Admin Dashboard Agent (AgentCore Runtime)
 
 **Runtime ID**: `base_bedrock_agentcore-1XHDxj2o3Q`  
-**Type**: Internal AWS-managed runtime (not a separate resource)  
-**Purpose**: Amplify dashboard automation and internal task processing
+**Runtime ARN**: `arn:aws:bedrock-agentcore:us-east-1:809904170947:runtime/base_bedrock_agentcore-1XHDxj2o3Q`  
+**Type**: Bedrock AgentCore Runtime  
+**Status**: ✓ READY  
+**Purpose**: FloatingAgent chatbot on admin dashboard pages  
+**Idle Timeout**: 600 seconds
 
-**Note**: This is an internal runtime identifier used by AWS Bedrock for dashboard operations, not a separately created or managed resource.
+**Used For**:
+- FloatingAgent component (`src/components/FloatingAgent.tsx`)
+- Real-time AI assistance on all admin pages
+- Task automation (send messages, find contacts, check stats)
+
+**Integration**:
+```typescript
+const BEDROCK_AGENT_RUNTIME_ID = 'base_bedrock_agentcore-1XHDxj2o3Q';
+```
 
 ---
 
@@ -661,7 +686,11 @@ Update job status to completed
 
 ## Document Version
 
-**Version**: 1.0  
-**Last Updated**: 2026-01-17  
+**Version**: 1.1  
+**Last Updated**: 2026-01-22  
 **Maintained By**: DevOps Team  
 **Review Frequency**: Quarterly or when AWS services update
+
+**Changelog**:
+- v1.1 (2026-01-22): Updated Bedrock Agent status to PREPARED, added Agent Alias ID, added CLI management instructions
+- v1.0 (2026-01-17): Initial version
