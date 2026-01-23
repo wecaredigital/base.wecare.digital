@@ -83,13 +83,14 @@ const FloatingAgent: React.FC = () => {
           return 'Please provide a phone number. Example: "Send WhatsApp to +919330994400 saying Hello!"';
         }
         
-        const phone = phoneMatch[1].replace(/\s/g, '');
+        // Clean phone number - remove +, spaces, dashes
+        const phone = phoneMatch[1].replace(/[\s\-\+]/g, '');
         const contactsRes = await fetch(`${API_BASE}/contacts?q=${encodeURIComponent(phone)}`);
         const contactsData = await contactsRes.json();
         const contacts = contactsData.contacts || [];
         
         if (contacts.length === 0) {
-          return `No contact found with phone ${phone}. Add the contact first.`;
+          return `No contact found with phone ${phone}. Use "find contact ${phone}" to search or add the contact first.`;
         }
         
         const contact = contacts[0];
@@ -118,7 +119,8 @@ const FloatingAgent: React.FC = () => {
       if (lowerText.includes('find') || lowerText.includes('search') || lowerText.includes('contact')) {
         const phoneMatch = text.match(/(\+?\d[\d\s-]{8,})/);
         const nameMatch = text.match(/(?:named?|called?|for)\s+["']?(\w+)["']?/i);
-        const query = phoneMatch?.[1]?.replace(/\s/g, '') || nameMatch?.[1] || '';
+        // Clean phone number - remove +, spaces, dashes to match stored format
+        const query = phoneMatch?.[1]?.replace(/[\s\-\+]/g, '') || nameMatch?.[1] || '';
         
         if (!query) {
           return 'Please provide a phone number or name to search.';
