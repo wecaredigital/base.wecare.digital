@@ -28,7 +28,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute
 
 // Internal Agent Configuration (for admin tasks)
 const INTERNAL_AGENT_ID = 'TJAZR473IJ';
-const INTERNAL_AGENT_ALIAS = '';  // Set after creating alias with: aws bedrock-agent create-agent-alias
+const INTERNAL_AGENT_ALIAS = 'O4U1HF2MSX';
 const INTERNAL_KB_ID = '08LG9AKAHN';
 
 const FloatingAgent: React.FC = () => {

@@ -15,6 +15,7 @@ WECARE.DIGITAL uses Amazon Bedrock with Nova Lite model for AI-powered responses
 |----------|------|-----|
 | Knowledge Base | KB | `08LG9AKAHN` |
 | Agent | Agent | `TJAZR473IJ` |
+| Agent Alias | prod | `O4U1HF2MSX` |
 | Data Source | S3 | `s3://auth.wecare.digital/stream/gen-ai/internal-kb/` |
 
 ### Agent Setup Instructions

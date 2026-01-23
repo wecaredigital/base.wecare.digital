@@ -67,7 +67,7 @@ export const COGNITO_CONFIG = {
 export const BEDROCK_CONFIG = {
   // Internal Agent (FloatingAgent - admin tasks)
   INTERNAL_AGENT_ID: process.env.INTERNAL_AGENT_ID || 'TJAZR473IJ',
-  INTERNAL_AGENT_ALIAS: process.env.INTERNAL_AGENT_ALIAS || '', // Set after creating alias
+  INTERNAL_AGENT_ALIAS: process.env.INTERNAL_AGENT_ALIAS || 'O4U1HF2MSX',
   INTERNAL_KB_ID: process.env.INTERNAL_KB_ID || '08LG9AKAHN',
   
   // External Agent (WhatsApp auto-reply - customer facing)
