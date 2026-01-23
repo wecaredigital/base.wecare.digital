@@ -23,6 +23,8 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
   // Real data from API
   const [contacts, setContacts] = useState<api.Contact[]>([]);
   const [messages, setMessages] = useState<api.Message[]>([]);
+  const [billingData, setBillingData] = useState<api.AWSBillingData | null>(null);
+  const [billingLoading, setBillingLoading] = useState(false);
   
   // Quick compose state
   const [showCompose, setShowCompose] = useState(false);
@@ -62,9 +64,22 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
     }
   }, []);
 
+  const loadBillingData = useCallback(async () => {
+    setBillingLoading(true);
+    try {
+      const data = await api.getAWSBilling();
+      setBillingData(data);
+    } catch (err) {
+      console.error('Billing load error:', err);
+    } finally {
+      setBillingLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    loadBillingData();
+  }, [loadData, loadBillingData]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -308,9 +323,9 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
               <span className="qa-icon">⧉</span>
               <span className="qa-title">Bulk Send</span>
             </Link>
-            <Link href="/agent" className="quick-action-card">
-              <span className="qa-icon">⌘</span>
-              <span className="qa-title">AI Agent</span>
+            <Link href="/admin" className="quick-action-card">
+              <span className="qa-icon">⚙</span>
+              <span className="qa-title">Settings</span>
             </Link>
           </div>
         </div>
@@ -434,6 +449,73 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
               <div className="phone-id">Secondary</div>
             </div>
           </div>
+        </div>
+
+        {/* AWS Billing Section */}
+        <div className="section">
+          <div className="section-header">
+            <h2 className="section-title">AWS Usage & Billing</h2>
+            <button 
+              className="btn-secondary btn-sm" 
+              onClick={loadBillingData}
+              disabled={billingLoading}
+            >
+              {billingLoading ? '...' : '↻'}
+            </button>
+          </div>
+          
+          {billingData && (
+            <>
+              <div className="billing-summary">
+                <div className="billing-total">
+                  <span className="billing-amount">${billingData.totalCost.toFixed(2)}</span>
+                  <span className="billing-label">Estimated Cost</span>
+                </div>
+                <div className="billing-period">
+                  <span className="billing-dates">{billingData.period}</span>
+                  <span className="billing-updated">Updated: {new Date(billingData.lastUpdated).toLocaleTimeString()}</span>
+                </div>
+              </div>
+              
+              <div className="billing-table-container">
+                <table className="billing-table">
+                  <thead>
+                    <tr>
+                      <th>Service</th>
+                      <th>Usage</th>
+                      <th>Free Limit</th>
+                      <th>Cost</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {billingData.services.map((svc, idx) => (
+                      <tr key={idx} className={`billing-row ${svc.status}`}>
+                        <td className="service-name">{svc.service}</td>
+                        <td className="service-usage">
+                          {svc.usage.toLocaleString()} <span className="usage-unit">{svc.unit}</span>
+                        </td>
+                        <td className="service-limit">{svc.freeLimit}</td>
+                        <td className="service-cost">${svc.cost.toFixed(4)}</td>
+                        <td className="service-status">
+                          <span className={`status-badge ${svc.status}`}>
+                            {svc.status === 'free' ? '✓ Free' : svc.status === 'warning' ? '⚠ Near Limit' : '$ Paid'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+          
+          {!billingData && !billingLoading && (
+            <div className="empty-state">
+              <p>Unable to load billing data</p>
+              <button className="btn-secondary" onClick={loadBillingData}>Retry</button>
+            </div>
+          )}
         </div>
       </div>
     </Layout>

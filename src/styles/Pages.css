@@ -1199,3 +1199,193 @@ body {
   font-size: 13px;
   color: #667781;
 }
+
+
+/* ============================================
+   AWS BILLING SECTION
+   ============================================ */
+
+.billing-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #e8e8e8;
+}
+
+.billing-total {
+  display: flex;
+  flex-direction: column;
+}
+
+.billing-amount {
+  font-size: 32px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.billing-label {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.billing-period {
+  text-align: right;
+}
+
+.billing-dates {
+  display: block;
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.billing-updated {
+  display: block;
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.billing-table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e8e8e8;
+}
+
+.billing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.billing-table th {
+  background: #f8f9fa;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #e8e8e8;
+  white-space: nowrap;
+}
+
+.billing-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.billing-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.billing-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.service-name {
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.service-usage {
+  color: #333;
+}
+
+.usage-unit {
+  color: #999;
+  font-size: 11px;
+}
+
+.service-limit {
+  color: #666;
+  font-size: 12px;
+}
+
+.service-cost {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  color: #333;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.status-badge.free {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-badge.warning {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.status-badge.paid {
+  background: #fce4ec;
+  color: #c62828;
+}
+
+.billing-row.warning {
+  background: #fffde7;
+}
+
+.billing-row.paid {
+  background: #fff8e1;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  min-height: 32px;
+  min-width: 32px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .billing-summary {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .billing-period {
+    text-align: center;
+  }
+  
+  .billing-table {
+    font-size: 12px;
+  }
+  
+  .billing-table th,
+  .billing-table td {
+    padding: 10px 12px;
+  }
+  
+  .service-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .billing-amount {
+    font-size: 28px;
+  }
+  
+  .billing-table th:nth-child(3),
+  .billing-table td:nth-child(3) {
+    display: none;
+  }
+}
