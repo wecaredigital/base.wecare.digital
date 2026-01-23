@@ -449,15 +449,15 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     return 'document';
   };
 
-  // Get icon for media type
+  // Get icon for media type - Unicode only
   const getMediaIcon = (type: string | null): string => {
     switch (type) {
-      case 'image': return '🖼️';
-      case 'video': return '🎬';
-      case 'audio': return '🎵';
-      case 'sticker': return '😀';
-      case 'document': return '📄';
-      default: return '📎';
+      case 'image': return '◫';
+      case 'video': return '▶';
+      case 'audio': return '♪';
+      case 'sticker': return '◉';
+      case 'document': return '⎘';
+      default: return '◰';
     }
   };
 
@@ -586,7 +586,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                     disabled={deleting === 'clearing' || filteredMessages.length === 0}
                     title="Clear all messages for this contact"
                   >
-                    {deleting === 'clearing' ? '...' : '🗑️'}
+                    {deleting === 'clearing' ? '...' : '×'}
                   </button>
                 </div>
               </div>
@@ -717,7 +717,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                               title="Open media in new tab"
                               download
                             >
-                              ⬇️
+                              ↓
                             </a>
                           )}
                         </div>
@@ -768,11 +768,11 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                       <img src={mediaPreview} alt="Preview" />
                     ) : (
                       <div className="file-preview">
-                        <span>📎</span>
+                        <span>◰</span>
                         <span>{mediaFile?.name}</span>
                       </div>
                     )}
-                    <button className="clear-media-btn" onClick={clearMedia}>✕</button>
+                    <button className="clear-media-btn" onClick={clearMedia}>×</button>
                   </div>
                 )}
                 
@@ -791,7 +791,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                     disabled={uploadingMedia}
                     title="Attach media"
                   >
-                    📎
+                    ◰
                   </button>
                   
                   <div className="input-box">
@@ -816,7 +816,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
             </>
           ) : (
             <div className="empty-chat">
-              <div className="empty-chat-icon">✉</div>
+              <div className="empty-chat-icon">◈</div>
               <h3>WhatsApp Unified Inbox</h3>
               <p>Select a contact to view messages</p>
               <p style={{ fontSize: '13px', marginTop: '8px' }}>

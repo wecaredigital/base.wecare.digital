@@ -41,28 +41,22 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   
   // Navigation items - Unicode symbols only (no emoji)
   const menuItems: MenuItem[] = [
-    { path: '/', label: 'Dashboard', icon: '⌂' },
-    { path: '/pay', label: 'Pay', icon: '¤' },
-    { path: '/link', label: 'Link', icon: '⛓' },
-    { path: '/forms', label: 'Forms', icon: '☐' },
-    { path: '/docs', label: 'Docs', icon: '⎙' },
-    { path: '/invoice', label: 'Invoice', icon: '⧉' },
-    { path: '/dm', label: 'DM', icon: '✉', subItems: [
+    { path: '/', label: 'Dashboard', icon: '◉' },
+    { path: '/pay', label: 'Pay', icon: '₹' },
+    { path: '/link', label: 'Link', icon: '⟁' },
+    { path: '/forms', label: 'Forms', icon: '▤' },
+    { path: '/docs', label: 'Docs', icon: '⎘' },
+    { path: '/invoice', label: 'Invoice', icon: '⊞' },
+    { path: '/dm', label: 'DM', icon: '◈', subItems: [
       { path: '/dm/whatsapp', label: 'WhatsApp' },
       { path: '/dm/sms', label: 'SMS' },
       { path: '/dm/ses', label: 'Email' },
       { path: '/dm/voice', label: 'Voice' },
       { path: '/dm/rcs', label: 'RCS' },
     ]},
-    { path: '/contacts', label: 'Contacts', icon: '☎' },
-    { path: '/bulk', label: 'Bulk', icon: '⋮⋮', subItems: [
-      { path: '/bulk/whatsapp', label: 'WhatsApp' },
-      { path: '/bulk/sms', label: 'SMS' },
-      { path: '/bulk/ses', label: 'Email' },
-      { path: '/bulk/voice', label: 'Voice' },
-      { path: '/bulk/rcs', label: 'RCS' },
-    ]},
-    { path: '/admin', label: 'Settings', icon: '⚙', adminOnly: true },
+    { path: '/contacts', label: 'Contacts', icon: '⊕' },
+    { path: '/bulk', label: 'Bulk', icon: '⫶' },
+    { path: '/admin', label: 'Admin', icon: '⚙', adminOnly: true },
   ];
 
   // Auto-expand DM or Bulk menu if on those pages
