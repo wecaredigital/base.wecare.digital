@@ -100,8 +100,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     if isinstance(template_json, str):
                         template_data = json.loads(template_json)
                         components = template_data.get('components', [])
+                        logger.info(json.dumps({
+                            'event': 'template_detail_fetched',
+                            'templateName': template_name,
+                            'componentCount': len(components),
+                            'requestId': request_id
+                        }))
                 except Exception as e:
-                    logger.warning(f"Failed to get template details for {template_name}: {str(e)}")
+                    logger.warning(json.dumps({
+                        'event': 'template_detail_error',
+                        'templateName': template_name,
+                        'error': str(e),
+                        'requestId': request_id
+                    }))
                 
                 templates.append({
                     'id': template_id,
