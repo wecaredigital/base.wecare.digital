@@ -376,8 +376,8 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
               <span className="qa-title">Email</span>
             </Link>
             <Link href="/contacts" className="quick-action-card">
-              <span className="qa-icon">+</span>
-              <span className="qa-title">Add Contact</span>
+              <span className="qa-icon">⊕</span>
+              <span className="qa-title">Contacts</span>
             </Link>
             <Link href="/bulk" className="quick-action-card">
               <span className="qa-icon">⫶</span>
