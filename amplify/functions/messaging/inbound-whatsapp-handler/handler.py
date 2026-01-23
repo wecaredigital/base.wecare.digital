@@ -359,6 +359,26 @@ def _extract_content(message: Dict, msg_type: str) -> str:
         return '[Sticker]'
     elif msg_type == 'reaction':
         return message.get('reaction', {}).get('emoji', '[Reaction]')
+    elif msg_type == 'interactive':
+        # Interactive messages (buttons, lists, etc.)
+        interactive = message.get('interactive', {})
+        interactive_type = interactive.get('type', '')
+        if interactive_type == 'button_reply':
+            return interactive.get('button_reply', {}).get('title', '[Button Reply]')
+        elif interactive_type == 'list_reply':
+            return interactive.get('list_reply', {}).get('title', '[List Reply]')
+        return f'[Interactive: {interactive_type}]'
+    elif msg_type == 'button':
+        # Quick reply button
+        return message.get('button', {}).get('text', '[Button]')
+    elif msg_type == 'order':
+        return '[Order]'
+    elif msg_type == 'system':
+        # System messages (group changes, etc.)
+        return '[System Message]'
+    elif msg_type == 'unsupported':
+        # WhatsApp marks some messages as unsupported
+        return '[Unsupported Message Type]'
     else:
         return f'[{msg_type}]'
 
