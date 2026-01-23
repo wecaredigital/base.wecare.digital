@@ -1,12 +1,12 @@
 /**
  * Layout Styles - WECARE.DIGITAL
- * Modern Black & White Theme
+ * Modern Premium Theme
  * 
  * Requirements:
- * - Font: Helvetica Light (fallback Helvetica/Arial)
+ * - Font: System fonts with fallbacks
  * - Base font size: 16px
- * - Color Scheme: Black (#1a1a1a) & White (#ffffff) with grays
- * - Buttons: Black background, 13px rounded corners
+ * - Color Scheme: Slate palette with modern gradients
+ * - Buttons: Rounded with shadows
  * - Mobile responsive (no horizontal overflow)
  * - WebView compatible (Android WebView + iOS WKWebView)
  */
@@ -25,10 +25,10 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue Light', 'HelveticaNeue-Light', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-weight: 300;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-  color: #1a1a1a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #0f172a;
   /* WebView Safe: Prevent overscroll bounce */
   overscroll-behavior: none;
   /* Safe area insets for notched devices */
@@ -58,130 +58,130 @@ input, textarea, select {
 .layout {
   display: flex;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
 /* Sidebar */
 .sidebar {
-  width: 240px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
-  border-right: 1px solid #e8e8e8;
+  width: 260px;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   position: fixed;
   height: 100vh;
   left: 0;
   top: 0;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.03);
 }
 
 .sidebar-header {
-  padding: 24px 20px;
-  border-bottom: 1px solid #e8e8e8;
-  background: #ffffff;
+  padding: 28px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 }
 
 .app-title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 800;
   letter-spacing: 0.5px;
-  color: #1a1a1a;
+  color: #0f172a;
   text-transform: uppercase;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 16px 12px;
+  padding: 20px 14px;
   overflow-y: auto;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 14px 18px;
   margin-bottom: 6px;
   text-decoration: none;
-  color: #666666;
-  border-radius: 10px;
+  color: #64748b;
+  border-radius: 12px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-weight: 500;
   font-size: 14px;
 }
 
 .nav-item:hover {
-  background-color: #f0f0f0;
-  color: #1a1a1a;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #0f172a;
   transform: translateX(4px);
 }
 
 .nav-item-active {
-  background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(26, 26, 26, 0.15);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
 }
 
 .nav-item-active:hover {
-  background: linear-gradient(135deg, #333333 0%, #1a1a1a 100%);
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   color: #ffffff;
+  transform: translateX(0);
 }
 
 .nav-icon {
-  margin-right: 12px;
+  margin-right: 14px;
   font-size: 18px;
-  width: 20px;
+  width: 22px;
   text-align: center;
 }
 
 .nav-label {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid #e8e8e8;
-  background: #ffffff;
+  padding: 20px;
+  border-top: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
 }
 
 .user-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .user-email {
   font-size: 12px;
-  color: #999999;
+  color: #94a3b8;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .btn-signout {
-  background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: #ffffff;
   border: none;
-  padding: 10px 16px;
-  border-radius: 10px;
+  padding: 12px 18px;
+  border-radius: 12px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(26, 26, 26, 0.1);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
 }
 
 .btn-signout:hover {
-  background: linear-gradient(135deg, #333333 0%, #1a1a1a 100%);
-  box-shadow: 0 4px 12px rgba(26, 26, 26, 0.2);
   transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.25);
 }
 
 /* Main Content */
 .main-content {
   flex: 1;
-  margin-left: 240px;
+  margin-left: 260px;
   padding: 32px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   min-height: 100vh;
 }
 
