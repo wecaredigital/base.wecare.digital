@@ -74,14 +74,16 @@ const FloatingAgent: React.FC = () => {
     const lowerText = text.toLowerCase();
     
     try {
-      // Send WhatsApp message
-      if (lowerText.includes('send') && (lowerText.includes('whatsapp') || lowerText.includes('message'))) {
-        // Match phone numbers - stop at non-phone characters like colons
-        const phoneMatch = text.match(/(\+?\d[\d\s-]{8,}\d)(?=[^0-9]|$)/);
-        const contentMatch = text.match(/(?:saying|message|content|text)[:\s]+["']?(.+?)["']?$/i);
+      // Send WhatsApp message - more flexible matching
+      // Match: "send ... to PHONE" or "send ... PHONE" with optional message content
+      if (lowerText.includes('send')) {
+        // Match phone numbers - look for 10+ digit sequences
+        const phoneMatch = text.match(/(\+?\d[\d\s-]{8,}\d)/);
+        // Match message content after "saying", "as", "message", "content", "text", or ":"
+        const contentMatch = text.match(/(?:saying|as|message|content|text|:)\s+["']?(.+?)["']?$/i);
         
         if (!phoneMatch) {
-          return 'Please provide a phone number. Example: "Send WhatsApp to +919330994400 saying Hello!"';
+          return 'Please provide a phone number. Example: "Send to +919330994400 saying Hello!" or "Send hi to 447447840003"';
         }
         
         // Clean phone number - remove +, spaces, dashes
@@ -96,8 +98,19 @@ const FloatingAgent: React.FC = () => {
         
         const contact = contacts[0];
         
-        if (!contentMatch) {
-          return `Found: ${contact.name || 'Unknown'} (${contact.phone})\n\nWhat message would you like to send?`;
+        // Try to extract message content
+        let messageContent = contentMatch?.[1]?.trim();
+        
+        // If no content match, try to find text before "to PHONE"
+        if (!messageContent) {
+          const beforePhoneMatch = text.match(/send\s+(?:a\s+)?(?:test\s+)?(?:message\s+)?["']?(.+?)["']?\s+to\s+\+?\d/i);
+          if (beforePhoneMatch && beforePhoneMatch[1] && beforePhoneMatch[1].trim().length > 0) {
+            messageContent = beforePhoneMatch[1].trim();
+          }
+        }
+        
+        if (!messageContent) {
+          return `Found: ${contact.name || 'Unknown'} (${contact.phone})\n\nWhat message would you like to send? Try: "send hi to ${phone}"`;
         }
         
         const sendRes = await fetch(`${API_BASE}/whatsapp/send`, {
@@ -105,15 +118,16 @@ const FloatingAgent: React.FC = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contactId: contact.contactId || contact.id,
-            content: contentMatch[1],
+            content: messageContent,
           }),
         });
         
         if (sendRes.ok) {
           const result = await sendRes.json();
-          return `✓ Message sent!\n\nTo: ${contact.name || contact.phone}\nMessage: "${contentMatch[1]}"\nStatus: ${result.status}`;
+          return `✓ Message sent!\n\nTo: ${contact.name || contact.phone}\nMessage: "${messageContent}"\nStatus: ${result.status || 'sent'}`;
         }
-        return 'Failed to send message. Please try again.';
+        const errorData = await sendRes.json().catch(() => ({}));
+        return `Failed to send message: ${errorData.error || sendRes.statusText}`;
       }
       
       // Find contact

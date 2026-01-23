@@ -403,24 +403,31 @@ def _get_or_create_contact(phone: str, sender_name: str = '') -> Dict[str, Any]:
     """Get existing contact or create new one."""
     contacts_table = dynamodb.Table(CONTACTS_TABLE)
     
+    # Use a more robust scan - scan more items to ensure we find existing contact
+    # DynamoDB Limit applies BEFORE filter, so we need to scan more items
     response = contacts_table.scan(
         FilterExpression='phone = :phone AND (attribute_not_exists(deletedAt) OR deletedAt = :null)',
         ExpressionAttributeValues={':phone': phone, ':null': None},
-        Limit=1
+        Limit=100  # Scan up to 100 items to find matching phone
     )
     
     items = response.get('Items', [])
     if items:
-        contact = items[0]
-        # Update name if sender provided a name and contact doesn't have one
-        if sender_name and not contact.get('name'):
-            contacts_table.update_item(
-                Key={'id': contact.get('id')},
-                UpdateExpression='SET #name = :name',
-                ExpressionAttributeNames={'#name': 'name'},
-                ExpressionAttributeValues={':name': sender_name}
-            )
-            contact['name'] = sender_name
+        # Return the first (oldest) contact to avoid duplicates
+        contact = sorted(items, key=lambda x: x.get('createdAt', 0))[0]
+        # Update name if sender provided a name and contact doesn't have one or has placeholder
+        current_name = contact.get('name', '')
+        if sender_name and (not current_name or current_name in ['', '~', 'Unknown']):
+            try:
+                contacts_table.update_item(
+                    Key={'id': contact.get('id')},
+                    UpdateExpression='SET #name = :name, updatedAt = :now',
+                    ExpressionAttributeNames={'#name': 'name'},
+                    ExpressionAttributeValues={':name': sender_name, ':now': Decimal(str(int(time.time())))}
+                )
+                contact['name'] = sender_name
+            except Exception as e:
+                logger.warning(f"Failed to update contact name: {str(e)}")
         return contact
     
     # Create new contact
