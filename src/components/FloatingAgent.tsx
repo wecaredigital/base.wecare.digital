@@ -234,7 +234,7 @@ const FloatingAgent: React.FC = () => {
   if (!isOpen) {
     return (
       <button className="agent-fab" onClick={() => setIsOpen(true)} title="Open Assistant">
-        <span className="agent-fab-icon">💬</span>
+        <span className="agent-fab-icon">◇</span>
       </button>
     );
   }
@@ -243,13 +243,13 @@ const FloatingAgent: React.FC = () => {
     <div className="agent-panel">
       <div className="agent-header">
         <div className="agent-header-info">
-          <span className="agent-avatar">🤖</span>
+          <span className="agent-avatar">◈</span>
           <div>
             <span className="agent-name">WECARE Assistant</span>
             <span className="agent-status-dot">● Online</span>
           </div>
         </div>
-        <button className="agent-close" onClick={() => setIsOpen(false)}>✕</button>
+        <button className="agent-close" onClick={() => setIsOpen(false)}>×</button>
       </div>
 
       <div className="agent-messages">

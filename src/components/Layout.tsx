@@ -41,13 +41,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   
   // Navigation items - Unicode symbols only (no emoji)
   const menuItems: MenuItem[] = [
-    { path: '/', label: 'Dashboard', icon: '◉' },
+    { path: '/', label: 'Dashboard', icon: '⊞' },
     { path: '/pay', label: 'Pay', icon: '₹' },
     { path: '/link', label: 'Link', icon: '⟁' },
-    { path: '/forms', label: 'Forms', icon: '▤' },
-    { path: '/docs', label: 'Docs', icon: '⎘' },
-    { path: '/invoice', label: 'Invoice', icon: '⊞' },
-    { path: '/dm', label: 'DM', icon: '◈', subItems: [
+    { path: '/forms', label: 'Forms', icon: '☐' },
+    { path: '/docs', label: 'Docs', icon: '⎙' },
+    { path: '/invoice', label: 'Invoice', icon: '⧉' },
+    { path: '/dm', label: 'Messages', icon: '◈', subItems: [
       { path: '/dm/whatsapp', label: 'WhatsApp' },
       { path: '/dm/sms', label: 'SMS' },
       { path: '/dm/ses', label: 'Email' },

@@ -1,7 +1,7 @@
 /**
  * Rich Text Editor Component
- * Full-featured editor with emoji picker and AI suggestions
- * For WhatsApp, SMS, Email messaging
+ * WhatsApp-style editor with templates, variables, and AI suggestions
+ * Matches WhatsApp Business API capabilities
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -19,17 +19,43 @@ interface RichTextEditorProps {
   channel?: 'whatsapp' | 'sms' | 'email' | 'rcs' | 'voice';
   onSend?: () => void;
   contactContext?: string;
+  onTemplateSelect?: (template: WhatsAppTemplate) => void;
 }
 
-// Common emoji categories
-const EMOJI_CATEGORIES = {
-  smileys: ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷'],
-  gestures: ['👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '☝️', '👋', '🤚', '🖐️', '✋', '🖖', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💪', '🦾', '🦿'],
-  hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟'],
-  objects: ['📱', '💻', '🖥️', '📞', '☎️', '📧', '✉️', '📨', '📩', '📤', '📥', '📦', '📫', '📪', '📬', '📭', '📮', '🗳️', '✏️', '✒️', '🖊️', '🖋️', '📝', '💼', '📁', '📂', '🗂️', '📅', '📆', '🗒️', '🗓️', '📇', '📈', '📉', '📊'],
-  symbols: ['✅', '❌', '⭕', '❗', '❓', '‼️', '⁉️', '💯', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '▶️', '⏸️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '🔀', '🔁', '🔂', '🔃', '🔄'],
-  business: ['💰', '💵', '💴', '💶', '💷', '💸', '💳', '🧾', '💹', '📊', '📈', '📉', '🏦', '🏢', '🏬', '🏭', '🏗️', '🏛️', '⚖️', '🔒', '🔓', '🔐', '🔑', '🗝️'],
-};
+// WhatsApp Template interface
+export interface WhatsAppTemplate {
+  name: string;
+  language: string;
+  category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
+  status: 'APPROVED' | 'PENDING' | 'REJECTED';
+  components: TemplateComponent[];
+}
+
+interface TemplateComponent {
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
+  format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
+  text?: string;
+  example?: { body_text?: string[][] };
+  buttons?: { type: string; text: string; url?: string; phone_number?: string }[];
+}
+
+// Quick reply templates (pre-defined)
+const QUICK_TEMPLATES = [
+  { id: 'greeting', name: 'Greeting', text: 'Hello {{1}}! Thank you for contacting WECARE.DIGITAL. How can I help you today?' },
+  { id: 'thanks', name: 'Thank You', text: 'Thank you for your message, {{1}}. We appreciate your patience.' },
+  { id: 'followup', name: 'Follow Up', text: 'Hi {{1}}, just following up on our previous conversation. Is there anything else you need?' },
+  { id: 'confirm', name: 'Confirmation', text: 'Your request has been confirmed. Reference: {{1}}. We will contact you shortly.' },
+  { id: 'otp', name: 'OTP', text: 'Your verification code is {{1}}. Valid for 10 minutes. Do not share this code.' },
+  { id: 'payment', name: 'Payment', text: 'Payment of ₹{{1}} received. Transaction ID: {{2}}. Thank you!' },
+];
+
+// Variable placeholders
+const VARIABLES = [
+  { key: '{{1}}', label: 'Name', icon: '⊕' },
+  { key: '{{2}}', label: 'Value 1', icon: '①' },
+  { key: '{{3}}', label: 'Value 2', icon: '②' },
+  { key: '{{4}}', label: 'Value 3', icon: '③' },
+];
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
@@ -42,21 +68,25 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   channel = 'whatsapp',
   onSend,
   contactContext,
+  onTemplateSelect,
 }) => {
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [activeEmojiCategory, setActiveEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>('smileys');
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showVariables, setShowVariables] = useState(false);
+  const [showFormatting, setShowFormatting] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [loadingAI, setLoadingAI] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close emoji picker on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
-        setShowEmojiPicker(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowTemplates(false);
+        setShowVariables(false);
+        setShowFormatting(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -71,20 +101,48 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [value]);
 
-  const insertEmoji = (emoji: string) => {
+  const insertAtCursor = (text: string) => {
     const textarea = textareaRef.current;
     if (textarea) {
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
-      const newValue = value.substring(0, start) + emoji + value.substring(end);
+      const newValue = value.substring(0, start) + text + value.substring(end);
       onChange(newValue);
       setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+        textarea.selectionStart = textarea.selectionEnd = start + text.length;
         textarea.focus();
       }, 0);
     } else {
-      onChange(value + emoji);
+      onChange(value + text);
     }
+  };
+
+  const wrapSelection = (prefix: string, suffix: string) => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selected = value.substring(start, end);
+      const newValue = value.substring(0, start) + prefix + selected + suffix + value.substring(end);
+      onChange(newValue);
+      setTimeout(() => {
+        textarea.selectionStart = start + prefix.length;
+        textarea.selectionEnd = end + prefix.length;
+        textarea.focus();
+      }, 0);
+    }
+    setShowFormatting(false);
+  };
+
+  const applyTemplate = (template: typeof QUICK_TEMPLATES[0]) => {
+    onChange(template.text);
+    setShowTemplates(false);
+    textareaRef.current?.focus();
+  };
+
+  const insertVariable = (variable: typeof VARIABLES[0]) => {
+    insertAtCursor(variable.key);
+    setShowVariables(false);
   };
 
   const fetchAISuggestions = async () => {
@@ -98,22 +156,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setAiError(null);
     try {
       const suggestions = await api.getAISuggestions(value, channel, contactContext);
-      // Add some quick reply templates along with AI suggestion
-      const allSuggestions = [
-        ...suggestions,
-        'Thank you for your message. I\'ll get back to you shortly.',
-        'Is there anything else I can help you with?',
-      ].slice(0, 4); // Limit to 4 suggestions
-      setAiSuggestions(allSuggestions);
+      setAiSuggestions(suggestions.slice(0, 3));
       setShowSuggestions(true);
     } catch (error) {
       console.error('AI suggestions error:', error);
-      // Fallback suggestions
-      setAiSuggestions([
-        'Thank you for reaching out!',
-        'I\'ll get back to you shortly.',
-        'How can I assist you further?',
-      ]);
+      // Fallback suggestions based on context
+      const fallback = [
+        'Thank you for reaching out! How can I assist you?',
+        'I understand. Let me help you with that.',
+        'Is there anything else you need?',
+      ];
+      setAiSuggestions(fallback);
       setShowSuggestions(true);
     } finally {
       setLoadingAI(false);
@@ -135,112 +188,162 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const charCount = value.length;
   const isOverLimit = maxLength ? charCount > maxLength : false;
+  const hasVariables = value.includes('{{');
 
   return (
-    <div className={styles['rich-text-editor']}>
+    <div className={styles['rich-text-editor']} ref={dropdownRef}>
       {/* AI Suggestions Panel */}
       {showAISuggestions && showSuggestions && aiSuggestions.length > 0 && (
         <div className={styles['ai-suggestions-panel']}>
           <div className={styles['ai-suggestions-header']}>
-            <span>✨ AI Suggestions</span>
-            <button onClick={() => setShowSuggestions(false)}>✕</button>
+            <span>◇ AI Suggestions</span>
+            <button onClick={() => setShowSuggestions(false)}>×</button>
           </div>
           <div className={styles['ai-suggestions-list']}>
             {aiSuggestions.map((suggestion, i) => (
               <button key={i} className={styles['ai-suggestion-item']} onClick={() => applySuggestion(suggestion)}>
-                {suggestion}
+                {suggestion.length > 80 ? suggestion.substring(0, 80) + '...' : suggestion}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Templates Dropdown */}
+      {showTemplates && (
+        <div className={styles['dropdown-panel']}>
+          <div className={styles['dropdown-header']}>
+            <span>▤ Quick Templates</span>
+            <button onClick={() => setShowTemplates(false)}>×</button>
+          </div>
+          <div className={styles['dropdown-list']}>
+            {QUICK_TEMPLATES.map((template) => (
+              <button key={template.id} className={styles['dropdown-item']} onClick={() => applyTemplate(template)}>
+                <span className={styles['dropdown-item-title']}>{template.name}</span>
+                <span className={styles['dropdown-item-preview']}>{template.text.substring(0, 50)}...</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Variables Dropdown */}
+      {showVariables && (
+        <div className={styles['dropdown-panel']}>
+          <div className={styles['dropdown-header']}>
+            <span>⊕ Variables</span>
+            <button onClick={() => setShowVariables(false)}>×</button>
+          </div>
+          <div className={styles['dropdown-list']}>
+            {VARIABLES.map((variable) => (
+              <button key={variable.key} className={styles['dropdown-item']} onClick={() => insertVariable(variable)}>
+                <span className={styles['variable-icon']}>{variable.icon}</span>
+                <span>{variable.key}</span>
+                <span className={styles['variable-label']}>{variable.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className={styles['dropdown-hint']}>
+            Variables will be replaced when sending
+          </div>
+        </div>
+      )}
+
+      {/* Formatting Dropdown */}
+      {showFormatting && channel === 'whatsapp' && (
+        <div className={styles['dropdown-panel']}>
+          <div className={styles['dropdown-header']}>
+            <span>◈ Formatting</span>
+            <button onClick={() => setShowFormatting(false)}>×</button>
+          </div>
+          <div className={styles['dropdown-list']}>
+            <button className={styles['dropdown-item']} onClick={() => wrapSelection('*', '*')}>
+              <span className={styles['format-icon']}><strong>B</strong></span>
+              <span>Bold</span>
+              <span className={styles['format-hint']}>*text*</span>
+            </button>
+            <button className={styles['dropdown-item']} onClick={() => wrapSelection('_', '_')}>
+              <span className={styles['format-icon']}><em>I</em></span>
+              <span>Italic</span>
+              <span className={styles['format-hint']}>_text_</span>
+            </button>
+            <button className={styles['dropdown-item']} onClick={() => wrapSelection('~', '~')}>
+              <span className={styles['format-icon']}><s>S</s></span>
+              <span>Strikethrough</span>
+              <span className={styles['format-hint']}>~text~</span>
+            </button>
+            <button className={styles['dropdown-item']} onClick={() => wrapSelection('```', '```')}>
+              <span className={styles['format-icon']}>{'<>'}</span>
+              <span>Monospace</span>
+              <span className={styles['format-hint']}>```text```</span>
+            </button>
           </div>
         </div>
       )}
 
       {/* Toolbar */}
       <div className={styles['editor-toolbar']}>
+        {/* Templates Button */}
         <button
           type="button"
-          className={`${styles['toolbar-btn']} ${showEmojiPicker ? styles['active'] : ''}`}
-          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          title="Emoji"
+          className={`${styles['toolbar-btn']} ${showTemplates ? styles['active'] : ''}`}
+          onClick={() => { setShowTemplates(!showTemplates); setShowVariables(false); setShowFormatting(false); }}
+          title="Templates"
         >
-          😊
+          ▤
         </button>
-        
+
+        {/* Variables Button */}
+        <button
+          type="button"
+          className={`${styles['toolbar-btn']} ${showVariables ? styles['active'] : ''} ${hasVariables ? styles['has-vars'] : ''}`}
+          onClick={() => { setShowVariables(!showVariables); setShowTemplates(false); setShowFormatting(false); }}
+          title="Insert Variable"
+        >
+          {'{{}}'}
+        </button>
+
+        {/* Formatting Button (WhatsApp only) */}
+        {channel === 'whatsapp' && (
+          <button
+            type="button"
+            className={`${styles['toolbar-btn']} ${showFormatting ? styles['active'] : ''}`}
+            onClick={() => { setShowFormatting(!showFormatting); setShowTemplates(false); setShowVariables(false); }}
+            title="Formatting"
+          >
+            ◈
+          </button>
+        )}
+
+        {/* AI Button */}
         {showAISuggestions && (
           <button
             type="button"
             className={`${styles['toolbar-btn']} ${styles['ai-btn']} ${aiError ? styles['error'] : ''}`}
             onClick={fetchAISuggestions}
             disabled={loadingAI}
-            title={aiError || "Get AI Suggestions"}
+            title={aiError || "Get AI Suggestions (Bedrock)"}
           >
-            {loadingAI ? '...' : '✨ AI'}
+            {loadingAI ? '...' : '◇ AI'}
           </button>
-        )}
-
-        {channel === 'whatsapp' && (
-          <>
-            <button type="button" className={styles['toolbar-btn']} title="Bold" onClick={() => onChange(value + '*bold*')}>
-              <strong>B</strong>
-            </button>
-            <button type="button" className={styles['toolbar-btn']} title="Italic" onClick={() => onChange(value + '_italic_')}>
-              <em>I</em>
-            </button>
-            <button type="button" className={styles['toolbar-btn']} title="Strikethrough" onClick={() => onChange(value + '~strike~')}>
-              <s>S</s>
-            </button>
-          </>
-        )}
-
-        {channel === 'email' && (
-          <>
-            <button type="button" className={styles['toolbar-btn']} title="Bold">
-              <strong>B</strong>
-            </button>
-            <button type="button" className={styles['toolbar-btn']} title="Italic">
-              <em>I</em>
-            </button>
-            <button type="button" className={styles['toolbar-btn']} title="Underline">
-              <u>U</u>
-            </button>
-            <button type="button" className={styles['toolbar-btn']} title="Link">
-              🔗
-            </button>
-          </>
         )}
 
         <div className={styles['toolbar-spacer']} />
 
+        {/* Character Count */}
         {showCharCount && (
           <span className={`${styles['char-counter']} ${isOverLimit ? styles['over-limit'] : ''}`}>
             {charCount}{maxLength ? `/${maxLength}` : ''}
           </span>
         )}
-      </div>
 
-      {/* Emoji Picker */}
-      {showEmojiPicker && (
-        <div className={styles['emoji-picker']} ref={emojiPickerRef}>
-          <div className={styles['emoji-categories']}>
-            {Object.keys(EMOJI_CATEGORIES).map((cat) => (
-              <button
-                key={cat}
-                className={`${styles['emoji-cat-btn']} ${activeEmojiCategory === cat ? styles['active'] : ''}`}
-                onClick={() => setActiveEmojiCategory(cat as keyof typeof EMOJI_CATEGORIES)}
-              >
-                {EMOJI_CATEGORIES[cat as keyof typeof EMOJI_CATEGORIES][0]}
-              </button>
-            ))}
-          </div>
-          <div className={styles['emoji-grid']}>
-            {EMOJI_CATEGORIES[activeEmojiCategory].map((emoji, i) => (
-              <button key={i} className={styles['emoji-btn']} onClick={() => insertEmoji(emoji)}>
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+        {/* Variable indicator */}
+        {hasVariables && (
+          <span className={styles['var-indicator']} title="Contains variables">
+            ⊕ {(value.match(/\{\{\d+\}\}/g) || []).length}
+          </span>
+        )}
+      </div>
 
       {/* Text Input */}
       <div className={styles['editor-input-wrapper']}>
@@ -261,9 +364,23 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className={styles['send-btn']}
             onClick={onSend}
             disabled={disabled || !value.trim() || isOverLimit}
+            title="Send (Enter)"
           >
-            ➤
+            →
           </button>
+        )}
+      </div>
+
+      {/* Help hint */}
+      <div className={styles['editor-hint']}>
+        {channel === 'whatsapp' && (
+          <span>Enter to send · Shift+Enter for new line · *bold* _italic_ ~strike~</span>
+        )}
+        {channel === 'sms' && (
+          <span>SMS: 160 chars = 1 segment · Enter to send</span>
+        )}
+        {channel === 'email' && (
+          <span>Enter to send · Shift+Enter for new line</span>
         )}
       </div>
     </div>
