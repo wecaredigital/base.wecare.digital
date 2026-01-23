@@ -166,28 +166,8 @@ const FloatingAgent: React.FC = () => {
         return `I can help you with:\n\n• Send WhatsApp to +91... saying Hello\n• Find contact +91... or named John\n• Show today's stats\n• Check recent messages\n\nJust type naturally!`;
       }
       
-      // AI fallback - use Bedrock Agent with Nova Lite
-      // TODO: Enable after configuring internal agent
-      if (INTERNAL_AGENT_ID) {
-        const aiRes = await fetch(`${API_BASE}/ai/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            message: text,
-            sessionId: sessionId,
-            agentId: INTERNAL_AGENT_ID,
-            agentAlias: INTERNAL_AGENT_ALIAS,
-            model: 'nova-lite',
-            context: 'internal-admin'
-          }),
-        });
-        
-        if (aiRes.ok) {
-          const data = await aiRes.json();
-          return data.response || data.suggestion || 'I can help you send messages, find contacts, or check stats. Try "help" for examples.';
-        }
-      }
-      
+      // AI fallback - disabled until /ai/chat endpoint is created
+      // The agent can still handle local commands (send, find, stats, help)
       return 'I can help you send messages, find contacts, or check stats. Try "help" for examples.';
       
     } catch (error) {
