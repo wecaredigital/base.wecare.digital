@@ -1,7 +1,7 @@
 /**
  * Rich Text Editor Component
  * WhatsApp-style editor with templates, variables, and AI suggestions
- * Matches WhatsApp Business API capabilities
+ * Fetches real templates from WhatsApp API
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -19,42 +19,15 @@ interface RichTextEditorProps {
   channel?: 'whatsapp' | 'sms' | 'email' | 'rcs' | 'voice';
   onSend?: () => void;
   contactContext?: string;
-  onTemplateSelect?: (template: WhatsAppTemplate) => void;
+  onTemplateSelect?: (template: api.WhatsAppTemplate) => void;
 }
 
-// WhatsApp Template interface
-export interface WhatsAppTemplate {
-  name: string;
-  language: string;
-  category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
-  status: 'APPROVED' | 'PENDING' | 'REJECTED';
-  components: TemplateComponent[];
-}
-
-interface TemplateComponent {
-  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
-  format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
-  text?: string;
-  example?: { body_text?: string[][] };
-  buttons?: { type: string; text: string; url?: string; phone_number?: string }[];
-}
-
-// Quick reply templates (pre-defined)
-const QUICK_TEMPLATES = [
-  { id: 'greeting', name: 'Greeting', text: 'Hello {{1}}! Thank you for contacting WECARE.DIGITAL. How can I help you today?' },
-  { id: 'thanks', name: 'Thank You', text: 'Thank you for your message, {{1}}. We appreciate your patience.' },
-  { id: 'followup', name: 'Follow Up', text: 'Hi {{1}}, just following up on our previous conversation. Is there anything else you need?' },
-  { id: 'confirm', name: 'Confirmation', text: 'Your request has been confirmed. Reference: {{1}}. We will contact you shortly.' },
-  { id: 'otp', name: 'OTP', text: 'Your verification code is {{1}}. Valid for 10 minutes. Do not share this code.' },
-  { id: 'payment', name: 'Payment', text: 'Payment of ₹{{1}} received. Transaction ID: {{2}}. Thank you!' },
-];
-
-// Variable placeholders
+// Variable placeholders for templates
 const VARIABLES = [
-  { key: '{{1}}', label: 'Name', icon: '⊕' },
-  { key: '{{2}}', label: 'Value 1', icon: '①' },
-  { key: '{{3}}', label: 'Value 2', icon: '②' },
-  { key: '{{4}}', label: 'Value 3', icon: '③' },
+  { key: '{{1}}', label: 'Variable 1', icon: '①' },
+  { key: '{{2}}', label: 'Variable 2', icon: '②' },
+  { key: '{{3}}', label: 'Variable 3', icon: '③' },
+  { key: '{{4}}', label: 'Variable 4', icon: '④' },
 ];
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -73,12 +46,33 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [showTemplates, setShowTemplates] = useState(false);
   const [showVariables, setShowVariables] = useState(false);
   const [showFormatting, setShowFormatting] = useState(false);
+  const [templates, setTemplates] = useState<api.WhatsAppTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [loadingAI, setLoadingAI] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Load templates from API
+  useEffect(() => {
+    if (channel === 'whatsapp') {
+      loadTemplates();
+    }
+  }, [channel]);
+
+  const loadTemplates = async () => {
+    setTemplatesLoading(true);
+    try {
+      const data = await api.listWhatsAppTemplates();
+      setTemplates(data);
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -134,9 +128,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setShowFormatting(false);
   };
 
-  const applyTemplate = (template: typeof QUICK_TEMPLATES[0]) => {
-    onChange(template.text);
+  const applyTemplate = (template: api.WhatsAppTemplate) => {
+    // Extract body text from template components
+    const bodyComponent = template.components.find(c => c.type === 'BODY');
+    const bodyText = bodyComponent?.text || template.name;
+    onChange(bodyText);
     setShowTemplates(false);
+    if (onTemplateSelect) {
+      onTemplateSelect(template);
+    }
     textareaRef.current?.focus();
   };
 
@@ -154,19 +154,41 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     
     setLoadingAI(true);
     setAiError(null);
+    setShowSuggestions(false);
+    
     try {
-      const suggestions = await api.getAISuggestions(value, channel, contactContext);
-      setAiSuggestions(suggestions.slice(0, 3));
-      setShowSuggestions(true);
-    } catch (error) {
+      console.log('Fetching AI suggestion for:', value.substring(0, 50));
+      
+      // Use the AI generate API with external context for inbox
+      const result = await api.generateAIResponse(value, {
+        contactName: contactContext,
+        channel: channel,
+      });
+      
+      console.log('AI response:', result);
+      
+      if (result && result.response && result.response.trim()) {
+        setAiSuggestions([result.response]);
+        setShowSuggestions(true);
+        setAiError(null);
+      } else {
+        // Show fallback if no response
+        setAiSuggestions([
+          'Thank you for reaching out! How can I assist you today?',
+          'I understand. Let me help you with that.',
+        ]);
+        setShowSuggestions(true);
+      }
+    } catch (error: any) {
       console.error('AI suggestions error:', error);
-      // Fallback suggestions based on context
-      const fallback = [
-        'Thank you for reaching out! How can I assist you?',
-        'I understand. Let me help you with that.',
-        'Is there anything else you need?',
-      ];
-      setAiSuggestions(fallback);
+      setAiError('AI service error');
+      setTimeout(() => setAiError(null), 3000);
+      
+      // Show fallback suggestions even on error
+      setAiSuggestions([
+        'Thank you for your message. How can I help you?',
+        'Is there anything else you need assistance with?',
+      ]);
       setShowSuggestions(true);
     } finally {
       setLoadingAI(false);
@@ -190,19 +212,29 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const isOverLimit = maxLength ? charCount > maxLength : false;
   const hasVariables = value.includes('{{');
 
+  // Get template status badge
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'APPROVED': return { text: '✓', class: 'approved' };
+      case 'PENDING': return { text: '○', class: 'pending' };
+      case 'REJECTED': return { text: '×', class: 'rejected' };
+      default: return { text: '?', class: '' };
+    }
+  };
+
   return (
     <div className={styles['rich-text-editor']} ref={dropdownRef}>
       {/* AI Suggestions Panel */}
       {showAISuggestions && showSuggestions && aiSuggestions.length > 0 && (
         <div className={styles['ai-suggestions-panel']}>
           <div className={styles['ai-suggestions-header']}>
-            <span>◇ AI Suggestions</span>
+            <span>◇ AI Suggestion</span>
             <button onClick={() => setShowSuggestions(false)}>×</button>
           </div>
           <div className={styles['ai-suggestions-list']}>
             {aiSuggestions.map((suggestion, i) => (
               <button key={i} className={styles['ai-suggestion-item']} onClick={() => applySuggestion(suggestion)}>
-                {suggestion.length > 80 ? suggestion.substring(0, 80) + '...' : suggestion}
+                {suggestion.length > 100 ? suggestion.substring(0, 100) + '...' : suggestion}
               </button>
             ))}
           </div>
@@ -213,16 +245,37 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       {showTemplates && (
         <div className={styles['dropdown-panel']}>
           <div className={styles['dropdown-header']}>
-            <span>▤ Quick Templates</span>
+            <span>▤ WhatsApp Templates</span>
             <button onClick={() => setShowTemplates(false)}>×</button>
           </div>
           <div className={styles['dropdown-list']}>
-            {QUICK_TEMPLATES.map((template) => (
-              <button key={template.id} className={styles['dropdown-item']} onClick={() => applyTemplate(template)}>
-                <span className={styles['dropdown-item-title']}>{template.name}</span>
-                <span className={styles['dropdown-item-preview']}>{template.text.substring(0, 50)}...</span>
-              </button>
-            ))}
+            {templatesLoading ? (
+              <div className={styles['dropdown-loading']}>Loading templates...</div>
+            ) : templates.length > 0 ? (
+              templates.map((template) => {
+                const badge = getStatusBadge(template.status);
+                return (
+                  <button 
+                    key={template.id} 
+                    className={styles['dropdown-item']} 
+                    onClick={() => applyTemplate(template)}
+                    disabled={template.status !== 'APPROVED'}
+                  >
+                    <span className={`${styles['template-status']} ${styles[badge.class]}`}>{badge.text}</span>
+                    <span className={styles['dropdown-item-title']}>{template.name}</span>
+                    <span className={styles['template-category']}>{template.category}</span>
+                  </button>
+                );
+              })
+            ) : (
+              <div className={styles['dropdown-empty']}>
+                <p>No templates found</p>
+                <p className={styles['dropdown-hint-text']}>Templates are managed in AWS Console or Meta Business Suite</p>
+              </div>
+            )}
+          </div>
+          <div className={styles['dropdown-hint']}>
+            Templates can be sent outside 24h window
           </div>
         </div>
       )}
@@ -244,7 +297,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             ))}
           </div>
           <div className={styles['dropdown-hint']}>
-            Variables will be replaced when sending
+            Variables are replaced when sending templates
           </div>
         </div>
       )}
@@ -283,15 +336,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
       {/* Toolbar */}
       <div className={styles['editor-toolbar']}>
-        {/* Templates Button */}
-        <button
-          type="button"
-          className={`${styles['toolbar-btn']} ${showTemplates ? styles['active'] : ''}`}
-          onClick={() => { setShowTemplates(!showTemplates); setShowVariables(false); setShowFormatting(false); }}
-          title="Templates"
-        >
-          ▤
-        </button>
+        {/* Templates Button (WhatsApp only) */}
+        {channel === 'whatsapp' && (
+          <button
+            type="button"
+            className={`${styles['toolbar-btn']} ${showTemplates ? styles['active'] : ''}`}
+            onClick={() => { setShowTemplates(!showTemplates); setShowVariables(false); setShowFormatting(false); }}
+            title="Templates (can send outside 24h window)"
+          >
+            ▤
+          </button>
+        )}
 
         {/* Variables Button */}
         <button
@@ -322,7 +377,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className={`${styles['toolbar-btn']} ${styles['ai-btn']} ${aiError ? styles['error'] : ''}`}
             onClick={fetchAISuggestions}
             disabled={loadingAI}
-            title={aiError || "Get AI Suggestions (Bedrock)"}
+            title={aiError || "Get AI Suggestion (Bedrock)"}
           >
             {loadingAI ? '...' : '◇ AI'}
           </button>

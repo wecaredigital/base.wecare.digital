@@ -39,7 +39,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   
-  // Navigation items - Unicode symbols only (no emoji)
+  // Navigation items - Unicode symbols (matching dashboard)
   const menuItems: MenuItem[] = [
     { path: '/', label: 'Dashboard', icon: '⊞' },
     { path: '/pay', label: 'Pay', icon: '₹' },
