@@ -1480,6 +1480,60 @@ body {
     flex-wrap: wrap;
     gap: 20px;
   }
+  
+  /* Search bars mobile */
+  .search-bar-global,
+  .search-bar-admin {
+    padding: 10px 14px;
+  }
+  
+  .search-input-global,
+  .search-input-admin {
+    font-size: 16px;
+  }
+  
+  /* New message alert mobile */
+  .new-message-alert {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  /* API status bar mobile */
+  .api-status-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 12px;
+  }
+  
+  .auto-refresh-indicator {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 4px;
+  }
+  
+  /* Audit logs mobile */
+  .audit-filters {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  
+  .filter-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  
+  .audit-log-item {
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+  
+  .audit-log-meta {
+    flex-direction: column;
+    gap: 6px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1784,6 +1838,284 @@ input, textarea, select {
   .quick-actions-grid {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+/* ============================================
+   SEARCH BARS - GLOBAL & ADMIN
+   ============================================ */
+
+.search-bar-global,
+.search-bar-admin {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  margin-bottom: 24px;
+  transition: all 0.2s;
+}
+
+.search-bar-global:focus-within,
+.search-bar-admin:focus-within {
+  border-color: #0f172a;
+  box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.1);
+}
+
+.search-icon {
+  font-size: 18px;
+  color: #94a3b8;
+}
+
+.search-input-global,
+.search-input-admin {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  outline: none;
+  color: #0f172a;
+}
+
+.search-input-global::placeholder,
+.search-input-admin::placeholder {
+  color: #94a3b8;
+}
+
+.search-clear {
+  background: #f1f5f9;
+  border: none;
+  color: #64748b;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.search-clear:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.search-results-panel {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #7dd3fc;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.search-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #0369a1;
+}
+
+/* ============================================
+   NEW MESSAGE ALERT
+   ============================================ */
+
+.new-message-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #ffffff;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  animation: slideDown 0.3s ease-out, pulse-alert 2s infinite;
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+}
+
+.new-message-alert:hover {
+  transform: scale(1.02);
+}
+
+.alert-icon {
+  font-size: 20px;
+  animation: ring 1s ease-in-out infinite;
+}
+
+@keyframes ring {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  75% { transform: rotate(-15deg); }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-alert {
+  0%, 100% { box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3); }
+  50% { box-shadow: 0 4px 30px rgba(34, 197, 94, 0.5); }
+}
+
+.alert-dismiss {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #ffffff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: auto;
+  transition: background 0.2s;
+}
+
+.alert-dismiss:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   API STATUS BAR ENHANCEMENTS
+   ============================================ */
+
+.status-separator {
+  color: #cbd5e1;
+  margin: 0 4px;
+}
+
+.last-refresh {
+  color: #64748b;
+}
+
+.auto-refresh-indicator {
+  color: #22c55e;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+/* ============================================
+   AUDIT LOGS
+   ============================================ */
+
+.audit-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border: 2px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.filter-btn.active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+}
+
+.audit-logs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.audit-log-item {
+  display: flex;
+  gap: 16px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+}
+
+.audit-log-item:hover {
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.audit-log-item.success {
+  border-left: 4px solid #22c55e;
+}
+
+.audit-log-item.error {
+  border-left: 4px solid #ef4444;
+}
+
+.audit-log-item.warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.audit-log-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.audit-log-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.audit-log-action {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.audit-log-details {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.audit-log-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.audit-log-resource,
+.audit-log-user,
+.audit-log-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ============================================
+   BUTTON SMALL VARIANT
+   ============================================ */
+
+.btn-sm {
+  padding: 8px 14px;
+  font-size: 13px;
 }
 
 /* ============================================

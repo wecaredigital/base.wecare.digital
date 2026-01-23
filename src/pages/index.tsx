@@ -1,10 +1,10 @@
 /**
  * Dashboard Page - WECARE.DIGITAL
- * Functional dashboard with real API data and quick compose
+ * Real-time dashboard with auto-refresh on new messages
  * NO FAKE DATA - All from real AWS resources
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '../components/Layout';
 import Link from 'next/link';
 import * as api from '../api/client';
@@ -26,6 +26,11 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
   const [billingData, setBillingData] = useState<api.AWSBillingData | null>(null);
   const [billingLoading, setBillingLoading] = useState(false);
   
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<{ contacts: api.Contact[]; messages: api.Message[] } | null>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Quick compose state
   const [showCompose, setShowCompose] = useState(false);
   const [composeChannel, setComposeChannel] = useState<'whatsapp' | 'sms' | 'email'>('whatsapp');
@@ -34,9 +39,14 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  
+  // Real-time tracking
+  const [lastMessageCount, setLastMessageCount] = useState(0);
+  const [newMessageAlert, setNewMessageAlert] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     
     const connectionTest = await api.testConnection();
@@ -45,7 +55,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
     
     if (!connectionTest.success) {
       setError(connectionTest.message);
-      setLoading(false);
+      if (!silent) setLoading(false);
       return;
     }
     
@@ -54,15 +64,32 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         api.listContacts(),
         api.listMessages()
       ]);
+      
+      // Check for new messages
+      if (messagesData.length > lastMessageCount && lastMessageCount > 0) {
+        setNewMessageAlert(true);
+        // Play notification sound (optional)
+        try {
+          const audio = new Audio('/notification.mp3');
+          audio.volume = 0.3;
+          audio.play().catch(() => {});
+        } catch {}
+        
+        // Auto-dismiss alert after 5 seconds
+        setTimeout(() => setNewMessageAlert(false), 5000);
+      }
+      
       setContacts(contactsData);
       setMessages(messagesData);
+      setLastMessageCount(messagesData.length);
+      setLastRefresh(new Date());
     } catch (err) {
       console.error('Load error:', err);
-      setError('Failed to load data');
+      if (!silent) setError('Failed to load data');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, []);
+  }, [lastMessageCount]);
 
   const loadBillingData = useCallback(async () => {
     setBillingLoading(true);
@@ -81,11 +108,42 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
     loadBillingData();
   }, [loadData, loadBillingData]);
 
-  // Auto-refresh every 30 seconds
+  // Real-time auto-refresh every 10 seconds (silent)
   useEffect(() => {
-    const interval = setInterval(loadData, 30000);
+    const interval = setInterval(() => loadData(true), 10000);
     return () => clearInterval(interval);
   }, [loadData]);
+
+  // Search on type with debounce
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      const query = searchQuery.toLowerCase();
+      const filteredContacts = contacts.filter(c => 
+        c.name?.toLowerCase().includes(query) ||
+        c.phone?.toLowerCase().includes(query) ||
+        c.email?.toLowerCase().includes(query)
+      );
+      const filteredMessages = messages.filter(m =>
+        m.content?.toLowerCase().includes(query) ||
+        contacts.find(c => c.id === m.contactId)?.name?.toLowerCase().includes(query) ||
+        contacts.find(c => c.id === m.contactId)?.phone?.toLowerCase().includes(query)
+      );
+      setSearchResults({ contacts: filteredContacts, messages: filteredMessages });
+    }, 300);
+    
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [searchQuery, contacts, messages]);
 
   const handleSend = async () => {
     if (!selectedContact || !composeMessage.trim()) return;
@@ -164,26 +222,64 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
     }
   };
 
+  // Display data (filtered if searching)
+  const displayContacts = searchResults?.contacts ?? contacts;
+  const displayMessages = searchResults?.messages ?? messages;
+
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
+        {/* New Message Alert */}
+        {newMessageAlert && (
+          <div className="new-message-alert" onClick={() => setNewMessageAlert(false)}>
+            <span className="alert-icon">🔔</span>
+            <span>New message received!</span>
+            <button className="alert-dismiss">✕</button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="dashboard-header">
-          <h1 className="page-title">Dashboard</h1>
+          <h1 className="page-title">📊 Dashboard</h1>
           <div className="header-actions">
-            <button className="btn-secondary" onClick={loadData} disabled={loading}>
-              ↻ {loading ? 'Loading...' : 'Refresh'}
+            <button className="btn-secondary" onClick={() => loadData()} disabled={loading}>
+              🔄 {loading ? 'Loading...' : 'Refresh'}
             </button>
             <button className="btn-primary" onClick={() => setShowCompose(!showCompose)}>
-              + Quick Send
+              ✉️ Quick Send
             </button>
           </div>
         </div>
 
         {error && (
           <div className="error-banner">
-            {error}
+            <span>❌ {error}</span>
             <button onClick={() => setError(null)}>✕</button>
+          </div>
+        )}
+
+        {/* Search Bar */}
+        <div className="search-bar-global">
+          <span className="search-icon">🔍</span>
+          <input
+            type="text"
+            placeholder="Search contacts, messages..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="search-input-global"
+          />
+          {searchQuery && (
+            <button className="search-clear" onClick={() => setSearchQuery('')}>✕</button>
+          )}
+        </div>
+
+        {/* Search Results */}
+        {searchResults && (
+          <div className="search-results-panel">
+            <div className="search-results-header">
+              <span>Found {searchResults.contacts.length} contacts, {searchResults.messages.length} messages</span>
+              <button className="btn-link" onClick={() => setSearchQuery('')}>Clear</button>
+            </div>
           </div>
         )}
 
@@ -191,16 +287,19 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         <div className="api-status-bar">
           <span className={`status-dot ${apiConnected ? 'connected' : 'disconnected'}`}></span>
           <span>API: {apiConnected ? `Connected (${apiLatency}ms)` : 'Disconnected'}</span>
+          <span className="status-separator">|</span>
+          <span className="last-refresh">Last refresh: {lastRefresh.toLocaleTimeString()}</span>
+          <span className="auto-refresh-indicator">🔄 Auto-refresh: 10s</span>
         </div>
 
         {/* Quick Compose Panel */}
         {showCompose && (
           <div className="section compose-panel">
-            <h2 className="section-title">Quick Send Message</h2>
+            <h2 className="section-title">✉️ Quick Send Message</h2>
             
             {sendResult && (
               <div className={`send-result ${sendResult.success ? 'success' : 'error'}`}>
-                {sendResult.message}
+                {sendResult.success ? '✅' : '❌'} {sendResult.message}
               </div>
             )}
             
@@ -210,19 +309,19 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                   className={`channel-btn ${composeChannel === 'whatsapp' ? 'active' : ''}`}
                   onClick={() => setComposeChannel('whatsapp')}
                 >
-                  ✉ WhatsApp
+                  💬 WhatsApp
                 </button>
                 <button 
                   className={`channel-btn ${composeChannel === 'sms' ? 'active' : ''}`}
                   onClick={() => setComposeChannel('sms')}
                 >
-                  ☎ SMS
+                  📱 SMS
                 </button>
                 <button 
                   className={`channel-btn ${composeChannel === 'email' ? 'active' : ''}`}
                   onClick={() => setComposeChannel('email')}
                 >
-                  @ Email
+                  📧 Email
                 </button>
               </div>
               
@@ -239,11 +338,6 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                     </option>
                   ))}
                 </select>
-                {contacts.length === 0 && (
-                  <div className="help-text">
-                    No contacts yet. <Link href="/contacts">Add a contact first</Link>
-                  </div>
-                )}
               </div>
               
               <div className="form-group">
@@ -257,10 +351,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
               </div>
               
               <div className="form-actions">
-                <button 
-                  className="btn-secondary" 
-                  onClick={() => setShowCompose(false)}
-                >
+                <button className="btn-secondary" onClick={() => setShowCompose(false)}>
                   Cancel
                 </button>
                 <button 
@@ -268,7 +359,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                   onClick={handleSend}
                   disabled={!selectedContact || !composeMessage.trim() || sending}
                 >
-                  {sending ? 'Sending...' : `Send ${composeChannel.toUpperCase()}`}
+                  {sending ? '⏳ Sending...' : `📤 Send ${composeChannel.toUpperCase()}`}
                 </button>
               </div>
             </div>
@@ -278,22 +369,27 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         {/* Stats */}
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-value">{contacts.length}</div>
+            <div className="stat-icon">👥</div>
+            <div className="stat-value">{displayContacts.length}</div>
             <div className="stat-label">Contacts</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value">{messages.length}</div>
+            <div className="stat-icon">💬</div>
+            <div className="stat-value">{displayMessages.length}</div>
             <div className="stat-label">Total Messages</div>
           </div>
           <div className="stat-card">
+            <div className="stat-icon">📅</div>
             <div className="stat-value">{todayMessages.length}</div>
             <div className="stat-label">Today</div>
           </div>
           <div className="stat-card">
+            <div className="stat-icon">📥</div>
             <div className="stat-value">{inboundCount}</div>
             <div className="stat-label">Inbound</div>
           </div>
           <div className="stat-card">
+            <div className="stat-icon">📤</div>
             <div className="stat-value">{outboundCount}</div>
             <div className="stat-label">Outbound</div>
           </div>
@@ -301,31 +397,31 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
 
         {/* Quick Actions */}
         <div className="section">
-          <h2 className="section-title">Quick Actions</h2>
+          <h2 className="section-title">⚡ Quick Actions</h2>
           <div className="quick-actions-grid">
             <Link href="/dm/whatsapp" className="quick-action-card">
-              <span className="qa-icon">✉</span>
+              <span className="qa-icon">💬</span>
               <span className="qa-title">WhatsApp</span>
             </Link>
             <Link href="/dm/sms" className="quick-action-card">
-              <span className="qa-icon">☎</span>
+              <span className="qa-icon">📱</span>
               <span className="qa-title">SMS</span>
             </Link>
             <Link href="/dm/ses" className="quick-action-card">
-              <span className="qa-icon">@</span>
+              <span className="qa-icon">📧</span>
               <span className="qa-title">Email</span>
             </Link>
             <Link href="/contacts" className="quick-action-card">
-              <span className="qa-icon">+</span>
+              <span className="qa-icon">➕</span>
               <span className="qa-title">Add Contact</span>
             </Link>
             <Link href="/bulk" className="quick-action-card">
-              <span className="qa-icon">⧉</span>
+              <span className="qa-icon">📤</span>
               <span className="qa-title">Bulk Send</span>
             </Link>
             <Link href="/admin" className="quick-action-card">
-              <span className="qa-icon">⚙</span>
-              <span className="qa-title">Settings</span>
+              <span className="qa-icon">⚙️</span>
+              <span className="qa-title">Admin</span>
             </Link>
           </div>
         </div>
@@ -333,49 +429,25 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         {/* Recent Messages */}
         <div className="section">
           <div className="section-header">
-            <h2 className="section-title">Recent Messages</h2>
+            <h2 className="section-title">💬 Recent Messages</h2>
             <Link href="/dm" className="view-all-link">View All →</Link>
           </div>
           
-          {messages.length > 0 ? (
+          {displayMessages.length > 0 ? (
             <div className="messages-list">
-              {messages.slice(0, 10).map(msg => {
+              {displayMessages.slice(0, 10).map(msg => {
                 const contact = contacts.find(c => c.id === msg.contactId || c.contactId === msg.contactId);
                 return (
                   <div key={msg.id} className={`message-row ${msg.direction.toLowerCase()}`}>
                     <div className="message-direction">
-                      {msg.direction === 'INBOUND' ? '↓' : '↑'}
+                      {msg.direction === 'INBOUND' ? '📥' : '📤'}
                     </div>
                     <div className="message-info">
                       <div className="message-contact">
                         {contact?.name || contact?.phone || msg.contactId?.substring(0, 8)}
                       </div>
                       <div className="message-preview">
-                        {msg.mediaUrl ? (
-                          <div className="media-preview-inline">
-                            {msg.messageType === 'image' ? (
-                              <img src={msg.mediaUrl} alt="Media" className="media-thumb-inline" />
-                            ) : msg.messageType === 'video' ? (
-                              <span className="media-icon">🎬</span>
-                            ) : msg.messageType === 'audio' ? (
-                              <span className="media-icon">🎵</span>
-                            ) : (
-                              <span className="media-icon">📄</span>
-                            )}
-                            <span className="media-label">{msg.content || `[${msg.messageType}]`}</span>
-                            <a 
-                              href={msg.mediaUrl} 
-                              download 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="download-btn-inline"
-                              title="Download"
-                              onClick={e => e.stopPropagation()}
-                            >
-                              ⬇
-                            </a>
-                          </div>
-                        ) : (
+                        {msg.mediaUrl ? `📎 ${msg.messageType || 'Media'}` : (
                           <>
                             {msg.content?.substring(0, 50) || '(no content)'}
                             {(msg.content?.length || 0) > 50 ? '...' : ''}
@@ -392,9 +464,8 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                         className="delete-btn" 
                         onClick={() => handleDeleteMessage(msg)}
                         disabled={deleting === msg.id}
-                        title="Delete message"
                       >
-                        {deleting === msg.id ? '...' : '✕'}
+                        {deleting === msg.id ? '⏳' : '🗑️'}
                       </button>
                     </div>
                   </div>
@@ -405,53 +476,8 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
             <div className="empty-state">
               <p>No messages yet</p>
               <button className="btn-primary" onClick={() => setShowCompose(true)}>
-                Send First Message
+                ✉️ Send First Message
               </button>
-            </div>
-          )}
-        </div>
-
-        {/* Media Gallery */}
-        <div className="section">
-          <h2 className="section-title">📎 Media Files ({messages.filter(m => m.mediaUrl).length})</h2>
-          {messages.filter(m => m.mediaUrl).length > 0 ? (
-            <div className="media-gallery">
-              {messages.filter(m => m.mediaUrl).slice(0, 12).map(msg => {
-                const contact = contacts.find(c => c.id === msg.contactId || c.contactId === msg.contactId);
-                return (
-                  <div key={msg.id} className="media-card">
-                    <div className="media-preview">
-                      {msg.messageType === 'image' ? (
-                        <img src={msg.mediaUrl} alt="Media" className="media-thumb" />
-                      ) : msg.messageType === 'video' ? (
-                        <div className="media-placeholder video">🎬 Video</div>
-                      ) : msg.messageType === 'audio' ? (
-                        <div className="media-placeholder audio">🎵 Audio</div>
-                      ) : (
-                        <div className="media-placeholder doc">📄 Document</div>
-                      )}
-                    </div>
-                    <div className="media-info">
-                      <div className="media-contact">{contact?.name || contact?.phone || 'Unknown'}</div>
-                      <div className="media-time">{new Date(msg.timestamp).toLocaleDateString()}</div>
-                    </div>
-                    <a 
-                      href={msg.mediaUrl} 
-                      download 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="media-download-btn"
-                      title="Download"
-                    >
-                      ⬇ Download
-                    </a>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <p>No media files yet</p>
             </div>
           )}
         </div>
@@ -459,13 +485,13 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         {/* Contacts List */}
         <div className="section">
           <div className="section-header">
-            <h2 className="section-title">Contacts ({contacts.length})</h2>
+            <h2 className="section-title">👥 Contacts ({displayContacts.length})</h2>
             <Link href="/contacts" className="view-all-link">Manage →</Link>
           </div>
           
-          {contacts.length > 0 ? (
+          {displayContacts.length > 0 ? (
             <div className="contacts-grid">
-              {contacts.slice(0, 6).map(contact => (
+              {displayContacts.slice(0, 6).map(contact => (
                 <div key={contact.id} className="contact-card-mini">
                   <div className="contact-avatar-mini">
                     {(contact.name || contact.phone || '?').charAt(0).toUpperCase()}
@@ -478,9 +504,8 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                     className="delete-btn-mini" 
                     onClick={() => handleDeleteContact(contact)}
                     disabled={deleting === contact.id}
-                    title="Delete contact"
                   >
-                    {deleting === contact.id ? '...' : '✕'}
+                    {deleting === contact.id ? '⏳' : '🗑️'}
                   </button>
                 </div>
               ))}
@@ -488,44 +513,21 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
           ) : (
             <div className="empty-state">
               <p>No contacts yet</p>
-              <Link href="/contacts" className="btn-primary">Add Contact</Link>
+              <Link href="/contacts" className="btn-primary">➕ Add Contact</Link>
             </div>
           )}
-        </div>
-
-        {/* WhatsApp Numbers */}
-        <div className="section">
-          <h2 className="section-title">WhatsApp Numbers</h2>
-          <div className="phone-cards">
-            <div className="phone-card">
-              <div className="phone-header">
-                <span className="phone-name">WECARE.DIGITAL</span>
-                <span className="badge badge-green">GREEN</span>
-              </div>
-              <div className="phone-number">+91 93309 94400</div>
-              <div className="phone-id">Primary</div>
-            </div>
-            <div className="phone-card">
-              <div className="phone-header">
-                <span className="phone-name">Manish Agarwal</span>
-                <span className="badge badge-green">GREEN</span>
-              </div>
-              <div className="phone-number">+91 99033 00044</div>
-              <div className="phone-id">Secondary</div>
-            </div>
-          </div>
         </div>
 
         {/* AWS Billing Section */}
         <div className="section">
           <div className="section-header">
-            <h2 className="section-title">AWS Usage & Billing</h2>
+            <h2 className="section-title">💰 AWS Usage & Billing</h2>
             <button 
               className="btn-secondary btn-sm" 
               onClick={loadBillingData}
               disabled={billingLoading}
             >
-              {billingLoading ? '...' : '↻'}
+              {billingLoading ? '⏳' : '🔄'}
             </button>
           </div>
           
@@ -554,7 +556,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {billingData.services.map((svc, idx) => (
+                    {billingData.services.slice(0, 8).map((svc, idx) => (
                       <tr key={idx} className={`billing-row ${svc.status}`}>
                         <td className="service-name">{svc.service}</td>
                         <td className="service-usage">
@@ -562,9 +564,9 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                         </td>
                         <td className="service-limit">{svc.freeLimit}</td>
                         <td className="service-cost">${svc.cost.toFixed(4)}</td>
-                        <td className="service-status">
+                        <td>
                           <span className={`status-badge ${svc.status}`}>
-                            {svc.status === 'free' ? '✓ Free' : svc.status === 'warning' ? '⚠ Near Limit' : '$ Paid'}
+                            {svc.status === 'free' ? '✅ Free' : svc.status === 'warning' ? '⚠️ Near' : '💰 Paid'}
                           </span>
                         </td>
                       </tr>
@@ -574,13 +576,29 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
               </div>
             </>
           )}
-          
-          {!billingData && !billingLoading && (
-            <div className="empty-state">
-              <p>Unable to load billing data</p>
-              <button className="btn-secondary" onClick={loadBillingData}>Retry</button>
+        </div>
+
+        {/* WhatsApp Numbers */}
+        <div className="section">
+          <h2 className="section-title">📱 WhatsApp Numbers</h2>
+          <div className="phone-cards">
+            <div className="phone-card">
+              <div className="phone-header">
+                <span className="phone-name">WECARE.DIGITAL</span>
+                <span className="badge badge-green">🟢 GREEN</span>
+              </div>
+              <div className="phone-number">+91 93309 94400</div>
+              <div className="phone-id">Primary</div>
             </div>
-          )}
+            <div className="phone-card">
+              <div className="phone-header">
+                <span className="phone-name">Manish Agarwal</span>
+                <span className="badge badge-green">🟢 GREEN</span>
+              </div>
+              <div className="phone-number">+91 99033 00044</div>
+              <div className="phone-id">Secondary</div>
+            </div>
+          </div>
         </div>
       </div>
     </Layout>
