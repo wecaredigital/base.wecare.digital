@@ -29,7 +29,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute
 // Internal Agent Configuration (for admin tasks)
 const INTERNAL_AGENT_ID = 'TJAZR473IJ';
 const INTERNAL_AGENT_ALIAS = 'O4U1HF2MSX';
-const INTERNAL_KB_ID = '08LG9AKAHN';
+const INTERNAL_KB_ID = '7IWHVB0ZXQ';
 
 const FloatingAgent: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);

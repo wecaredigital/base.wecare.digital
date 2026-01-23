@@ -50,7 +50,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Handle Bedrock Agent action group requests.
     
-    Event format from Bedrock Agent:
+    Event format from Bedrock Agent (function-based):
+    {
+        "actionGroup": "wecare-actions",
+        "function": "sendWhatsApp",
+        "parameters": [{"name": "phone", "value": "+91..."}, ...]
+    }
+    
+    Or API-based:
     {
         "actionGroup": "wecare-actions",
         "apiPath": "/send-whatsapp",
@@ -61,25 +68,30 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     request_id = context.aws_request_id if context else 'local'
     
+    # Get function name or API path
+    function_name = event.get('function', '')
+    api_path = event.get('apiPath', '')
+    
     logger.info(json.dumps({
         'event': 'agent_action_received',
         'actionGroup': event.get('actionGroup'),
-        'apiPath': event.get('apiPath'),
-        'httpMethod': event.get('httpMethod'),
+        'function': function_name,
+        'apiPath': api_path,
         'requestId': request_id
     }))
     
     try:
-        action_group = event.get('actionGroup', '')
-        api_path = event.get('apiPath', '')
-        http_method = event.get('httpMethod', 'POST')
         parameters = _extract_parameters(event)
-        request_body = event.get('requestBody', {})
         
-        # Route to appropriate handler
-        result = _route_action(api_path, http_method, parameters, request_body, request_id)
+        # Route based on function name (preferred) or API path
+        if function_name:
+            result = _route_function(function_name, parameters, request_id)
+        else:
+            http_method = event.get('httpMethod', 'POST')
+            request_body = event.get('requestBody', {})
+            result = _route_action(api_path, http_method, parameters, request_body, request_id)
         
-        return _build_response(result)
+        return _build_response(result, function_name or api_path)
         
     except Exception as e:
         logger.error(json.dumps({
@@ -90,7 +102,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return _build_response({
             'success': False,
             'error': str(e)
-        })
+        }, function_name or api_path)
 
 
 def _extract_parameters(event: Dict) -> Dict[str, str]:
@@ -109,6 +121,37 @@ def _extract_parameters(event: Dict) -> Dict[str, str]:
             params[prop.get('name')] = prop.get('value')
     
     return params
+
+
+def _route_function(function_name: str, params: Dict, request_id: str) -> Dict:
+    """Route function-based action to appropriate handler."""
+    
+    if function_name == 'sendWhatsApp':
+        return _send_whatsapp(params, request_id)
+    elif function_name == 'searchContacts':
+        return _search_contacts(params, request_id)
+    elif function_name == 'createContact':
+        return _create_contact(params, request_id)
+    elif function_name == 'getStats':
+        return _get_stats(request_id)
+    elif function_name == 'sendSms':
+        return _send_sms(params, request_id)
+    elif function_name == 'sendEmail':
+        return _send_email(params, request_id)
+    elif function_name == 'updateContact':
+        return _update_contact(params, request_id)
+    elif function_name == 'deleteContact':
+        return _delete_contact(params, request_id)
+    elif function_name == 'getContact':
+        return _get_contact(params, request_id)
+    elif function_name == 'deleteMessage':
+        return _delete_message(params, request_id)
+    elif function_name == 'getMessages':
+        return _get_messages(params, request_id)
+    elif function_name == 'createInvoice':
+        return _create_invoice(params, request_id)
+    else:
+        return {'success': False, 'error': f'Unknown function: {function_name}'}
 
 
 def _route_action(api_path: str, method: str, params: Dict, body: Dict, request_id: str) -> Dict:
@@ -687,18 +730,18 @@ def _find_contact_by_email(email: str) -> Optional[Dict]:
         return None
 
 
-def _build_response(result: Dict) -> Dict:
-    """Build Bedrock Agent response format."""
+def _build_response(result: Dict, function_or_path: str = '') -> Dict:
+    """Build Bedrock Agent response format for function-based or API-based actions."""
     return {
         'messageVersion': '1.0',
         'response': {
             'actionGroup': 'wecare-actions',
-            'apiPath': result.get('apiPath', '/action'),
-            'httpMethod': 'POST',
-            'httpStatusCode': 200 if result.get('success') else 400,
-            'responseBody': {
-                'application/json': {
-                    'body': json.dumps(result)
+            'function': function_or_path if not function_or_path.startswith('/') else '',
+            'functionResponse': {
+                'responseBody': {
+                    'TEXT': {
+                        'body': json.dumps(result)
+                    }
                 }
             }
         }

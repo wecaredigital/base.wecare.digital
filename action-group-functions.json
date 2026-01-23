@@ -1,0 +1,66 @@
+{
+    "agentId": "TJAZR473IJ",
+    "agentVersion": "DRAFT",
+    "actionGroupName": "wecare-actions",
+    "description": "WECARE admin actions for messaging and contacts",
+    "actionGroupExecutor": {
+        "lambda": "arn:aws:lambda:us-east-1:809904170947:function:wecare-agent-action-group"
+    },
+    "functionSchema": {
+        "functions": [
+            {
+                "name": "sendWhatsApp",
+                "description": "Send a WhatsApp message to a contact using their phone number",
+                "parameters": {
+                    "phone": {
+                        "type": "string",
+                        "description": "Phone number with country code like +919330994400",
+                        "required": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "The message content to send",
+                        "required": true
+                    }
+                }
+            },
+            {
+                "name": "searchContacts",
+                "description": "Search contacts by name phone or email",
+                "parameters": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search term for name phone or email",
+                        "required": true
+                    }
+                }
+            },
+            {
+                "name": "createContact",
+                "description": "Create a new contact",
+                "parameters": {
+                    "name": {
+                        "type": "string",
+                        "description": "Contact name",
+                        "required": true
+                    },
+                    "phone": {
+                        "type": "string",
+                        "description": "Phone number with country code",
+                        "required": false
+                    },
+                    "email": {
+                        "type": "string",
+                        "description": "Email address",
+                        "required": false
+                    }
+                }
+            },
+            {
+                "name": "getStats",
+                "description": "Get dashboard statistics about contacts and messages",
+                "parameters": {}
+            }
+        ]
+    }
+}

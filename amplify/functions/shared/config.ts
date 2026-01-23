@@ -68,12 +68,12 @@ export const BEDROCK_CONFIG = {
   // Internal Agent (FloatingAgent - admin tasks)
   INTERNAL_AGENT_ID: process.env.INTERNAL_AGENT_ID || 'TJAZR473IJ',
   INTERNAL_AGENT_ALIAS: process.env.INTERNAL_AGENT_ALIAS || 'O4U1HF2MSX',
-  INTERNAL_KB_ID: process.env.INTERNAL_KB_ID || '08LG9AKAHN',
+  INTERNAL_KB_ID: process.env.INTERNAL_KB_ID || '7IWHVB0ZXQ',
   
   // External Agent (WhatsApp auto-reply - customer facing)
   EXTERNAL_AGENT_ID: process.env.EXTERNAL_AGENT_ID || '',
   EXTERNAL_AGENT_ALIAS: process.env.EXTERNAL_AGENT_ALIAS || '',
-  EXTERNAL_KB_ID: process.env.EXTERNAL_KB_ID || '',
+  EXTERNAL_KB_ID: process.env.EXTERNAL_KB_ID || 'CTH8DH3RXY',
   
   // Model
   FOUNDATION_MODEL: 'amazon.nova-lite-v1:0',

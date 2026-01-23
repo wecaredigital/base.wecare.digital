@@ -13,9 +13,10 @@ WECARE.DIGITAL uses Amazon Bedrock with Nova Lite model for AI-powered responses
 ### Resources Created
 | Resource | Type | ID |
 |----------|------|-----|
-| Knowledge Base | KB | `08LG9AKAHN` |
+| Knowledge Base | KB | `7IWHVB0ZXQ` |
 | Agent | Agent | `TJAZR473IJ` |
 | Agent Alias | prod | `O4U1HF2MSX` |
+| Action Group | wecare-actions | `KIEKM8TYG7` |
 | Data Source | S3 | `s3://auth.wecare.digital/stream/gen-ai/internal-kb/` |
 
 ### Agent Setup Instructions
@@ -124,11 +125,11 @@ RESPONSE FORMAT:
 
 ## External Agent (WhatsApp Auto-Reply)
 
-### Resources (TO BE CREATED)
+### Resources Created
 | Resource | Type | ID |
 |----------|------|-----|
-| Knowledge Base | KB | `[TBD]` |
-| Agent | Agent | `[TBD]` |
+| Knowledge Base | KB | `CTH8DH3RXQ` |
+| Agent | Agent | `[TBD - Create in Console]` |
 | Data Source | S3 | `s3://auth.wecare.digital/stream/gen-ai/external-kb/` |
 
 ### Setup Instructions
