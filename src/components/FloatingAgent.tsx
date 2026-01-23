@@ -8,9 +8,8 @@
  * Model: Amazon Nova Lite (~$0.06/1M input tokens)
  * 
  * Bedrock Resources (INTERNAL - Admin Tasks):
- * - Agent ID: [TO BE CONFIGURED]
- * - Agent Alias: [TO BE CONFIGURED]
- * - Knowledge Base: [TO BE CONFIGURED]
+ * - Agent ID: TJAZR473IJ
+ * - KB ID: 08LG9AKAHN
  * 
  * Note: External (WhatsApp auto-reply) uses separate Agent/KB
  */
@@ -28,10 +27,9 @@ interface ChatMessage {
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
 
 // Internal Agent Configuration (for admin tasks)
-// TODO: Update these after creating new Bedrock Agent
-const INTERNAL_AGENT_ID = '';  // Set after creating internal agent
-const INTERNAL_AGENT_ALIAS = '';  // Set after creating alias
-const INTERNAL_KB_ID = '';  // Set after creating internal KB
+const INTERNAL_AGENT_ID = 'TJAZR473IJ';
+const INTERNAL_AGENT_ALIAS = '';  // Set after creating alias with: aws bedrock-agent create-agent-alias
+const INTERNAL_KB_ID = '08LG9AKAHN';
 
 const FloatingAgent: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);

@@ -7,16 +7,12 @@ Language detection ensures responses match user's language
 Model: Amazon Nova Lite (~$0.06/1M input tokens)
 
 Architecture:
-- EXTERNAL Agent/KB: For WhatsApp auto-reply (customer-facing)
 - INTERNAL Agent/KB: For FloatingAgent (admin tasks)
-
-TODO: Configure these environment variables after creating new agents:
-- EXTERNAL_AGENT_ID
-- EXTERNAL_AGENT_ALIAS
-- EXTERNAL_KB_ID
-- INTERNAL_AGENT_ID
-- INTERNAL_AGENT_ALIAS
-- INTERNAL_KB_ID
+  - Agent ID: TJAZR473IJ
+  - KB ID: 08LG9AKAHN
+- EXTERNAL Agent/KB: For WhatsApp auto-reply (customer-facing)
+  - Agent ID: [TO BE CONFIGURED]
+  - KB ID: [TO BE CONFIGURED]
 """
 
 import os
@@ -37,15 +33,15 @@ bedrock_agent_runtime = boto3.client('bedrock-agent-runtime', region_name=os.env
 # Environment variables
 SEND_MODE = os.environ.get('SEND_MODE', 'LIVE')
 
+# Internal Agent (FloatingAgent - admin tasks)
+INTERNAL_AGENT_ID = os.environ.get('INTERNAL_AGENT_ID', 'TJAZR473IJ')
+INTERNAL_AGENT_ALIAS = os.environ.get('INTERNAL_AGENT_ALIAS', '')
+INTERNAL_KB_ID = os.environ.get('INTERNAL_KB_ID', '08LG9AKAHN')
+
 # External Agent (WhatsApp auto-reply - customer facing)
 EXTERNAL_AGENT_ID = os.environ.get('EXTERNAL_AGENT_ID', '')
 EXTERNAL_AGENT_ALIAS = os.environ.get('EXTERNAL_AGENT_ALIAS', '')
 EXTERNAL_KB_ID = os.environ.get('EXTERNAL_KB_ID', '')
-
-# Internal Agent (FloatingAgent - admin tasks)
-INTERNAL_AGENT_ID = os.environ.get('INTERNAL_AGENT_ID', '')
-INTERNAL_AGENT_ALIAS = os.environ.get('INTERNAL_AGENT_ALIAS', '')
-INTERNAL_KB_ID = os.environ.get('INTERNAL_KB_ID', '')
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:

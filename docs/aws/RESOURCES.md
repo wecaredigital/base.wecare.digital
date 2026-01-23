@@ -45,14 +45,22 @@
 | Verified Email | `one@wecare.digital` |
 | DKIM | Configured |
 
-## Bedrock AI (TO BE CONFIGURED)
+## Bedrock AI
 
-| Resource | Type | ID | Purpose |
-|----------|------|-----|---------|
-| External KB | Knowledge Base | `[TBD]` | WhatsApp auto-reply |
-| Internal KB | Knowledge Base | `[TBD]` | Admin FloatingAgent |
-| External Agent | Agent | `[TBD]` | Customer responses |
-| Internal Agent | Agent | `[TBD]` | Admin tasks |
+### Internal Agent (Admin FloatingAgent)
+| Resource | Type | ID |
+|----------|------|-----|
+| Knowledge Base | KB | `08LG9AKAHN` |
+| Agent | Agent | `TJAZR473IJ` |
+| Data Source | S3 | `stream/gen-ai/internal-kb/` |
+| Status | NOT_PREPARED | Needs `prepare-agent` |
+
+### External Agent (WhatsApp Auto-Reply)
+| Resource | Type | ID |
+|----------|------|-----|
+| Knowledge Base | KB | `[TBD]` |
+| Agent | Agent | `[TBD]` |
+| Data Source | S3 | `stream/gen-ai/external-kb/` |
 
 **Model:** Amazon Nova Lite (~$0.06/1M input tokens)
 

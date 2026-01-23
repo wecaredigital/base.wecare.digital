@@ -64,17 +64,16 @@ export const COGNITO_CONFIG = {
 };
 
 // Bedrock AI Configuration
-// TODO: Configure these after creating new agents in AWS Console
 export const BEDROCK_CONFIG = {
+  // Internal Agent (FloatingAgent - admin tasks)
+  INTERNAL_AGENT_ID: process.env.INTERNAL_AGENT_ID || 'TJAZR473IJ',
+  INTERNAL_AGENT_ALIAS: process.env.INTERNAL_AGENT_ALIAS || '', // Set after creating alias
+  INTERNAL_KB_ID: process.env.INTERNAL_KB_ID || '08LG9AKAHN',
+  
   // External Agent (WhatsApp auto-reply - customer facing)
   EXTERNAL_AGENT_ID: process.env.EXTERNAL_AGENT_ID || '',
   EXTERNAL_AGENT_ALIAS: process.env.EXTERNAL_AGENT_ALIAS || '',
   EXTERNAL_KB_ID: process.env.EXTERNAL_KB_ID || '',
-  
-  // Internal Agent (FloatingAgent - admin tasks)
-  INTERNAL_AGENT_ID: process.env.INTERNAL_AGENT_ID || '',
-  INTERNAL_AGENT_ALIAS: process.env.INTERNAL_AGENT_ALIAS || '',
-  INTERNAL_KB_ID: process.env.INTERNAL_KB_ID || '',
   
   // Model
   FOUNDATION_MODEL: 'amazon.nova-lite-v1:0',

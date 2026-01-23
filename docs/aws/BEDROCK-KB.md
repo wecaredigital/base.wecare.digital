@@ -6,23 +6,143 @@ WECARE.DIGITAL uses Amazon Bedrock with Nova Lite model for AI-powered responses
 
 **Model:** Amazon Nova Lite (~$0.06/1M input tokens)
 
-## Architecture
+---
 
-Two separate Agent/KB pairs for different use cases:
+## Internal Agent (Admin FloatingAgent)
 
-### 1. EXTERNAL (Customer-Facing - WhatsApp Auto-Reply)
-- **Purpose:** Respond to customer WhatsApp messages
-- **Agent ID:** `[TO BE CONFIGURED]`
-- **Agent Alias:** `[TO BE CONFIGURED]`
-- **Knowledge Base ID:** `[TO BE CONFIGURED]`
-- **S3 Data Source:** `s3://auth.wecare.digital/stream/gen-ai/external-kb/`
+### Resources Created
+| Resource | Type | ID |
+|----------|------|-----|
+| Knowledge Base | KB | `08LG9AKAHN` |
+| Agent | Agent | `TJAZR473IJ` |
+| Data Source | S3 | `s3://auth.wecare.digital/stream/gen-ai/internal-kb/` |
 
-### 2. INTERNAL (Admin - FloatingAgent Widget)
-- **Purpose:** Help admins with tasks (send messages, find contacts, stats)
-- **Agent ID:** `[TO BE CONFIGURED]`
-- **Agent Alias:** `[TO BE CONFIGURED]`
-- **Knowledge Base ID:** `[TO BE CONFIGURED]`
-- **S3 Data Source:** `s3://auth.wecare.digital/stream/gen-ai/internal-kb/`
+### Agent Setup Instructions
+
+#### Step 1: Prepare the Agent
+```bash
+aws bedrock-agent prepare-agent --agent-id TJAZR473IJ --region us-east-1
+```
+
+#### Step 2: Create Action Group Lambda
+
+1. Deploy the Lambda function:
+```bash
+# Create Lambda function
+aws lambda create-function \
+  --function-name wecare-agent-action-group \
+  --runtime python3.12 \
+  --handler handler.handler \
+  --role arn:aws:iam::809904170947:role/base-wecare-digital \
+  --timeout 60 \
+  --memory-size 512 \
+  --environment "Variables={CONTACTS_TABLE=base-wecare-digital-ContactsTable,MESSAGES_INBOUND_TABLE=base-wecare-digital-WhatsAppInboundTable,MESSAGES_OUTBOUND_TABLE=base-wecare-digital-WhatsAppOutboundTable,OUTBOUND_WHATSAPP_FUNCTION=wecare-outbound-whatsapp,OUTBOUND_SMS_FUNCTION=wecare-outbound-sms,OUTBOUND_EMAIL_FUNCTION=wecare-outbound-email}" \
+  --zip-file fileb://agent-action-group.zip \
+  --region us-east-1
+```
+
+2. Add Bedrock invoke permission:
+```bash
+aws lambda add-permission \
+  --function-name wecare-agent-action-group \
+  --statement-id bedrock-agent-invoke \
+  --action lambda:InvokeFunction \
+  --principal bedrock.amazonaws.com \
+  --source-arn "arn:aws:bedrock:us-east-1:809904170947:agent/TJAZR473IJ" \
+  --region us-east-1
+```
+
+#### Step 3: Create Action Group in Console
+
+1. Go to AWS Console → Bedrock → Agents → TJAZR473IJ
+2. Click "Edit in Agent Builder"
+3. Under "Action groups", click "Add"
+4. Configure:
+   - **Name:** `wecare-actions`
+   - **Description:** `WECARE.DIGITAL admin actions for messaging, contacts, and invoices`
+   - **Action group type:** Define with API schemas
+   - **Action group invocation:** Select Lambda function `wecare-agent-action-group`
+   - **API Schema:** Upload `AGENT-ACTION-GROUP-SCHEMA.json`
+
+5. Click "Create action group"
+6. Click "Prepare" to prepare the agent
+
+#### Step 4: Create Agent Alias
+```bash
+aws bedrock-agent create-agent-alias \
+  --agent-id TJAZR473IJ \
+  --agent-alias-name prod \
+  --region us-east-1
+```
+
+### Action Group Actions
+
+| Action | Description | Parameters |
+|--------|-------------|------------|
+| `/send-whatsapp` | Send WhatsApp message | contactId/phone, message |
+| `/send-sms` | Send SMS | contactId/phone, message |
+| `/send-email` | Send email | contactId/email, subject, message |
+| `/create-contact` | Create contact | name, phone, email |
+| `/update-contact` | Update contact | contactId, name, phone, email |
+| `/delete-contact` | Delete contact | contactId |
+| `/search-contacts` | Search contacts | query |
+| `/get-contact` | Get contact details | contactId/phone |
+| `/delete-message` | Delete message | messageId |
+| `/get-messages` | Get messages | contactId, limit |
+| `/create-invoice` | Create invoice | contactId, amount, description |
+| `/get-stats` | Get dashboard stats | - |
+
+### Agent Instructions (Prompt)
+
+Set this as the agent instruction in AWS Console:
+
+```
+You are WECARE.DIGITAL's internal admin assistant. You help administrators manage contacts, send messages, and perform administrative tasks.
+
+CAPABILITIES:
+- Send WhatsApp messages, SMS, and emails to contacts
+- Create, update, delete, and search contacts
+- View and delete messages
+- Create invoices
+- Get dashboard statistics
+
+RULES:
+1. Always confirm before sending messages or deleting data
+2. When searching contacts, show the results before taking action
+3. For messaging, always verify the contact exists first
+4. Be concise and professional in responses
+5. If an action fails, explain the error clearly
+
+RESPONSE FORMAT:
+- Keep responses brief and actionable
+- Use bullet points for lists
+- Confirm successful actions with the result
+```
+
+---
+
+## External Agent (WhatsApp Auto-Reply)
+
+### Resources (TO BE CREATED)
+| Resource | Type | ID |
+|----------|------|-----|
+| Knowledge Base | KB | `[TBD]` |
+| Agent | Agent | `[TBD]` |
+| Data Source | S3 | `s3://auth.wecare.digital/stream/gen-ai/external-kb/` |
+
+### Setup Instructions
+
+1. Create Knowledge Base:
+   - Name: `wecare-external-kb`
+   - S3 URI: `s3://auth.wecare.digital/stream/gen-ai/external-kb/`
+   - Embedding Model: Titan Embeddings
+
+2. Create Agent:
+   - Name: `wecare-external-agent`
+   - Model: Amazon Nova Lite
+   - Attach External KB
+
+---
 
 ## S3 Folder Structure
 
@@ -38,49 +158,27 @@ s3://auth.wecare.digital/stream/gen-ai/
     └── guides/            # How-to guides
 ```
 
-## Setup Instructions
+---
 
-### Step 1: Create Knowledge Bases
+## Update Lambda Environment Variables
 
-1. Go to AWS Console → Bedrock → Knowledge Bases
-2. Create **External KB** (customer-facing):
-   - Name: `wecare-external-kb`
-   - S3 URI: `s3://auth.wecare.digital/stream/gen-ai/external-kb/`
-   - Embedding Model: Titan Embeddings
-3. Create **Internal KB** (admin):
-   - Name: `wecare-internal-kb`
-   - S3 URI: `s3://auth.wecare.digital/stream/gen-ai/internal-kb/`
-   - Embedding Model: Titan Embeddings
-
-### Step 2: Create Agents
-
-1. Go to AWS Console → Bedrock → Agents
-2. Create **External Agent**:
-   - Name: `wecare-external-agent`
-   - Model: Amazon Nova Lite
-   - Attach External KB
-   - Create alias (e.g., `prod`)
-3. Create **Internal Agent**:
-   - Name: `wecare-internal-agent`
-   - Model: Amazon Nova Lite
-   - Attach Internal KB
-   - Create alias (e.g., `prod`)
-
-### Step 3: Update Environment Variables
-
-After creating resources, update Lambda environment variables:
+After creating agents, update the ai-generate-response Lambda:
 
 ```bash
-# External Agent (WhatsApp auto-reply)
-EXTERNAL_AGENT_ID=<your-external-agent-id>
-EXTERNAL_AGENT_ALIAS=<your-external-alias>
-EXTERNAL_KB_ID=<your-external-kb-id>
-
-# Internal Agent (FloatingAgent)
-INTERNAL_AGENT_ID=<your-internal-agent-id>
-INTERNAL_AGENT_ALIAS=<your-internal-alias>
-INTERNAL_KB_ID=<your-internal-kb-id>
+aws lambda update-function-configuration \
+  --function-name wecare-ai-generate-response \
+  --environment "Variables={
+    INTERNAL_AGENT_ID=TJAZR473IJ,
+    INTERNAL_AGENT_ALIAS=<alias-id>,
+    INTERNAL_KB_ID=08LG9AKAHN,
+    EXTERNAL_AGENT_ID=<external-agent-id>,
+    EXTERNAL_AGENT_ALIAS=<external-alias>,
+    EXTERNAL_KB_ID=<external-kb-id>
+  }" \
+  --region us-east-1
 ```
+
+---
 
 ## Language Support
 
@@ -93,6 +191,8 @@ Auto-detects and responds in:
 - Gujarati (ગુજરાતી)
 - Marathi (मराठी)
 - Hinglish (Hindi in Latin script)
+
+---
 
 ## Cost Estimate
 
