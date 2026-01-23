@@ -50,17 +50,21 @@
 ### Internal Agent (Admin FloatingAgent)
 | Resource | Type | ID |
 |----------|------|-----|
-| Knowledge Base | KB | `08LG9AKAHN` |
+| Knowledge Base | KB | `7IWHVB0ZXQ` |
 | Agent | Agent | `TJAZR473IJ` |
+| Agent Alias | prod | `O4U1HF2MSX` |
+| Action Group | wecare-actions | `KIEKM8TYG7` |
 | Data Source | S3 | `stream/gen-ai/internal-kb/` |
-| Status | NOT_PREPARED | Needs `prepare-agent` |
+| Status | PREPARED | Ready |
 
 ### External Agent (WhatsApp Auto-Reply)
 | Resource | Type | ID |
 |----------|------|-----|
-| Knowledge Base | KB | `[TBD]` |
-| Agent | Agent | `[TBD]` |
+| Knowledge Base | KB | `CTH8DH3RXY` |
+| Agent | Agent | `JDXIOU2UR9` |
+| Agent Alias | prod | `AQVQPGYXRR` |
 | Data Source | S3 | `stream/gen-ai/external-kb/` |
+| Status | PREPARED | Ready |
 
 **Model:** Amazon Nova Lite (~$0.06/1M input tokens)
 

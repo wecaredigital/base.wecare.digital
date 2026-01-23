@@ -528,7 +528,15 @@ export async function getSystemHealth(): Promise<SystemHealth> {
     whatsapp: { status: 'active', phoneNumbers: 2, qualityRating: 'GREEN' },
     sms: { status: 'active', poolId: 'pool-6fbf5a5f390d4eeeaa7dbae39d78933e' },
     email: { status: 'active', verified: true },
-    ai: { status: 'active', kbId: '08LG9AKAHN', agentId: 'TJAZR473IJ' },
+    ai: { 
+      status: 'active', 
+      internalKbId: '7IWHVB0ZXQ', 
+      internalAgentId: 'TJAZR473IJ',
+      internalAgentAlias: 'O4U1HF2MSX',
+      externalKbId: 'CTH8DH3RXY',
+      externalAgentId: 'JDXIOU2UR9',
+      externalAgentAlias: 'AQVQPGYXRR'
+    },
     dlq: { depth: 0 },
   };
 }

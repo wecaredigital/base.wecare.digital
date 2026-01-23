@@ -172,11 +172,11 @@ aws lambda update-function-configuration \
   --function-name wecare-ai-generate-response \
   --environment "Variables={
     INTERNAL_AGENT_ID=TJAZR473IJ,
-    INTERNAL_AGENT_ALIAS=<alias-id>,
-    INTERNAL_KB_ID=08LG9AKAHN,
-    EXTERNAL_AGENT_ID=<external-agent-id>,
-    EXTERNAL_AGENT_ALIAS=<external-alias>,
-    EXTERNAL_KB_ID=<external-kb-id>
+    INTERNAL_AGENT_ALIAS=O4U1HF2MSX,
+    INTERNAL_KB_ID=7IWHVB0ZXQ,
+    EXTERNAL_AGENT_ID=JDXIOU2UR9,
+    EXTERNAL_AGENT_ALIAS=AQVQPGYXRR,
+    EXTERNAL_KB_ID=CTH8DH3RXY
   }" \
   --region us-east-1
 ```

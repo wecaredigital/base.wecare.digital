@@ -5,7 +5,8 @@ import { defineFunction } from '@aws-amplify/backend';
  * 
  * Purpose: Handle action requests from internal Bedrock Agent
  * Agent ID: TJAZR473IJ
- * KB ID: 08LG9AKAHN
+ * Agent Alias: O4U1HF2MSX
+ * KB ID: 7IWHVB0ZXQ
  * 
  * Actions: send-whatsapp, send-sms, send-email, create-contact,
  *          update-contact, delete-contact, search-contacts, get-contact,

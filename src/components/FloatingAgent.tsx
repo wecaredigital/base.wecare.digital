@@ -9,7 +9,8 @@
  * 
  * Bedrock Resources (INTERNAL - Admin Tasks):
  * - Agent ID: TJAZR473IJ
- * - KB ID: 08LG9AKAHN
+ * - Agent Alias: O4U1HF2MSX
+ * - KB ID: 7IWHVB0ZXQ
  * 
  * Note: External (WhatsApp auto-reply) uses separate Agent/KB
  */
