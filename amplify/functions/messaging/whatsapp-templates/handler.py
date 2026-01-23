@@ -19,7 +19,7 @@ from typing import Dict, Any, List
 logger = logging.getLogger()
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
-# AWS clients
+# AWS clients - use socialmessaging service
 social_messaging = boto3.client('socialmessaging', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # WABA IDs
@@ -69,29 +69,30 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }))
         
         # Fetch templates from AWS EUM Social
+        # API: list_whatsapp_message_templates(id=waba_id)
         templates = []
         next_token = None
         
         while True:
             params = {
-                'linkedWhatsAppBusinessAccountId': waba_id,
-                'maxResults': 100
+                'id': waba_id,  # Required parameter - WABA ID
             }
             if next_token:
                 params['nextToken'] = next_token
             
-            response = social_messaging.list_whats_app_message_templates(**params)
+            response = social_messaging.list_whatsapp_message_templates(**params)
             
-            # Process templates
+            # Process templates from response
             for template in response.get('templates', []):
                 templates.append({
-                    'id': template.get('templateId', ''),
+                    'id': template.get('metaTemplateId', ''),
                     'name': template.get('templateName', ''),
-                    'language': template.get('languageCode', 'en_US'),
-                    'category': template.get('category', 'UTILITY'),
-                    'status': template.get('status', 'APPROVED'),
-                    'components': template.get('components', []),
-                    'wabaId': waba_id
+                    'language': template.get('templateLanguage', 'en_US'),
+                    'category': template.get('templateCategory', 'UTILITY'),
+                    'status': template.get('templateStatus', 'APPROVED'),
+                    'qualityScore': template.get('templateQualityScore', ''),
+                    'wabaId': waba_id,
+                    'components': []  # Components need separate API call
                 })
             
             next_token = response.get('nextToken')
