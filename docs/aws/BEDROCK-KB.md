@@ -128,8 +128,9 @@ RESPONSE FORMAT:
 ### Resources Created
 | Resource | Type | ID |
 |----------|------|-----|
-| Knowledge Base | KB | `CTH8DH3RXQ` |
-| Agent | Agent | `[TBD - Create in Console]` |
+| Knowledge Base | KB | `CTH8DH3RXY` |
+| Agent | Agent | `JDXIOU2UR9` |
+| Agent Alias | prod | `AQVQPGYXRR` |
 | Data Source | S3 | `s3://auth.wecare.digital/stream/gen-ai/external-kb/` |
 
 ### Setup Instructions

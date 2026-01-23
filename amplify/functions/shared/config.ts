@@ -71,8 +71,8 @@ export const BEDROCK_CONFIG = {
   INTERNAL_KB_ID: process.env.INTERNAL_KB_ID || '7IWHVB0ZXQ',
   
   // External Agent (WhatsApp auto-reply - customer facing)
-  EXTERNAL_AGENT_ID: process.env.EXTERNAL_AGENT_ID || '',
-  EXTERNAL_AGENT_ALIAS: process.env.EXTERNAL_AGENT_ALIAS || '',
+  EXTERNAL_AGENT_ID: process.env.EXTERNAL_AGENT_ID || 'JDXIOU2UR9',
+  EXTERNAL_AGENT_ALIAS: process.env.EXTERNAL_AGENT_ALIAS || 'AQVQPGYXRR',
   EXTERNAL_KB_ID: process.env.EXTERNAL_KB_ID || 'CTH8DH3RXY',
   
   // Model

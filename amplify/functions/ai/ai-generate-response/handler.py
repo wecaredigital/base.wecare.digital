@@ -9,10 +9,12 @@ Model: Amazon Nova Lite (~$0.06/1M input tokens)
 Architecture:
 - INTERNAL Agent/KB: For FloatingAgent (admin tasks)
   - Agent ID: TJAZR473IJ
-  - KB ID: 08LG9AKAHN
+  - Agent Alias: O4U1HF2MSX
+  - KB ID: 7IWHVB0ZXQ
 - EXTERNAL Agent/KB: For WhatsApp auto-reply (customer-facing)
-  - Agent ID: [TO BE CONFIGURED]
-  - KB ID: [TO BE CONFIGURED]
+  - Agent ID: JDXIOU2UR9
+  - Agent Alias: AQVQPGYXRR
+  - KB ID: CTH8DH3RXY
 """
 
 import os
@@ -35,13 +37,13 @@ SEND_MODE = os.environ.get('SEND_MODE', 'LIVE')
 
 # Internal Agent (FloatingAgent - admin tasks)
 INTERNAL_AGENT_ID = os.environ.get('INTERNAL_AGENT_ID', 'TJAZR473IJ')
-INTERNAL_AGENT_ALIAS = os.environ.get('INTERNAL_AGENT_ALIAS', '')
-INTERNAL_KB_ID = os.environ.get('INTERNAL_KB_ID', '08LG9AKAHN')
+INTERNAL_AGENT_ALIAS = os.environ.get('INTERNAL_AGENT_ALIAS', 'O4U1HF2MSX')
+INTERNAL_KB_ID = os.environ.get('INTERNAL_KB_ID', '7IWHVB0ZXQ')
 
 # External Agent (WhatsApp auto-reply - customer facing)
-EXTERNAL_AGENT_ID = os.environ.get('EXTERNAL_AGENT_ID', '')
-EXTERNAL_AGENT_ALIAS = os.environ.get('EXTERNAL_AGENT_ALIAS', '')
-EXTERNAL_KB_ID = os.environ.get('EXTERNAL_KB_ID', '')
+EXTERNAL_AGENT_ID = os.environ.get('EXTERNAL_AGENT_ID', 'JDXIOU2UR9')
+EXTERNAL_AGENT_ALIAS = os.environ.get('EXTERNAL_AGENT_ALIAS', 'AQVQPGYXRR')
+EXTERNAL_KB_ID = os.environ.get('EXTERNAL_KB_ID', 'CTH8DH3RXY')
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
