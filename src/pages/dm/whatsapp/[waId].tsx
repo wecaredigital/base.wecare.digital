@@ -33,6 +33,7 @@ interface Contact {
   id: string;
   name: string;
   phone: string;
+  hasName: boolean;  // Track if contact has a real name vs using phone as display
   windowOpen: boolean;
   unread: number;
   lastMessage?: string;
@@ -74,22 +75,27 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         api.listMessages(undefined, 'WHATSAPP'),
       ]);
 
-      // Filter messages for this WABA (if awsPhoneNumberId is set)
-      const wabaMessages = messagesData.filter(m => 
-        !m.awsPhoneNumberId || m.awsPhoneNumberId === waId
-      );
+      // Filter messages STRICTLY for this WABA only
+      const wabaMessages = messagesData.filter(m => m.awsPhoneNumberId === waId);
 
+      // Get contact IDs that have messages in this WABA
+      const contactIdsWithMessages = new Set(wabaMessages.map(m => m.contactId));
+
+      // Only show contacts that have messages in this specific WABA
       const displayContacts: Contact[] = contactsData
-        .filter(c => c.phone)
+        .filter(c => c.phone && contactIdsWithMessages.has(c.contactId))
         .map(c => {
           const contactMsgs = wabaMessages.filter(m => m.contactId === c.contactId);
           const lastMsg = contactMsgs[0];
           const lastInbound = c.lastInboundMessageAt ? new Date(c.lastInboundMessageAt).getTime() : 0;
           const windowEnd = lastInbound + 24 * 60 * 60 * 1000;
+          // Keep name and phone separate - use phone as display name only if name is empty
+          const displayName = c.name && c.name.trim() && c.name !== '~' ? c.name : '';
           return {
             id: c.contactId,
-            name: c.name || c.phone,
+            name: displayName || c.phone,  // For display in sidebar
             phone: c.phone,
+            hasName: !!displayName,  // Track if contact has a real name
             windowOpen: Date.now() < windowEnd,
             unread: contactMsgs.filter(m => m.direction === 'INBOUND' && m.status === 'received').length,
             lastMessage: lastMsg?.content?.substring(0, 40) || '',
@@ -212,6 +218,10 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                       {contact.name}
                       {contact.unread > 0 && <span className="unread">{contact.unread}</span>}
                     </div>
+                    {/* Show phone below name if contact has a real name */}
+                    {contact.hasName && (
+                      <div className="contact-phone-sub">{contact.phone}</div>
+                    )}
                     <div className="contact-preview">{contact.lastMessage || 'No messages'}</div>
                   </div>
                   {contact.windowOpen && <span className="window-indicator">●</span>}
@@ -229,7 +239,10 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                     <div className="contact-avatar large">{selectedContact.name.charAt(0).toUpperCase()}</div>
                     <div>
                       <div className="chat-name">{selectedContact.name}</div>
-                      <div className="chat-phone">{selectedContact.phone}</div>
+                      {/* Only show phone separately if contact has a real name */}
+                      {selectedContact.hasName && (
+                        <div className="chat-phone">{selectedContact.phone}</div>
+                      )}
                     </div>
                   </div>
                   <div className={`window-badge ${selectedContact.windowOpen ? 'open' : 'closed'}`}>
@@ -241,30 +254,60 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                   {filteredMessages.map(msg => (
                     <div key={msg.id} className={`message ${msg.direction}`}>
                       <div className="message-bubble">
-                        {msg.mediaUrl && (
+                        {/* Show media if available - check s3Key even for unsupported types */}
+                        {(msg.mediaUrl || msg.s3Key) && (
                           <div className="media-container">
-                            {msg.messageType === 'image' || msg.s3Key?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            {/* Images: JPEG, PNG (max 5MB) */}
+                            {msg.messageType === 'image' || msg.s3Key?.match(/\.(jpg|jpeg|png)$/i) ? (
                               <img src={msg.mediaUrl} alt="Media" className="message-media" />
-                            ) : msg.messageType === 'video' || msg.s3Key?.match(/\.(mp4|3gp|mov)$/i) ? (
+                            ) : /* Stickers: WebP (max 500KB animated, 100KB static) */
+                            msg.messageType === 'sticker' || msg.s3Key?.match(/\.webp$/i) ? (
+                              <img src={msg.mediaUrl} alt="Sticker" className="message-sticker" />
+                            ) : /* Videos: MP4, 3GPP (max 16MB) */
+                            msg.messageType === 'video' || msg.s3Key?.match(/\.(mp4|3gp|3gpp)$/i) ? (
                               <video src={msg.mediaUrl} controls className="message-media" />
-                            ) : msg.messageType === 'audio' || msg.s3Key?.match(/\.(mp3|ogg|aac|amr|m4a)$/i) ? (
+                            ) : /* Audio: AAC, AMR, MP3, M4A, OGG (max 16MB) */
+                            msg.messageType === 'audio' || msg.s3Key?.match(/\.(aac|amr|mp3|m4a|ogg|opus)$/i) ? (
                               <audio src={msg.mediaUrl} controls className="message-audio" />
+                            ) : /* Documents: PDF, Word, Excel, PowerPoint, Text (max 100MB) */
+                            msg.messageType === 'document' || msg.s3Key?.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt)$/i) ? (
+                              <div className="document-preview">
+                                <span className="doc-icon">
+                                  {msg.s3Key?.match(/\.pdf$/i) ? '📕' : 
+                                   msg.s3Key?.match(/\.(doc|docx)$/i) ? '📘' :
+                                   msg.s3Key?.match(/\.(xls|xlsx)$/i) ? '📗' :
+                                   msg.s3Key?.match(/\.(ppt|pptx)$/i) ? '📙' : '📄'}
+                                </span>
+                                <span className="doc-name">{msg.s3Key?.split('/').pop() || 'Document'}</span>
+                              </div>
                             ) : (
-                              <div className="document-preview">📄 Document</div>
+                              <div className="document-preview">📎 Attachment</div>
                             )}
-                            <a 
-                              href={msg.mediaUrl} 
-                              download 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="download-btn"
-                              title="Download"
-                            >
-                              ⬇️
-                            </a>
+                            {msg.mediaUrl && (
+                              <a 
+                                href={msg.mediaUrl} 
+                                download 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="download-btn"
+                                title="Download"
+                              >
+                                ⬇️
+                              </a>
+                            )}
                           </div>
                         )}
-                        <div className="message-text">{msg.content}</div>
+                        <div className="message-text">
+                          {msg.content === '[unsupported]' || msg.messageType === 'unsupported' ? (
+                            msg.mediaUrl ? (
+                              <span className="unsupported-msg">📎 Media attachment</span>
+                            ) : (
+                              <span className="unsupported-msg">⚠️ Unsupported message type</span>
+                            )
+                          ) : (
+                            msg.content
+                          )}
+                        </div>
                         <div className="message-footer">
                           <span className="message-time">
                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -334,6 +377,7 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .contact-avatar.large { width: 40px; height: 40px; }
         .contact-details { flex: 1; min-width: 0; }
         .contact-name { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .contact-phone-sub { font-size: 11px; color: #666; margin-top: 1px; }
         .contact-preview { font-size: 12px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .unread { background: #25D366; color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 10px; }
         .window-indicator { color: #25D366; font-size: 10px; }
@@ -352,12 +396,16 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .message-bubble { background: #fff; padding: 8px 12px; border-radius: 8px; max-width: 100%; }
         .message.outbound .message-bubble { background: #dcf8c6; }
         .message-media { max-width: 200px; border-radius: 8px; margin-bottom: 8px; }
+        .message-sticker { max-width: 150px; margin-bottom: 8px; }
         .media-container { position: relative; display: inline-block; }
         .message-audio { max-width: 200px; }
-        .document-preview { background: #f0f0f0; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; }
+        .document-preview { background: #f0f0f0; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .doc-icon { font-size: 24px; }
+        .doc-name { font-size: 13px; color: #333; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .download-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.5); color: #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; opacity: 0.8; transition: opacity 0.2s; }
         .download-btn:hover { opacity: 1; background: rgba(0,0,0,0.7); }
         .message-text { font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+        .unsupported-msg { color: #999; font-style: italic; }
         .message-footer { display: flex; justify-content: flex-end; gap: 4px; margin-top: 4px; }
         .message-time { font-size: 11px; color: #999; }
         .message-status { font-size: 12px; }

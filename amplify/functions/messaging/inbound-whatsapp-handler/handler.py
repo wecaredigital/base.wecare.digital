@@ -254,10 +254,10 @@ def _process_message(
     now = int(time.time())
     expires_at = now + MESSAGE_TTL_SECONDS
     
-    # Handle media messages
+    # Handle media messages (including stickers)
     media_id = None
     s3_key = None
-    if msg_type in ['image', 'video', 'audio', 'document']:
+    if msg_type in ['image', 'video', 'audio', 'document', 'sticker']:
         media_data = message.get(msg_type, {})
         whatsapp_media_id = media_data.get('id')
         if whatsapp_media_id:
