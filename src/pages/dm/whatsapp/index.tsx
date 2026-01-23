@@ -802,6 +802,9 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                       channel="whatsapp"
                       onSend={handleSend}
                       showAISuggestions={true}
+                      selectedContactId={selectedContact?.id}
+                      phoneNumberId={selectedWaba}
+                      contactContext={selectedContact?.name}
                     />
                   </div>
                   <button 

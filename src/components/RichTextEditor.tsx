@@ -20,6 +20,8 @@ interface RichTextEditorProps {
   onSend?: () => void;
   contactContext?: string;
   onTemplateSelect?: (template: api.WhatsAppTemplate) => void;
+  selectedContactId?: string;
+  phoneNumberId?: string;
 }
 
 // Variable placeholders for templates
@@ -42,6 +44,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   onSend,
   contactContext,
   onTemplateSelect,
+  selectedContactId,
+  phoneNumberId,
 }) => {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showVariables, setShowVariables] = useState(false);
@@ -52,6 +56,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [loadingAI, setLoadingAI] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [sendingTemplate, setSendingTemplate] = useState(false);
+  const [templateMessage, setTemplateMessage] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -128,14 +134,44 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setShowFormatting(false);
   };
 
-  const applyTemplate = (template: api.WhatsAppTemplate) => {
-    // Extract body text from template components
-    const bodyComponent = template.components.find(c => c.type === 'BODY');
-    const bodyText = bodyComponent?.text || template.name;
-    onChange(bodyText);
-    setShowTemplates(false);
-    if (onTemplateSelect) {
-      onTemplateSelect(template);
+  const applyTemplate = async (template: api.WhatsAppTemplate) => {
+    // If we have contact and phone number, send the template directly
+    if (selectedContactId && phoneNumberId) {
+      setSendingTemplate(true);
+      setTemplateMessage(`Sending template: ${template.name}...`);
+      
+      try {
+        const result = await api.sendWhatsAppTemplateMessage({
+          contactId: selectedContactId,
+          templateName: template.name,
+          language: template.language,
+          phoneNumberId: phoneNumberId,
+        });
+        
+        if (result) {
+          setTemplateMessage(`✓ Template "${template.name}" sent!`);
+          setTimeout(() => setTemplateMessage(null), 3000);
+        } else {
+          setTemplateMessage(`× Failed to send template`);
+          setTimeout(() => setTemplateMessage(null), 3000);
+        }
+      } catch (error: any) {
+        console.error('Template send error:', error);
+        setTemplateMessage(`× Error: ${error.message || 'Failed to send'}`);
+        setTimeout(() => setTemplateMessage(null), 3000);
+      } finally {
+        setSendingTemplate(false);
+        setShowTemplates(false);
+      }
+    } else {
+      // Fallback: put template body text in editor for manual editing
+      const bodyComponent = template.components.find(c => c.type === 'BODY');
+      const bodyText = bodyComponent?.text || `[Template: ${template.name}]`;
+      onChange(bodyText);
+      setShowTemplates(false);
+      if (onTemplateSelect) {
+        onTemplateSelect(template);
+      }
     }
     textareaRef.current?.focus();
   };
@@ -224,6 +260,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   return (
     <div className={styles['rich-text-editor']} ref={dropdownRef}>
+      {/* Template Send Status */}
+      {templateMessage && (
+        <div className={styles['template-message']}>
+          {templateMessage}
+        </div>
+      )}
+
       {/* AI Suggestions Panel */}
       {showAISuggestions && showSuggestions && aiSuggestions.length > 0 && (
         <div className={styles['ai-suggestions-panel']}>
@@ -254,15 +297,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             ) : templates.length > 0 ? (
               templates.map((template) => {
                 const badge = getStatusBadge(template.status);
+                const bodyComponent = template.components.find(c => c.type === 'BODY');
+                const preview = bodyComponent?.text?.substring(0, 50) || '';
                 return (
                   <button 
                     key={template.id} 
                     className={styles['dropdown-item']} 
                     onClick={() => applyTemplate(template)}
-                    disabled={template.status !== 'APPROVED'}
+                    disabled={template.status !== 'APPROVED' || sendingTemplate}
                   >
                     <span className={`${styles['template-status']} ${styles[badge.class]}`}>{badge.text}</span>
-                    <span className={styles['dropdown-item-title']}>{template.name}</span>
+                    <div className={styles['template-info']}>
+                      <span className={styles['template-name']}>{template.name}</span>
+                      {preview && <span className={styles['template-preview']}>{preview}...</span>}
+                    </div>
                     <span className={styles['template-category']}>{template.category}</span>
                   </button>
                 );
@@ -275,7 +323,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             )}
           </div>
           <div className={styles['dropdown-hint']}>
-            Templates can be sent outside 24h window
+            {selectedContactId ? 'Click to send template directly' : 'Select a contact first to send templates'}
           </div>
         </div>
       )}

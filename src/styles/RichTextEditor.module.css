@@ -379,3 +379,118 @@
     display: none;
   }
 }
+
+
+/* Template Status Badges */
+.template-status {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.template-status.approved {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.template-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.template-status.rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.template-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.template-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.template-preview {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.template-category {
+  font-size: 10px;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Template Message Status */
+.template-message {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  right: 0;
+  background: #0f172a;
+  color: #fff;
+  padding: 8px 14px;
+  font-size: 12px;
+  border-radius: 8px;
+  text-align: center;
+  z-index: 101;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dropdown Loading */
+.dropdown-loading {
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* Dropdown Empty */
+.dropdown-empty {
+  padding: 20px;
+  text-align: center;
+}
+
+.dropdown-empty p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.dropdown-hint-text {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  margin-top: 8px !important;
+}
