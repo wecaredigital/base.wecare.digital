@@ -1497,3 +1497,443 @@ body {
     text-align: center;
   }
 }
+
+
+/* ============================================
+   ENHANCED MOBILE RESPONSIVENESS
+   ============================================ */
+
+/* Touch-friendly tap targets */
+button, a, input[type="checkbox"], input[type="radio"], select {
+  min-height: 44px;
+}
+
+/* Prevent zoom on input focus (iOS) */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* Smooth scrolling */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile-first responsive breakpoints */
+@media (max-width: 1024px) {
+  .page-content {
+    padding: 20px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .config-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .page-content {
+    padding: 16px;
+  }
+  
+  .page-title {
+    font-size: 24px;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .header-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .stat-card {
+    padding: 18px;
+  }
+  
+  .stat-value {
+    font-size: 28px;
+  }
+  
+  .stat-label {
+    font-size: 11px;
+  }
+  
+  .section {
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .section-title {
+    font-size: 18px;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  
+  .quick-action-card {
+    padding: 16px 12px;
+  }
+  
+  .qa-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+  
+  .qa-title {
+    font-size: 11px;
+  }
+  
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px;
+    gap: 4px;
+  }
+  
+  .tab {
+    padding: 10px 16px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions button {
+    width: 100%;
+  }
+  
+  .btn-primary, .btn-secondary, .btn-danger {
+    padding: 14px 20px;
+    font-size: 15px;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-content {
+    padding: 12px;
+  }
+  
+  .page-title {
+    font-size: 20px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .stat-card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+  
+  .stat-value {
+    font-size: 24px;
+  }
+  
+  .section {
+    padding: 16px;
+    border-radius: 14px;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .message-row {
+    padding: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .message-info {
+    flex: 1 1 100%;
+    order: 2;
+  }
+  
+  .message-direction {
+    order: 1;
+  }
+  
+  .message-meta {
+    order: 3;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .delete-options-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .delete-option-card {
+    padding: 16px 12px;
+  }
+  
+  .delete-option-icon {
+    font-size: 28px;
+  }
+  
+  .delete-option-title {
+    font-size: 13px;
+  }
+  
+  .delete-option-desc {
+    font-size: 11px;
+  }
+  
+  .delete-form {
+    padding: 16px;
+  }
+  
+  .data-stats {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .data-stat {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .data-stat:last-child {
+    border-bottom: none;
+  }
+  
+  .data-stat-value {
+    font-size: 24px;
+  }
+  
+  /* Billing table mobile */
+  .billing-table {
+    font-size: 12px;
+  }
+  
+  .billing-table th,
+  .billing-table td {
+    padding: 12px 10px;
+  }
+  
+  .billing-table th:nth-child(3),
+  .billing-table td:nth-child(3),
+  .billing-table th:nth-child(4),
+  .billing-table td:nth-child(4) {
+    display: none;
+  }
+  
+  .billing-amount {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 360px) {
+  .page-content {
+    padding: 10px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  
+  .stat-card {
+    padding: 12px;
+  }
+  
+  .stat-value {
+    font-size: 20px;
+  }
+  
+  .delete-options-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ============================================
+   IMPROVED ICONS (Unicode alternatives)
+   ============================================ */
+
+/* Use better Unicode symbols */
+.icon-dashboard::before { content: '📊'; }
+.icon-messages::before { content: '💬'; }
+.icon-contacts::before { content: '👥'; }
+.icon-whatsapp::before { content: '📱'; }
+.icon-sms::before { content: '📨'; }
+.icon-email::before { content: '📧'; }
+.icon-voice::before { content: '📞'; }
+.icon-bulk::before { content: '📤'; }
+.icon-admin::before { content: '⚙️'; }
+.icon-delete::before { content: '🗑️'; }
+.icon-warning::before { content: '⚠️'; }
+.icon-success::before { content: '✅'; }
+.icon-error::before { content: '❌'; }
+.icon-info::before { content: 'ℹ️'; }
+.icon-send::before { content: '➤'; }
+.icon-attach::before { content: '📎'; }
+.icon-download::before { content: '⬇️'; }
+.icon-upload::before { content: '⬆️'; }
+.icon-search::before { content: '🔍'; }
+.icon-filter::before { content: '🔽'; }
+.icon-refresh::before { content: '🔄'; }
+.icon-settings::before { content: '⚙️'; }
+.icon-user::before { content: '👤'; }
+.icon-calendar::before { content: '📅'; }
+.icon-clock::before { content: '🕐'; }
+.icon-link::before { content: '🔗'; }
+.icon-copy::before { content: '📋'; }
+.icon-edit::before { content: '✏️'; }
+.icon-save::before { content: '💾'; }
+.icon-close::before { content: '✕'; }
+.icon-menu::before { content: '☰'; }
+.icon-arrow-left::before { content: '←'; }
+.icon-arrow-right::before { content: '→'; }
+.icon-arrow-up::before { content: '↑'; }
+.icon-arrow-down::before { content: '↓'; }
+.icon-check::before { content: '✓'; }
+.icon-plus::before { content: '+'; }
+.icon-minus::before { content: '−'; }
+
+/* ============================================
+   LANDSCAPE MODE OPTIMIZATIONS
+   ============================================ */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .page-content {
+    padding: 12px 20px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+  
+  .stat-card {
+    padding: 12px;
+  }
+  
+  .stat-value {
+    font-size: 24px;
+  }
+  
+  .section {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .whatsapp-inbox {
+    height: calc(100vh - 40px);
+  }
+  
+  .contacts-sidebar {
+    width: 280px;
+  }
+  
+  .messages-area {
+    padding: 12px 30px;
+  }
+}
+
+/* ============================================
+   SAFE AREA INSETS (Notched devices)
+   ============================================ */
+
+@supports (padding: env(safe-area-inset-top)) {
+  .page-content {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  
+  .whatsapp-inbox {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .input-area {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ============================================
+   DARK MODE SUPPORT (Optional)
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  /* Uncomment to enable dark mode
+  body {
+    background: #0f172a;
+    color: #f1f5f9;
+  }
+  
+  .section, .stat-card, .config-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+  */
+}
+
+/* ============================================
+   REDUCED MOTION (Accessibility)
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .sidebar, .floating-agent-button, .agent-fab, .toast-container {
+    display: none !important;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+  }
+  
+  .section {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #e2e8f0;
+  }
+}
