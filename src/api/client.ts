@@ -729,3 +729,88 @@ function getEstimatedBilling(): AWSBillingData {
     lastUpdated: now.toISOString(),
   };
 }
+
+
+// ============================================================================
+// ADVANCED DELETE OPERATIONS
+// ============================================================================
+
+/**
+ * Hard Delete - Completely removes contact, all messages, and media from S3
+ * This is irreversible!
+ */
+export async function hardDeleteContact(contactId: string): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/contacts/${contactId}/hard-delete`, {
+    method: 'DELETE',
+  });
+  
+  // If endpoint doesn't exist, fall back to manual deletion
+  if (data === null) {
+    // Try to delete messages first, then contact
+    const messagesDeleted = await deleteContactMessages(contactId);
+    const contactDeleted = await deleteContact(contactId);
+    return messagesDeleted || contactDeleted;
+  }
+  
+  return data !== null && !data.error;
+}
+
+/**
+ * Delete all messages for a contact (keeps the contact)
+ */
+export async function deleteContactMessages(contactId: string): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/contacts/${contactId}/messages`, {
+    method: 'DELETE',
+  });
+  
+  // If endpoint doesn't exist, delete messages one by one
+  if (data === null) {
+    const messages = await listMessages(contactId);
+    let deleted = 0;
+    for (const msg of messages) {
+      const result = await deleteMessage(msg.id, msg.direction);
+      if (result) deleted++;
+    }
+    return deleted > 0 || messages.length === 0;
+  }
+  
+  return data !== null && !data.error;
+}
+
+/**
+ * Bulk delete multiple messages
+ */
+export async function bulkDeleteMessages(messageIds: string[], direction: 'INBOUND' | 'OUTBOUND' = 'INBOUND'): Promise<{ deleted: number; failed: number }> {
+  let deleted = 0;
+  let failed = 0;
+  
+  for (const msgId of messageIds) {
+    const result = await deleteMessage(msgId, direction);
+    if (result) {
+      deleted++;
+    } else {
+      failed++;
+    }
+  }
+  
+  return { deleted, failed };
+}
+
+/**
+ * Bulk delete multiple contacts
+ */
+export async function bulkDeleteContacts(contactIds: string[]): Promise<{ deleted: number; failed: number }> {
+  let deleted = 0;
+  let failed = 0;
+  
+  for (const contactId of contactIds) {
+    const result = await deleteContact(contactId);
+    if (result) {
+      deleted++;
+    } else {
+      failed++;
+    }
+  }
+  
+  return { deleted, failed };
+}
