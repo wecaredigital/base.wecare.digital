@@ -339,7 +339,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
           
           {messages.length > 0 ? (
             <div className="messages-list">
-              {messages.slice(0, 5).map(msg => {
+              {messages.slice(0, 10).map(msg => {
                 const contact = contacts.find(c => c.id === msg.contactId || c.contactId === msg.contactId);
                 return (
                   <div key={msg.id} className={`message-row ${msg.direction.toLowerCase()}`}>
@@ -352,9 +352,29 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                       </div>
                       <div className="message-preview">
                         {msg.mediaUrl ? (
-                          <span style={{ color: '#25D366', fontWeight: 'bold' }}>
-                            📎 Media: {msg.content?.substring(0, 30) || 'Image/Video/File'}
-                          </span>
+                          <div className="media-preview-inline">
+                            {msg.messageType === 'image' ? (
+                              <img src={msg.mediaUrl} alt="Media" className="media-thumb-inline" />
+                            ) : msg.messageType === 'video' ? (
+                              <span className="media-icon">🎬</span>
+                            ) : msg.messageType === 'audio' ? (
+                              <span className="media-icon">🎵</span>
+                            ) : (
+                              <span className="media-icon">📄</span>
+                            )}
+                            <span className="media-label">{msg.content || `[${msg.messageType}]`}</span>
+                            <a 
+                              href={msg.mediaUrl} 
+                              download 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="download-btn-inline"
+                              title="Download"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              ⬇
+                            </a>
+                          </div>
                         ) : (
                           <>
                             {msg.content?.substring(0, 50) || '(no content)'}
@@ -387,6 +407,51 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
               <button className="btn-primary" onClick={() => setShowCompose(true)}>
                 Send First Message
               </button>
+            </div>
+          )}
+        </div>
+
+        {/* Media Gallery */}
+        <div className="section">
+          <h2 className="section-title">📎 Media Files ({messages.filter(m => m.mediaUrl).length})</h2>
+          {messages.filter(m => m.mediaUrl).length > 0 ? (
+            <div className="media-gallery">
+              {messages.filter(m => m.mediaUrl).slice(0, 12).map(msg => {
+                const contact = contacts.find(c => c.id === msg.contactId || c.contactId === msg.contactId);
+                return (
+                  <div key={msg.id} className="media-card">
+                    <div className="media-preview">
+                      {msg.messageType === 'image' ? (
+                        <img src={msg.mediaUrl} alt="Media" className="media-thumb" />
+                      ) : msg.messageType === 'video' ? (
+                        <div className="media-placeholder video">🎬 Video</div>
+                      ) : msg.messageType === 'audio' ? (
+                        <div className="media-placeholder audio">🎵 Audio</div>
+                      ) : (
+                        <div className="media-placeholder doc">📄 Document</div>
+                      )}
+                    </div>
+                    <div className="media-info">
+                      <div className="media-contact">{contact?.name || contact?.phone || 'Unknown'}</div>
+                      <div className="media-time">{new Date(msg.timestamp).toLocaleDateString()}</div>
+                    </div>
+                    <a 
+                      href={msg.mediaUrl} 
+                      download 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="media-download-btn"
+                      title="Download"
+                    >
+                      ⬇ Download
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>No media files yet</p>
             </div>
           )}
         </div>
