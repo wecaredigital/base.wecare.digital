@@ -50,8 +50,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Generate AI response using Bedrock Agent."""
     request_id = context.aws_request_id if context else 'local'
     
+    # CORS headers
+    headers = {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+        'Access-Control-Allow-Methods': 'POST,OPTIONS'
+    }
+    
+    # Handle OPTIONS preflight
+    if event.get('httpMethod') == 'OPTIONS' or event.get('requestContext', {}).get('http', {}).get('method') == 'OPTIONS':
+        return {'statusCode': 200, 'headers': headers, 'body': ''}
+    
+    # Parse body from API Gateway event
+    body = event
+    if 'body' in event:
+        try:
+            body = json.loads(event['body']) if isinstance(event['body'], str) else event['body']
+        except (json.JSONDecodeError, TypeError):
+            body = event
+    
     # Determine which agent to use based on context
-    agent_context = event.get('context', 'external')  # default to external (WhatsApp)
+    agent_context = body.get('context', 'external')  # default to external (WhatsApp)
     
     if agent_context == 'internal-admin':
         agent_id = INTERNAL_AGENT_ID
@@ -75,22 +95,29 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if not agent_id and not kb_id:
         return {
             'statusCode': 200,
+            'headers': headers,
             'body': json.dumps({
-                'suggestion': _get_fallback_response(),
+                'suggestedResponse': _get_fallback_response(),
                 'error': 'AI agents not configured yet'
             })
         }
     
     if SEND_MODE == 'DRY_RUN':
-        return {'statusCode': 200, 'body': json.dumps({'suggestion': '', 'mode': 'DRY_RUN'})}
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'suggestedResponse': '', 'mode': 'DRY_RUN'})}
     
     try:
-        message_content = event.get('messageContent', '')
-        message_id = event.get('messageId', '')
-        contact_id = event.get('contactId', '')
+        message_content = body.get('messageContent', '')
+        message_id = body.get('messageId', '')
+        contact_id = body.get('contactId', '')
+        
+        logger.info(json.dumps({
+            'event': 'ai_generate_processing',
+            'messageContent': message_content[:100] if message_content else '',
+            'requestId': request_id
+        }))
         
         if not message_content:
-            return {'statusCode': 200, 'body': json.dumps({'suggestion': ''})}
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'suggestedResponse': _get_fallback_response()})}
         
         # Generate response using Bedrock Agent or KB
         if agent_id and agent_alias:
@@ -110,8 +137,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         return {
             'statusCode': 200,
+            'headers': headers,
             'body': json.dumps({
-                'suggestion': suggestion,
+                'suggestedResponse': suggestion,
                 'messageId': message_id,
                 'contactId': contact_id
             })
@@ -119,7 +147,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(json.dumps({'event': 'ai_generate_error', 'error': str(e), 'requestId': request_id}))
-        return {'statusCode': 200, 'body': json.dumps({'suggestion': _get_fallback_response(), 'error': str(e)})}
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'suggestedResponse': _get_fallback_response(), 'error': str(e)})}
 
 
 def _invoke_bedrock_agent(user_message: str, agent_id: str, agent_alias: str, kb_id: str, request_id: str) -> str:
