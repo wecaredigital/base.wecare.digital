@@ -78,6 +78,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         template_name = body.get('templateName')
         template_params = body.get('templateParams', [])
         
+        # Payment template support (order_details)
+        is_payment_template = body.get('isPaymentTemplate', False)
+        order_details = body.get('orderDetails')
+        header_image_url = body.get('headerImageUrl')
+        
         # Reaction support
         is_reaction = body.get('isReaction', False)
         reaction_message_id = body.get('reactionMessageId')  # WhatsApp message ID to react to
@@ -128,7 +133,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return _handle_live_send(
             message_id, contact_id, recipient_phone, phone_number_id,
             content, media_file, media_type, media_filename, is_template, template_name,
-            template_params, within_window, request_id
+            template_params, within_window, request_id, is_payment_template, order_details, header_image_url
         )
         
     except json.JSONDecodeError:
@@ -314,7 +319,9 @@ def _handle_reaction_send(message_id: str, contact_id: str, recipient_phone: str
 def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
                       phone_number_id: str, content: str, media_file: Optional[str],
                       media_type: Optional[str], media_filename: Optional[str], is_template: bool, template_name: Optional[str],
-                      template_params: list, within_window: bool, request_id: str) -> Dict[str, Any]:
+                      template_params: list, within_window: bool, request_id: str,
+                      is_payment_template: bool = False, order_details: Optional[Dict] = None,
+                      header_image_url: Optional[str] = None) -> Dict[str, Any]:
     """
     Handle LIVE mode - call AWS EUM Social API.
     Requirements: 5.2, 5.5, 5.6, 5.7, 5.8, 5.10, 5.11
@@ -338,7 +345,8 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         # Build WhatsApp message payload
         message_payload = _build_message_payload(
             recipient_phone, content, media_type, whatsapp_media_id,
-            is_template, template_name, template_params, stored_filename
+            is_template, template_name, template_params, stored_filename,
+            is_payment_template, order_details, header_image_url
         )
         
         logger.info(json.dumps({
@@ -743,7 +751,9 @@ def _normalize_phone_number(phone: str) -> str:
 
 def _build_message_payload(recipient_phone: str, content: str, media_type: Optional[str],
                            media_id: Optional[str], is_template: bool, template_name: Optional[str],
-                           template_params: list, filename: Optional[str] = None) -> Dict[str, Any]:
+                           template_params: list, filename: Optional[str] = None,
+                           is_payment_template: bool = False, order_details: Optional[Dict] = None,
+                           header_image_url: Optional[str] = None) -> Dict[str, Any]:
     """Build WhatsApp Cloud API message payload."""
     # Normalize phone number - WhatsApp API expects digits only without + prefix for normalization
     formatted_phone = _normalize_phone_number(recipient_phone)
@@ -782,8 +792,39 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             'components': []
         }
         
+        # Handle payment template with order_details button
+        if is_payment_template and order_details:
+            # Add header image if provided
+            if header_image_url:
+                payload['template']['components'].append({
+                    'type': 'header',
+                    'parameters': [{
+                        'type': 'image',
+                        'image': {'link': header_image_url}
+                    }]
+                })
+            
+            # Add order_details button component
+            payload['template']['components'].append({
+                'type': 'button',
+                'sub_type': 'order_details',
+                'index': 0,
+                'parameters': [{
+                    'type': 'action',
+                    'action': {'order_details': order_details}
+                }]
+            })
+            
+            logger.info(json.dumps({
+                'event': 'payment_template_payload_built',
+                'templateName': template_name,
+                'language': template_language,
+                'referenceId': order_details.get('reference_id'),
+                'totalAmount': order_details.get('total_amount', {}).get('value'),
+                'currency': order_details.get('currency')
+            }))
         # Add body parameters if provided (for templates with variables like {{1}}, {{2}})
-        if actual_params and len(actual_params) > 0:
+        elif actual_params and len(actual_params) > 0:
             payload['template']['components'].append({
                 'type': 'body',
                 'parameters': [{'type': 'text', 'text': str(p)} for p in actual_params]
@@ -794,7 +835,8 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             'templateName': template_name,
             'language': template_language,
             'paramCount': len(actual_params),
-            'params': actual_params
+            'params': actual_params,
+            'isPaymentTemplate': is_payment_template
         }))
     elif media_id and media_type:
         # Media message - extract message type from media_type

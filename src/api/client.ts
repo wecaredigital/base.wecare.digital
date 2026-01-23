@@ -1102,3 +1102,78 @@ export async function generateAIResponse(message: string, context?: {
     };
   }
 }
+
+
+// ============================================================================
+// WHATSAPP PAYMENT MESSAGE API (Order Details Template)
+// ============================================================================
+
+export interface PaymentOrderItem {
+  name: string;
+  amount: number;  // In smallest currency unit (paise for INR)
+  quantity: number;
+  productId?: string;
+}
+
+export interface SendPaymentMessageRequest {
+  contactId: string;
+  phoneNumberId: string;
+  templateName?: string;  // Default: 02_wd_pay
+  referenceId: string;    // Unique order/invoice ID
+  items: PaymentOrderItem[];
+  discount?: number;      // In paise
+  shipping?: number;      // In paise
+  tax?: number;           // In paise
+  currency?: string;      // Default: INR
+  headerImageUrl?: string;
+}
+
+/**
+ * Send WhatsApp Payment Message using order_details template
+ * Uses the 02_wd_pay template with WECARE-DIGITAL payment configuration
+ */
+export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequest): Promise<{ messageId: string; status: string } | null> {
+  // Calculate totals
+  const subtotal = request.items.reduce((sum, item) => sum + (item.amount * item.quantity), 0);
+  const discount = request.discount || 0;
+  const shipping = request.shipping || 0;
+  const tax = request.tax || 0;
+  const total = subtotal - discount + shipping + tax;
+
+  // Build order_details payload
+  const orderDetails = {
+    currency: request.currency || 'INR',
+    order: {
+      discount: { offset: 100, value: discount },
+      items: request.items.map((item, idx) => ({
+        amount: { offset: 100, value: item.amount },
+        name: item.name,
+        product_id: item.productId || `ITEM_${idx + 1}`,
+        quantity: item.quantity,
+        retailer_id: 'WECARE_DIGITAL',
+      })),
+      shipping: { offset: 100, value: shipping },
+      status: 'pending',
+      subtotal: { offset: 100, value: subtotal },
+      tax: { offset: 100, value: tax },
+    },
+    payment_configuration: 'WECARE-DIGITAL',
+    payment_type: 'upi',
+    reference_id: request.referenceId,
+    total_amount: { offset: 100, value: total },
+    type: 'digital-goods',
+  };
+
+  return apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
+    method: 'POST',
+    body: JSON.stringify({
+      contactId: request.contactId,
+      phoneNumberId: request.phoneNumberId,
+      isTemplate: true,
+      templateName: request.templateName || '02_wd_pay',
+      isPaymentTemplate: true,
+      orderDetails: orderDetails,
+      headerImageUrl: request.headerImageUrl,
+    }),
+  });
+}

@@ -8,6 +8,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from '../styles/RichTextEditor.module.css';
 import * as api from '../api/client';
 
+// Payment dialog state
+interface PaymentDialogState {
+  itemName: string;
+  amount: string;
+  quantity: string;
+  referenceId: string;
+  discount: string;
+  tax: string;
+}
+
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -63,6 +73,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     variables: string[];
     variableCount: number;
   } | null>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentForm, setPaymentForm] = useState<PaymentDialogState>({
+    itemName: '',
+    amount: '',
+    quantity: '1',
+    referenceId: '',
+    discount: '0',
+    tax: '0',
+  });
+  const [sendingPayment, setSendingPayment] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -275,6 +295,47 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   };
 
+  // Send payment message
+  const sendPaymentMessage = async () => {
+    if (!selectedContactId || !phoneNumberId) return;
+    if (!paymentForm.itemName || !paymentForm.amount || !paymentForm.referenceId) return;
+
+    setSendingPayment(true);
+    setTemplateMessage('Sending payment request...');
+
+    try {
+      const amountInPaise = Math.round(parseFloat(paymentForm.amount) * 100);
+      const discountInPaise = Math.round(parseFloat(paymentForm.discount || '0') * 100);
+      const taxInPaise = Math.round(parseFloat(paymentForm.tax || '0') * 100);
+
+      const result = await api.sendWhatsAppPaymentMessage({
+        contactId: selectedContactId,
+        phoneNumberId: phoneNumberId,
+        referenceId: paymentForm.referenceId,
+        items: [{
+          name: paymentForm.itemName,
+          amount: amountInPaise,
+          quantity: parseInt(paymentForm.quantity) || 1,
+        }],
+        discount: discountInPaise,
+        tax: taxInPaise,
+      });
+
+      if (result) {
+        setTemplateMessage(`✓ Payment request sent! Ref: ${paymentForm.referenceId}`);
+        setShowPaymentDialog(false);
+        setPaymentForm({ itemName: '', amount: '', quantity: '1', referenceId: '', discount: '0', tax: '0' });
+      } else {
+        setTemplateMessage('× Failed to send payment request');
+      }
+    } catch (error: any) {
+      setTemplateMessage(`× Error: ${error.message || 'Failed to send'}`);
+    } finally {
+      setSendingPayment(false);
+      setTimeout(() => setTemplateMessage(null), 3000);
+    }
+  };
+
   const applySuggestion = (suggestion: string) => {
     onChange(suggestion);
     setShowSuggestions(false);
@@ -418,6 +479,95 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         </div>
       )}
 
+      {/* Payment Dialog */}
+      {showPaymentDialog && (
+        <div className={styles['variable-dialog']}>
+          <div className={styles['variable-dialog-header']}>
+            <span>💳 Send Payment Request</span>
+            <button onClick={() => setShowPaymentDialog(false)}>×</button>
+          </div>
+          <div className={styles['variable-dialog-preview']}>
+            Template: 02_wd_pay | Config: WECARE-DIGITAL | UPI Payment
+          </div>
+          <div className={styles['variable-dialog-inputs']}>
+            <div className={styles['variable-input-row']}>
+              <label>Reference ID *</label>
+              <input
+                type="text"
+                value={paymentForm.referenceId}
+                onChange={(e) => setPaymentForm({...paymentForm, referenceId: e.target.value})}
+                placeholder="INV-001 or ORDER-123"
+                autoFocus
+              />
+            </div>
+            <div className={styles['variable-input-row']}>
+              <label>Item Name *</label>
+              <input
+                type="text"
+                value={paymentForm.itemName}
+                onChange={(e) => setPaymentForm({...paymentForm, itemName: e.target.value})}
+                placeholder="Consultation Fee"
+              />
+            </div>
+            <div className={styles['variable-input-row']}>
+              <label>Amount (₹) *</label>
+              <input
+                type="number"
+                value={paymentForm.amount}
+                onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})}
+                placeholder="1000.00"
+                step="0.01"
+                min="1"
+              />
+            </div>
+            <div className={styles['variable-input-row']}>
+              <label>Quantity</label>
+              <input
+                type="number"
+                value={paymentForm.quantity}
+                onChange={(e) => setPaymentForm({...paymentForm, quantity: e.target.value})}
+                placeholder="1"
+                min="1"
+              />
+            </div>
+            <div className={styles['variable-input-row']}>
+              <label>Discount (₹)</label>
+              <input
+                type="number"
+                value={paymentForm.discount}
+                onChange={(e) => setPaymentForm({...paymentForm, discount: e.target.value})}
+                placeholder="0"
+                step="0.01"
+                min="0"
+              />
+            </div>
+            <div className={styles['variable-input-row']}>
+              <label>Tax (₹)</label>
+              <input
+                type="number"
+                value={paymentForm.tax}
+                onChange={(e) => setPaymentForm({...paymentForm, tax: e.target.value})}
+                placeholder="0"
+                step="0.01"
+                min="0"
+              />
+            </div>
+          </div>
+          <div className={styles['variable-dialog-actions']}>
+            <button className={styles['cancel-btn']} onClick={() => setShowPaymentDialog(false)}>
+              Cancel
+            </button>
+            <button
+              className={styles['send-template-btn']}
+              onClick={sendPaymentMessage}
+              disabled={sendingPayment || !paymentForm.itemName || !paymentForm.amount || !paymentForm.referenceId}
+            >
+              {sendingPayment ? 'Sending...' : '💳 Send Payment'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Variables Dropdown */}
       {showVariables && (
         <div className={styles['dropdown-panel']}>
@@ -479,10 +629,22 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             className={`${styles['toolbar-btn']} ${showTemplates ? styles['active'] : ''}`}
-            onClick={() => { setShowTemplates(!showTemplates); setShowVariables(false); setShowFormatting(false); }}
+            onClick={() => { setShowTemplates(!showTemplates); setShowVariables(false); setShowFormatting(false); setShowPaymentDialog(false); }}
             title="Templates (can send outside 24h window)"
           >
             ▤
+          </button>
+        )}
+
+        {/* Payment Button (WhatsApp only) */}
+        {channel === 'whatsapp' && selectedContactId && (
+          <button
+            type="button"
+            className={`${styles['toolbar-btn']} ${showPaymentDialog ? styles['active'] : ''}`}
+            onClick={() => { setShowPaymentDialog(!showPaymentDialog); setShowTemplates(false); setShowVariables(false); setShowFormatting(false); }}
+            title="Send Payment Request (UPI)"
+          >
+            💳
           </button>
         )}
 
@@ -490,7 +652,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           className={`${styles['toolbar-btn']} ${showVariables ? styles['active'] : ''} ${hasVariables ? styles['has-vars'] : ''}`}
-          onClick={() => { setShowVariables(!showVariables); setShowTemplates(false); setShowFormatting(false); }}
+          onClick={() => { setShowVariables(!showVariables); setShowTemplates(false); setShowFormatting(false); setShowPaymentDialog(false); }}
           title="Insert Variable"
         >
           {'{{}}'}
@@ -501,7 +663,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             className={`${styles['toolbar-btn']} ${showFormatting ? styles['active'] : ''}`}
-            onClick={() => { setShowFormatting(!showFormatting); setShowTemplates(false); setShowVariables(false); }}
+            onClick={() => { setShowFormatting(!showFormatting); setShowTemplates(false); setShowVariables(false); setShowPaymentDialog(false); }}
             title="Formatting"
           >
             ◈

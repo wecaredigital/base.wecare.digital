@@ -1,0 +1,80 @@
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "to": "+919900000000",
+  "type": "template",
+  "template": {
+    "name": "02_wd_pay",
+    "language": {
+      "policy": "deterministic",
+      "code": "en"
+    },
+    "components": [
+      {
+        "type": "header",
+        "parameters": [
+          {
+            "type": "image",
+            "image": {
+              "link": "https://auth.wecare.digital/whatsapp-media/whatsapp-media-outgoing/invoice.png"
+            }
+          }
+        ]
+      },
+      {
+        "type": "button",
+        "sub_type": "order_details",
+        "index": 0,
+        "parameters": [
+          {
+            "type": "action",
+            "action": {
+              "order_details": {
+                "currency": "INR",
+                "order": {
+                  "discount": {
+                    "offset": 100,
+                    "value": 0
+                  },
+                  "items": [
+                    {
+                      "amount": {
+                        "offset": 100,
+                        "value": 100000
+                      },
+                      "name": "Consultation Fee",
+                      "product_id": "CONSULT_001",
+                      "quantity": 1,
+                      "retailer_id": "WECARE_DIGITAL"
+                    }
+                  ],
+                  "shipping": {
+                    "offset": 100,
+                    "value": 0
+                  },
+                  "status": "pending",
+                  "subtotal": {
+                    "offset": 100,
+                    "value": 100000
+                  },
+                  "tax": {
+                    "offset": 100,
+                    "value": 0
+                  }
+                },
+                "payment_configuration": "WECARE-DIGITAL",
+                "payment_type": "upi",
+                "reference_id": "ORDER_12345",
+                "total_amount": {
+                  "offset": 100,
+                  "value": 100000
+                },
+                "type": "digital-goods"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
