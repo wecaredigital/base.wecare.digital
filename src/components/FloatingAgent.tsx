@@ -76,7 +76,8 @@ const FloatingAgent: React.FC = () => {
     try {
       // Send WhatsApp message
       if (lowerText.includes('send') && (lowerText.includes('whatsapp') || lowerText.includes('message'))) {
-        const phoneMatch = text.match(/(\+?\d[\d\s-]{8,})/);
+        // Match phone numbers - stop at non-phone characters like colons
+        const phoneMatch = text.match(/(\+?\d[\d\s-]{8,}\d)(?=[^0-9]|$)/);
         const contentMatch = text.match(/(?:saying|message|content|text)[:\s]+["']?(.+?)["']?$/i);
         
         if (!phoneMatch) {
@@ -172,9 +173,9 @@ const FloatingAgent: React.FC = () => {
       // The agent can still handle local commands (send, find, stats, help)
       return 'I can help you send messages, find contacts, or check stats. Try "help" for examples.';
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Agent error:', error);
-      return 'Connection error. Please try again.';
+      return `Connection error: ${error.message || 'Please try again.'}`;
     }
   };
 
