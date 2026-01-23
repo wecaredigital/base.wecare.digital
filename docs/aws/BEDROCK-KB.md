@@ -1,285 +1,120 @@
-# WECARE.DIGITAL - Bedrock Knowledge Base Documentation
+# Amazon Bedrock AI Configuration
 
 ## Overview
 
-This document describes the AWS Bedrock resources configured for WECARE.DIGITAL AI automation.
+WECARE.DIGITAL uses Amazon Bedrock with Nova Lite model for AI-powered responses.
 
----
+**Model:** Amazon Nova Lite (~$0.06/1M input tokens)
 
-## Bedrock Resources
+## Architecture
 
-### 1. AgentCore Runtime (FloatingAgent - Internal Chatbot)
+Two separate Agent/KB pairs for different use cases:
 
-| Property | Value |
-|----------|-------|
-| Name | `base_wecare` |
-| Runtime ID | `base_wecare-5VzKBb5zn4` |
-| Runtime ARN | `arn:aws:bedrock-agentcore:us-east-1:809904170947:runtime/base_wecare-5VzKBb5zn4` |
-| Status | READY |
-| Source URI | `s3://auth.wecare.digital/stream/gen-ai/bedrock-agentcore/1769104756724-se99tt-stream_agent.zip` |
-| Entry Point | `main.py` |
-| Runtime | PYTHON_3_13 |
-| Protocol | HTTP |
-| Service Role | `AmazonBedrockAgentCoreRuntimeDefaultServiceRole-kxj3u` |
-| Endpoint | DEFAULT |
-| Endpoint ARN | `arn:aws:bedrock-agentcore:us-east-1:809904170947:runtime/base_wecare-5VzKBb5zn4/runtime-endpoint/DEFAULT` |
-| Idle Timeout | 900 seconds |
-| Max Lifetime | 28800 seconds |
+### 1. EXTERNAL (Customer-Facing - WhatsApp Auto-Reply)
+- **Purpose:** Respond to customer WhatsApp messages
+- **Agent ID:** `[TO BE CONFIGURED]`
+- **Agent Alias:** `[TO BE CONFIGURED]`
+- **Knowledge Base ID:** `[TO BE CONFIGURED]`
+- **S3 Data Source:** `s3://auth.wecare.digital/stream/gen-ai/external-kb/`
 
-**Used For:**
-- FloatingAgent chatbot widget on all admin pages
-- Real-time AI assistance for internal tasks
-- Task automation (send messages, find contacts, check stats)
+### 2. INTERNAL (Admin - FloatingAgent Widget)
+- **Purpose:** Help admins with tasks (send messages, find contacts, stats)
+- **Agent ID:** `[TO BE CONFIGURED]`
+- **Agent Alias:** `[TO BE CONFIGURED]`
+- **Knowledge Base ID:** `[TO BE CONFIGURED]`
+- **S3 Data Source:** `s3://auth.wecare.digital/stream/gen-ai/internal-kb/`
 
----
-
-### 2. Bedrock Agent (WhatsApp AI Responses + FloatingAgent)
-
-| Property | Value |
-|----------|-------|
-| Name | `base-bedrock-agent` |
-| Agent ID | `HQNT0JXN8G` |
-| Agent Alias | `TSTALIASID` |
-| Agent ARN | `arn:aws:bedrock:us-east-1:809904170947:agent/HQNT0JXN8G` |
-| Status | PREPARED |
-| Foundation Model | `amazon.nova-lite-v1:0` |
-| Agent Collaboration | DISABLED |
-| Role ARN | `arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5` |
-| User Input | ENABLED |
-| Memory | Disabled |
-| Idle Session Timeout | 600 seconds |
-
-**Agent Instruction:**
-```
-You are WECARE.DIGITAL's friendly multilingual AI assistant. 
-CRITICAL: If the message starts with [RESPOND IN X ONLY], you MUST respond ONLY in language X. 
-Otherwise, respond in the SAME LANGUAGE as the user's message.
-RULES: 1) Keep responses SHORT - max 3 sentences plus 1 action 
-2) Use 1-2 emojis for warmth 
-3) ALWAYS mention the specific brand name.
-BRAND ROUTING: Travel/Hotels/Visa/Tours = BNB Club (bnbclub.in) | Documents/Registration/GST/Company = Legal Champ (legalchamp.in) | Disputes/Complaints/Mediation = No Fault (nofault.in) | Puja/Rituals/Festivals = Ritual Guru (ritualguru.in) | Self-inquiry/Reflection/Coaching = Swdhya (swdhya.in).
-CONTACT: +91 9330994400, one@wecare.digital.
-ALWAYS end with a clear action (visit website, call number, or next step).
-```
-
-**Used For:**
-- WhatsApp AI auto-responses
-- Complex queries requiring multi-step reasoning
-- Action execution and tool calling
-
-**⚠️ CRITICAL - Agent Management:**
-- DO NOT edit agent in AWS Console - it resets `agentCollaboration` to SUPERVISOR
-- Use CLI commands instead:
-```bash
-# Update Bedrock Agent to use Nova Lite
-aws bedrock-agent update-agent --agent-id HQNT0JXN8G --agent-name "base-bedrock-agent" \
-  --agent-resource-role-arn "arn:aws:iam::809904170947:role/service-role/AmazonBedrockExecutionRoleForAgents_18GVEGPGMM5" \
-  --foundation-model "amazon.nova-lite-v1:0" --instruction "YOUR_INSTRUCTION" \
-  --agent-collaboration DISABLED --region us-east-1
-
-aws bedrock-agent prepare-agent --agent-id HQNT0JXN8G --region us-east-1
-```
-
----
-
-### 3. Knowledge Base (RAG)
-
-| Property | Value |
-|----------|-------|
-| Name | `base-wecare-digital-bedrock-kb` |
-| Knowledge Base ID | `FZBPKGTOYE` |
-| Status | AVAILABLE |
-| RAG Type | Vector Store |
-| Embedding Model | `amazon.nova-2-multimodal-embeddings-v1:0` |
-| Multimodal Storage | `s3://stream.wecare.digital` |
-| Service Role | `AmazonBedrockExecutionRoleForKnowledgeBase_b8pgp` |
-
-**Used For:**
-- WhatsApp AI auto-responses
-- Document search and retrieval
-- FAQ answers using RAG (Retrieval-Augmented Generation)
-
-#### Data Sources
-
-| Data Source | ID | Type | Status | Description |
-|-------------|-----|------|--------|-------------|
-| Website Crawler | `8KHGUUWYJ8` | WEB | AVAILABLE | Crawls https://www.wecare.digital/ (up to 25,000 pages) |
-| Custom Documents | `AXR9PXIVUK` | CUSTOM | AVAILABLE | Manual document uploads for KB training |
-
-**Website Crawler Configuration:**
-- Seed URL: `https://www.wecare.digital/`
-- Rate Limit: 300 requests
-- Max Pages: 25,000
-- User Agent: `bedrockbot_11afc6db-3d3e-495d-b578-e3aaf9b4d479`
-
-**Custom Documents (AXR9PXIVUK):**
-- Type: Custom (manual upload)
-- Chunking Strategy: Default
-- Parsing Strategy: Default
-- Data Deletion Policy: DELETE
-
-| Document | Status | Updated |
-|----------|--------|---------|
-| `wecare_bedrock_kb.md` | INDEXED | Jan 22, 2026 20:01 |
-| `wecare_bedrock_kb_qa.jsonl` | INDEXED | Jan 22, 2026 20:02 |
-
----
-
-## S3 Buckets for Bedrock
-
-| Bucket | Path | Purpose |
-|--------|------|---------|
-| `stream.wecare.digital` | `/` | KB multimodal storage (supplemental data) |
-| `auth.wecare.digital` | `stream/gen-ai/agent/HQNT0JXN8G/` | Agent logs, traces, sessions |
-| `auth.wecare.digital` | `stream/gen-ai/agentcore/base_wecare-5VzKBb5zn4/` | AgentCore logs, traces, sessions |
-| `auth.wecare.digital` | `stream/gen-ai/bedrock-agentcore/` | AgentCore code artifacts (*.zip) |
-| `auth.wecare.digital` | `stream/gen-ai/knowledge-base/FZBPKGTOYE/` | KB documents, queries, logs |
-
----
-
-## DynamoDB Configuration Tables
-
-### SystemConfigTable (`base-wecare-digital-SystemConfigTable`)
-
-| configKey | Description |
-|-----------|-------------|
-| `ai_automation_enabled` | Enable/disable AI automation for inbound messages (value: `true`) |
-| `bedrock_agent` | Agent configuration (ID, ARN, status) |
-| `bedrock_knowledge_base` | Knowledge Base configuration (ID, name, status) |
-| `bedrock_agent_runtime` | AgentCore runtime configuration (ID, ARN, status) |
-
-### AIInteractionsTable (`base-wecare-digital-AIInteractionsTable`)
-
-Stores AI interaction records:
-- `interactionId` - Unique ID
-- `messageId` - Related inbound message ID
-- `query` - User's question/message
-- `response` - AI-generated response
-- `approved` - Whether response was approved/sent
-- `timestamp` - Interaction timestamp
-
----
-
-## Lambda Functions
-
-| Function | Purpose |
-|----------|---------|
-| `wecare-ai-query-kb` | Query Knowledge Base for relevant context |
-| `wecare-ai-generate-response` | Generate AI response using KB context |
-| `wecare-inbound-whatsapp` | Process inbound messages, trigger AI automation |
-
-### Environment Variables (wecare-inbound-whatsapp)
+## S3 Folder Structure
 
 ```
-SYSTEM_CONFIG_TABLE=base-wecare-digital-SystemConfigTable
-AI_INTERACTIONS_TABLE=base-wecare-digital-AIInteractionsTable
-AI_QUERY_KB_FUNCTION=wecare-ai-query-kb
-AI_GENERATE_RESPONSE_FUNCTION=wecare-ai-generate-response
+s3://auth.wecare.digital/stream/gen-ai/
+├── external-kb/           # Customer FAQ documents
+│   ├── brands/            # Brand info (BNB Club, Legal Champ, etc.)
+│   ├── faq/               # Common questions
+│   └── services/          # Service descriptions
+└── internal-kb/           # Admin documentation
+    ├── api-docs/          # API documentation
+    ├── workflows/         # Admin workflows
+    └── guides/            # How-to guides
 ```
 
----
+## Setup Instructions
 
-## AI Automation Flow
+### Step 1: Create Knowledge Bases
 
+1. Go to AWS Console → Bedrock → Knowledge Bases
+2. Create **External KB** (customer-facing):
+   - Name: `wecare-external-kb`
+   - S3 URI: `s3://auth.wecare.digital/stream/gen-ai/external-kb/`
+   - Embedding Model: Titan Embeddings
+3. Create **Internal KB** (admin):
+   - Name: `wecare-internal-kb`
+   - S3 URI: `s3://auth.wecare.digital/stream/gen-ai/internal-kb/`
+   - Embedding Model: Titan Embeddings
+
+### Step 2: Create Agents
+
+1. Go to AWS Console → Bedrock → Agents
+2. Create **External Agent**:
+   - Name: `wecare-external-agent`
+   - Model: Amazon Nova Lite
+   - Attach External KB
+   - Create alias (e.g., `prod`)
+3. Create **Internal Agent**:
+   - Name: `wecare-internal-agent`
+   - Model: Amazon Nova Lite
+   - Attach Internal KB
+   - Create alias (e.g., `prod`)
+
+### Step 3: Update Code
+
+After creating resources, update these files with the new IDs:
+
+**Lambda Environment Variables:**
 ```
-1. Inbound WhatsApp Message
-   ↓
-2. wecare-inbound-whatsapp Lambda
-   ↓
-3. Check AI enabled (SystemConfigTable.ai_automation_enabled)
-   ↓
-4. If enabled & text message:
-   ↓
-5. Invoke wecare-ai-query-kb (query Knowledge Base)
-   ↓
-6. Invoke wecare-ai-generate-response (generate suggestion)
-   ↓
-7. Store in AIInteractionsTable (for review/approval)
-```
-
----
-
-## Ingestion Jobs
-
-To sync Knowledge Base with latest content:
-
-```bash
-# Start website crawler ingestion
-aws bedrock-agent start-ingestion-job \
-  --knowledge-base-id FZBPKGTOYE \
-  --data-source-id 8KHGUUWYJ8 \
-  --region us-east-1
-
-# Start custom documents ingestion (after adding new docs)
-aws bedrock-agent start-ingestion-job \
-  --knowledge-base-id FZBPKGTOYE \
-  --data-source-id AXR9PXIVUK \
-  --region us-east-1
-
-# Check ingestion status
-aws bedrock-agent get-ingestion-job \
-  --knowledge-base-id FZBPKGTOYE \
-  --data-source-id 8KHGUUWYJ8 \
-  --ingestion-job-id <JOB_ID> \
-  --region us-east-1
+EXTERNAL_AGENT_ID=<your-external-agent-id>
+EXTERNAL_AGENT_ALIAS=<your-external-alias>
+EXTERNAL_KB_ID=<your-external-kb-id>
+INTERNAL_AGENT_ID=<your-internal-agent-id>
+INTERNAL_AGENT_ALIAS=<your-internal-alias>
+INTERNAL_KB_ID=<your-internal-kb-id>
 ```
 
----
-
-## FloatingAgent Integration
-
-The FloatingAgent component (`src/components/FloatingAgent.tsx`) uses:
-
+**Frontend (FloatingAgent.tsx):**
 ```typescript
-// AgentCore Runtime configuration
-const AGENTCORE_RUNTIME_ID = 'base_wecare-5VzKBb5zn4';
-const AGENTCORE_ENDPOINT_ARN = 'arn:aws:bedrock-agentcore:us-east-1:809904170947:runtime/base_wecare-5VzKBb5zn4/runtime-endpoint/DEFAULT';
-
-// AI fallback calls /ai/chat endpoint with:
-{
-  message: text,
-  sessionId: sessionId,
-  agentcoreRuntimeId: AGENTCORE_RUNTIME_ID,
-  model: 'nova-lite',
-  context: 'internal-admin'
-}
+const INTERNAL_AGENT_ID = '<your-internal-agent-id>';
+const INTERNAL_AGENT_ALIAS = '<your-internal-alias>';
+const INTERNAL_KB_ID = '<your-internal-kb-id>';
 ```
 
----
+**API Client (client.ts):**
+```typescript
+const AI_CONFIG: AIConfig = {
+  enabled: true,
+  autoReplyEnabled: true,
+  knowledgeBaseId: '<your-external-kb-id>',
+  agentId: '<your-external-agent-id>',
+  agentAliasId: '<your-external-alias>',
+  ...
+};
+```
 
-## Model Configuration Summary
+## Language Support
 
-| Resource | Model | Cost |
-|----------|-------|------|
-| AgentCore Runtime (FloatingAgent) | Nova Lite | ~$0.06/1M tokens |
-| Bedrock Agent (WhatsApp) | Nova Lite | ~$0.06/1M tokens |
-| Knowledge Base RAG | Nova Lite | ~$0.06/1M tokens |
+Auto-detects and responds in:
+- English
+- Hindi (हिंदी)
+- Bengali (বাংলা)
+- Tamil (தமிழ்)
+- Telugu (తెలుగు)
+- Gujarati (ગુજરાતી)
+- Marathi (मराठी)
+- Hinglish (Hindi in Latin script)
 
----
+## Cost Estimate
 
-## Region
+Nova Lite pricing (~$0.06/1M input tokens):
+- 1000 messages/day × 100 tokens avg = 100K tokens/day
+- Monthly: ~3M tokens = ~$0.18/month
 
-All Bedrock resources are deployed in: **us-east-1**
-
----
-
-## Language Detection
-
-The AI response handler (`ai-generate-response`) includes automatic language detection:
-
-| Language | Detection Method |
-|----------|------------------|
-| Hindi | Devanagari script (U+0900-097F) |
-| Bengali | Bengali script (U+0980-09FF) |
-| Tamil | Tamil script (U+0B80-0BFF) |
-| Telugu | Telugu script (U+0C00-0C7F) |
-| Gujarati | Gujarati script (U+0A80-0AFF) |
-| Marathi | Devanagari + common Marathi words |
-| Hinglish | Latin script + Hindi words |
-| English | Default fallback |
-
-Messages are prefixed with `[RESPOND IN X ONLY]` to ensure consistent language responses.
-
----
-
-*Last Updated: January 22, 2026*
+Very cost-effective for FAQ responses!

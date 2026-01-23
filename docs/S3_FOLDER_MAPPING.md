@@ -12,25 +12,14 @@ auth.wecare.digital/
 ├── stream/                             # Bulk job reports and exports
 │   ├── media/m/wecare-digital.ico      # Favicon
 │   └── gen-ai/                         # Bedrock AI resources
-│       ├── agent/
-│       │   └── HQNT0JXN8G/             # base-bedrock-agent (Nova Lite)
-│       │       ├── invocations/        # Invocation records
-│       │       ├── logs/               # Agent logs
-│       │       ├── sessions/           # Session data
-│       │       └── traces/             # Agent execution traces
-│       ├── agentcore/
-│       │   └── base_wecare-5VzKBb5zn4/ # FloatingAgent runtime (Nova Lite)
-│       │       ├── logs/               # Runtime logs
-│       │       ├── sessions/           # Session data
-│       │       └── traces/             # Runtime traces
-│       ├── bedrock-agentcore/          # AgentCore code artifacts
-│       │   └── *.zip                   # Runtime code packages
-│       └── knowledge-base/
-│           └── FZBPKGTOYE/             # base-wecare-digital-bedrock-kb (Nova Lite)
-│               ├── documents/          # Document uploads
-│               ├── ingestion/          # Ingestion job logs
-│               ├── logs/               # KB logs
-│               └── queries/            # Query logs
+│       ├── external-kb/                # EXTERNAL KB (WhatsApp auto-reply)
+│       │   ├── brands/                 # Brand info docs
+│       │   ├── faq/                    # FAQ documents
+│       │   └── services/               # Service descriptions
+│       └── internal-kb/                # INTERNAL KB (Admin FloatingAgent)
+│           ├── api-docs/               # API documentation
+│           ├── workflows/              # Admin workflows
+│           └── guides/                 # How-to guides
 ├── whatsapp-media/
 │   ├── whatsapp-media-incoming/        # Inbound media from customers
 │   │   └── {uuid}.jpg{whatsapp-media-id}.jpeg
@@ -45,14 +34,15 @@ auth.wecare.digital/
 
 | Resource | Type | ID | Model | S3 Path |
 |----------|------|-----|-------|---------|
-| base-bedrock-agent | Agent | HQNT0JXN8G | Nova Lite | `stream/gen-ai/agent/HQNT0JXN8G/` |
-| base_wecare | AgentCore Runtime | base_wecare-5VzKBb5zn4 | Nova Lite | `stream/gen-ai/agentcore/base_wecare-5VzKBb5zn4/` |
-| base-wecare-digital-bedrock-kb | Knowledge Base | FZBPKGTOYE | Nova Lite | `stream/gen-ai/knowledge-base/FZBPKGTOYE/` |
+| External KB | Knowledge Base | [TO BE CONFIGURED] | Nova Lite | `stream/gen-ai/external-kb/` |
+| Internal KB | Knowledge Base | [TO BE CONFIGURED] | Nova Lite | `stream/gen-ai/internal-kb/` |
+| External Agent | Agent | [TO BE CONFIGURED] | Nova Lite | N/A |
+| Internal Agent | Agent | [TO BE CONFIGURED] | Nova Lite | N/A |
 
-### AgentCore Runtime Code Artifacts
+### Knowledge Base Data Sources
 ```
-stream/gen-ai/bedrock-agentcore/
-└── 1769104756724-se99tt-stream_agent.zip  # Current runtime code
+stream/gen-ai/external-kb/    # Customer FAQ (WhatsApp auto-reply)
+stream/gen-ai/internal-kb/    # Admin docs (FloatingAgent)
 ```
 
 ### Additional Bucket for KB Multimodal Storage

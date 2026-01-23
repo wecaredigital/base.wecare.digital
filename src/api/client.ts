@@ -387,13 +387,16 @@ export interface AIConfig {
   systemPrompt: string;
 }
 
-// Real AWS Resource IDs
+// Bedrock AI Configuration
+// TODO: Update after creating new Bedrock Agents and Knowledge Bases
+// INTERNAL: For admin tasks (FloatingAgent)
+// EXTERNAL: For WhatsApp auto-reply (customer-facing)
 const AI_CONFIG: AIConfig = {
-  enabled: true,
-  autoReplyEnabled: true,
-  knowledgeBaseId: 'FZBPKGTOYE',
-  agentId: 'HQNT0JXN8G',
-  agentAliasId: 'base_bedrock_agentcore-1XHDxj2o3Q',
+  enabled: false,  // Disabled until new agents are configured
+  autoReplyEnabled: false,
+  knowledgeBaseId: '',  // External KB ID (for WhatsApp)
+  agentId: '',  // External Agent ID (for WhatsApp)
+  agentAliasId: '',  // External Agent Alias
   maxTokens: 1024,
   temperature: 0.7,
   systemPrompt: 'You are a helpful customer service assistant for WECARE.DIGITAL.',

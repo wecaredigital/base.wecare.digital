@@ -3,14 +3,16 @@
  * WECARE.DIGITAL Admin Platform
  * 
  * AI-powered assistant for internal task automation
- * Uses Amazon Bedrock AgentCore Runtime with Nova Lite
+ * Uses Amazon Bedrock Agent with Nova Lite
  * 
  * Model: Amazon Nova Lite (~$0.06/1M input tokens)
  * 
- * Bedrock Resources:
- * - AgentCore Runtime: base_wecare-5VzKBb5zn4
- * - Agent ID: HQNT0JXN8G (base-bedrock-agent)
- * - Knowledge Base: FZBPKGTOYE (base-wecare-digital-bedrock-kb)
+ * Bedrock Resources (INTERNAL - Admin Tasks):
+ * - Agent ID: [TO BE CONFIGURED]
+ * - Agent Alias: [TO BE CONFIGURED]
+ * - Knowledge Base: [TO BE CONFIGURED]
+ * 
+ * Note: External (WhatsApp auto-reply) uses separate Agent/KB
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -25,9 +27,11 @@ interface ChatMessage {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
 
-// AgentCore Runtime configuration
-const AGENTCORE_RUNTIME_ID = 'base_wecare-5VzKBb5zn4';
-const AGENTCORE_ENDPOINT_ARN = 'arn:aws:bedrock-agentcore:us-east-1:809904170947:runtime/base_wecare-5VzKBb5zn4/runtime-endpoint/DEFAULT';
+// Internal Agent Configuration (for admin tasks)
+// TODO: Update these after creating new Bedrock Agent
+const INTERNAL_AGENT_ID = '';  // Set after creating internal agent
+const INTERNAL_AGENT_ALIAS = '';  // Set after creating alias
+const INTERNAL_KB_ID = '';  // Set after creating internal KB
 
 const FloatingAgent: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -163,22 +167,26 @@ const FloatingAgent: React.FC = () => {
         return `I can help you with:\n\n• Send WhatsApp to +91... saying Hello\n• Find contact +91... or named John\n• Show today's stats\n• Check recent messages\n\nJust type naturally!`;
       }
       
-      // AI fallback - use AgentCore Runtime with Nova Lite
-      const aiRes = await fetch(`${API_BASE}/ai/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: text,
-          sessionId: sessionId,
-          agentcoreRuntimeId: AGENTCORE_RUNTIME_ID,
-          model: 'nova-lite',
-          context: 'internal-admin'
-        }),
-      });
-      
-      if (aiRes.ok) {
-        const data = await aiRes.json();
-        return data.response || data.suggestion || 'I can help you send messages, find contacts, or check stats. Try "help" for examples.';
+      // AI fallback - use Bedrock Agent with Nova Lite
+      // TODO: Enable after configuring internal agent
+      if (INTERNAL_AGENT_ID) {
+        const aiRes = await fetch(`${API_BASE}/ai/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            message: text,
+            sessionId: sessionId,
+            agentId: INTERNAL_AGENT_ID,
+            agentAlias: INTERNAL_AGENT_ALIAS,
+            model: 'nova-lite',
+            context: 'internal-admin'
+          }),
+        });
+        
+        if (aiRes.ok) {
+          const data = await aiRes.json();
+          return data.response || data.suggestion || 'I can help you send messages, find contacts, or check stats. Try "help" for examples.';
+        }
       }
       
       return 'I can help you send messages, find contacts, or check stats. Try "help" for examples.';

@@ -3,13 +3,20 @@ AI Generate Response Lambda Function
 
 Purpose: Generate AI response using Bedrock Agent with Knowledge Base
 Language detection ensures responses match user's language
-Prompts managed in AWS Console - no code changes needed
 
-Model Strategy (All Nova Lite - ~$0.06/1M input tokens):
-- WhatsApp Auto-Reply: Amazon Nova Lite
-- Knowledge Base RAG: Amazon Nova Lite  
-- Bedrock Agent: Amazon Nova Lite
-- FloatingAgent (internal): Amazon Nova Lite
+Model: Amazon Nova Lite (~$0.06/1M input tokens)
+
+Architecture:
+- EXTERNAL Agent/KB: For WhatsApp auto-reply (customer-facing)
+- INTERNAL Agent/KB: For FloatingAgent (admin tasks)
+
+TODO: Configure these environment variables after creating new agents:
+- EXTERNAL_AGENT_ID
+- EXTERNAL_AGENT_ALIAS
+- EXTERNAL_KB_ID
+- INTERNAL_AGENT_ID
+- INTERNAL_AGENT_ALIAS
+- INTERNAL_KB_ID
 """
 
 import os
@@ -29,21 +36,52 @@ bedrock_agent_runtime = boto3.client('bedrock-agent-runtime', region_name=os.env
 
 # Environment variables
 SEND_MODE = os.environ.get('SEND_MODE', 'LIVE')
-BEDROCK_AGENT_ID = os.environ.get('BEDROCK_AGENT_ID', 'HQNT0JXN8G')
-BEDROCK_AGENT_ALIAS = os.environ.get('BEDROCK_AGENT_ALIAS', 'TSTALIASID')
-BEDROCK_KB_ID = os.environ.get('BEDROCK_KB_ID', 'FZBPKGTOYE')
+
+# External Agent (WhatsApp auto-reply - customer facing)
+EXTERNAL_AGENT_ID = os.environ.get('EXTERNAL_AGENT_ID', '')
+EXTERNAL_AGENT_ALIAS = os.environ.get('EXTERNAL_AGENT_ALIAS', '')
+EXTERNAL_KB_ID = os.environ.get('EXTERNAL_KB_ID', '')
+
+# Internal Agent (FloatingAgent - admin tasks)
+INTERNAL_AGENT_ID = os.environ.get('INTERNAL_AGENT_ID', '')
+INTERNAL_AGENT_ALIAS = os.environ.get('INTERNAL_AGENT_ALIAS', '')
+INTERNAL_KB_ID = os.environ.get('INTERNAL_KB_ID', '')
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Generate AI response using Bedrock Agent."""
     request_id = context.aws_request_id if context else 'local'
     
+    # Determine which agent to use based on context
+    agent_context = event.get('context', 'external')  # default to external (WhatsApp)
+    
+    if agent_context == 'internal-admin':
+        agent_id = INTERNAL_AGENT_ID
+        agent_alias = INTERNAL_AGENT_ALIAS
+        kb_id = INTERNAL_KB_ID
+    else:
+        agent_id = EXTERNAL_AGENT_ID
+        agent_alias = EXTERNAL_AGENT_ALIAS
+        kb_id = EXTERNAL_KB_ID
+    
     logger.info(json.dumps({
         'event': 'ai_generate_start',
         'sendMode': SEND_MODE,
-        'agentId': BEDROCK_AGENT_ID,
+        'agentContext': agent_context,
+        'agentId': agent_id,
+        'kbId': kb_id,
         'requestId': request_id
     }))
+    
+    # Check if agents are configured
+    if not agent_id and not kb_id:
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'suggestion': _get_fallback_response(),
+                'error': 'AI agents not configured yet'
+            })
+        }
     
     if SEND_MODE == 'DRY_RUN':
         return {'statusCode': 200, 'body': json.dumps({'suggestion': '', 'mode': 'DRY_RUN'})}
@@ -56,8 +94,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if not message_content:
             return {'statusCode': 200, 'body': json.dumps({'suggestion': ''})}
         
-        # Generate response using Bedrock Agent
-        suggestion = _invoke_bedrock_agent(message_content, request_id)
+        # Generate response using Bedrock Agent or KB
+        if agent_id and agent_alias:
+            suggestion = _invoke_bedrock_agent(message_content, agent_id, agent_alias, kb_id, request_id)
+        elif kb_id:
+            detected_lang, lang_name = _detect_language(message_content)
+            suggestion = _query_knowledge_base(message_content, kb_id, detected_lang, lang_name, request_id)
+        else:
+            suggestion = _get_fallback_response()
         
         logger.info(json.dumps({
             'event': 'ai_generate_complete',
@@ -80,38 +124,32 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return {'statusCode': 200, 'body': json.dumps({'suggestion': _get_fallback_response(), 'error': str(e)})}
 
 
-def _invoke_bedrock_agent(user_message: str, request_id: str) -> str:
-    """Invoke Bedrock Agent with Knowledge Base for response generation."""
+def _invoke_bedrock_agent(user_message: str, agent_id: str, agent_alias: str, kb_id: str, request_id: str) -> str:
+    """Invoke Bedrock Agent for response generation."""
     try:
-        # Generate unique session ID for conversation
         session_id = str(uuid.uuid4())
-        
-        # Detect user's language and create language-aware prompt
         detected_lang, lang_name = _detect_language(user_message)
         
-        # Prepend language instruction to ensure consistent response language
         language_instruction = f"[RESPOND IN {lang_name.upper()} ONLY] "
         enhanced_message = language_instruction + user_message
         
         logger.info(json.dumps({
             'event': 'bedrock_agent_invoke',
-            'agentId': BEDROCK_AGENT_ID,
+            'agentId': agent_id,
             'sessionId': session_id,
             'messageLength': len(user_message),
             'detectedLanguage': lang_name,
             'requestId': request_id
         }))
         
-        # Invoke Bedrock Agent
         response = bedrock_agent_runtime.invoke_agent(
-            agentId=BEDROCK_AGENT_ID,
-            agentAliasId=BEDROCK_AGENT_ALIAS,
+            agentId=agent_id,
+            agentAliasId=agent_alias,
             sessionId=session_id,
             inputText=enhanced_message,
             enableTrace=False
         )
         
-        # Extract response from event stream
         completion = ""
         for event in response.get('completion', []):
             if 'chunk' in event:
@@ -128,8 +166,11 @@ def _invoke_bedrock_agent(user_message: str, request_id: str) -> str:
             }))
             return completion.strip()
         
-        # Fallback to Knowledge Base direct query if agent returns empty
-        return _query_knowledge_base(user_message, detected_lang, lang_name, request_id)
+        # Fallback to KB if agent returns empty
+        if kb_id:
+            return _query_knowledge_base(user_message, kb_id, detected_lang, lang_name, request_id)
+        
+        return _get_fallback_response(lang_name)
         
     except Exception as e:
         logger.error(json.dumps({
@@ -137,76 +178,59 @@ def _invoke_bedrock_agent(user_message: str, request_id: str) -> str:
             'error': str(e),
             'requestId': request_id
         }))
-        # Fallback to Knowledge Base direct query
-        detected_lang, lang_name = _detect_language(user_message)
-        return _query_knowledge_base(user_message, detected_lang, lang_name, request_id)
+        if kb_id:
+            detected_lang, lang_name = _detect_language(user_message)
+            return _query_knowledge_base(user_message, kb_id, detected_lang, lang_name, request_id)
+        return _get_fallback_response()
 
 
 def _detect_language(text: str) -> Tuple[str, str]:
-    """
-    Detect language from text using character patterns.
-    Returns (language_code, language_name) tuple.
-    """
+    """Detect language from text using character patterns."""
     if not text:
         return ('en', 'English')
     
-    # Hindi/Devanagari script detection (U+0900 to U+097F)
-    hindi_pattern = re.compile(r'[\u0900-\u097F]')
-    if hindi_pattern.search(text):
+    # Hindi/Devanagari
+    if re.search(r'[\u0900-\u097F]', text):
+        marathi_words = ['आहे', 'काय', 'मला', 'तुम्ही', 'आम्ही']
+        if any(word in text for word in marathi_words):
+            return ('mr', 'Marathi')
         return ('hi', 'Hindi')
     
-    # Bengali script detection (U+0980 to U+09FF)
-    bengali_pattern = re.compile(r'[\u0980-\u09FF]')
-    if bengali_pattern.search(text):
+    # Bengali
+    if re.search(r'[\u0980-\u09FF]', text):
         return ('bn', 'Bengali')
     
-    # Tamil script detection (U+0B80 to U+0BFF)
-    tamil_pattern = re.compile(r'[\u0B80-\u0BFF]')
-    if tamil_pattern.search(text):
+    # Tamil
+    if re.search(r'[\u0B80-\u0BFF]', text):
         return ('ta', 'Tamil')
     
-    # Telugu script detection (U+0C00 to U+0C7F)
-    telugu_pattern = re.compile(r'[\u0C00-\u0C7F]')
-    if telugu_pattern.search(text):
+    # Telugu
+    if re.search(r'[\u0C00-\u0C7F]', text):
         return ('te', 'Telugu')
     
-    # Gujarati script detection (U+0A80 to U+0AFF)
-    gujarati_pattern = re.compile(r'[\u0A80-\u0AFF]')
-    if gujarati_pattern.search(text):
+    # Gujarati
+    if re.search(r'[\u0A80-\u0AFF]', text):
         return ('gu', 'Gujarati')
     
-    # Marathi uses Devanagari, check for common Marathi words
-    marathi_words = ['आहे', 'काय', 'मला', 'तुम्ही', 'आम्ही']
-    if any(word in text for word in marathi_words):
-        return ('mr', 'Marathi')
-    
-    # Hinglish detection (Hindi words in Latin script)
-    hinglish_words = ['kya', 'hai', 'kaise', 'mujhe', 'aap', 'hum', 'tum', 'kab', 'kahan', 'kyun', 'nahi', 'haan', 'theek', 'accha', 'bahut', 'acha']
-    text_lower = text.lower()
-    hinglish_count = sum(1 for word in hinglish_words if word in text_lower)
-    if hinglish_count >= 2:
+    # Hinglish
+    hinglish_words = ['kya', 'hai', 'kaise', 'mujhe', 'aap', 'hum', 'tum', 'kab', 'kahan', 'kyun', 'nahi', 'haan', 'theek', 'accha', 'bahut']
+    if sum(1 for word in hinglish_words if word in text.lower()) >= 2:
         return ('hi-Latn', 'Hinglish')
     
-    # Default to English
     return ('en', 'English')
 
 
-def _query_knowledge_base(user_message: str, detected_lang: str, lang_name: str, request_id: str) -> str:
-    """Direct Knowledge Base query as fallback with language-aware prompt.
-    
-    Uses Amazon Nova Lite for better quality FAQ responses.
-    Nova Lite: ~$0.06/1M input tokens - good balance of quality and cost.
-    """
+def _query_knowledge_base(user_message: str, kb_id: str, detected_lang: str, lang_name: str, request_id: str) -> str:
+    """Direct Knowledge Base query with Nova Lite."""
     try:
         logger.info(json.dumps({
             'event': 'kb_query_start',
-            'kbId': BEDROCK_KB_ID,
+            'kbId': kb_id,
             'model': 'amazon.nova-lite-v1:0',
             'detectedLanguage': lang_name,
             'requestId': request_id
         }))
         
-        # Language-specific prompt template optimized for Nova Micro
         prompt_template = f"""You are WECARE.DIGITAL's friendly AI assistant.
 
 CRITICAL: You MUST respond ONLY in {lang_name}. Do not mix languages.
@@ -234,13 +258,12 @@ USER QUESTION ({lang_name}): $query$
 
 Respond helpfully in {lang_name} and end with a specific action."""
         
-        # Using Nova Lite for better quality WhatsApp FAQ responses
         response = bedrock_agent_runtime.retrieve_and_generate(
             input={'text': user_message},
             retrieveAndGenerateConfiguration={
                 'type': 'KNOWLEDGE_BASE',
                 'knowledgeBaseConfiguration': {
-                    'knowledgeBaseId': BEDROCK_KB_ID,
+                    'knowledgeBaseId': kb_id,
                     'modelArn': 'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-lite-v1:0',
                     'generationConfiguration': {
                         'promptTemplate': {
