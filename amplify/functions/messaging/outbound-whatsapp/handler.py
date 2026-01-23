@@ -804,6 +804,13 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                     }]
                 })
             
+            # Add body parameters if provided (for templates with variables like {{1}})
+            if actual_params and len(actual_params) > 0:
+                payload['template']['components'].append({
+                    'type': 'body',
+                    'parameters': [{'type': 'text', 'text': str(p)} for p in actual_params]
+                })
+            
             # Add order_details button component
             payload['template']['components'].append({
                 'type': 'button',
@@ -821,7 +828,9 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                 'language': template_language,
                 'referenceId': order_details.get('reference_id'),
                 'totalAmount': order_details.get('total_amount', {}).get('value'),
-                'currency': order_details.get('currency')
+                'currency': order_details.get('currency'),
+                'hasHeaderImage': bool(header_image_url),
+                'bodyParamCount': len(actual_params)
             }))
         # Add body parameters if provided (for templates with variables like {{1}}, {{2}})
         elif actual_params and len(actual_params) > 0:
