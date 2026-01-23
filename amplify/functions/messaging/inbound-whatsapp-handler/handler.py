@@ -403,11 +403,19 @@ def _get_or_create_contact(phone: str, sender_name: str = '') -> Dict[str, Any]:
     """Get existing contact or create new one."""
     contacts_table = dynamodb.Table(CONTACTS_TABLE)
     
+    # Clean phone for search - remove + prefix if present
+    clean_phone = phone.lstrip('+')
+    phone_with_plus = f'+{clean_phone}'
+    
+    # Search for contact with either format (with or without +)
     # Use a more robust scan - scan more items to ensure we find existing contact
-    # DynamoDB Limit applies BEFORE filter, so we need to scan more items
     response = contacts_table.scan(
-        FilterExpression='phone = :phone AND (attribute_not_exists(deletedAt) OR deletedAt = :null)',
-        ExpressionAttributeValues={':phone': phone, ':null': None},
+        FilterExpression='(phone = :phone1 OR phone = :phone2) AND (attribute_not_exists(deletedAt) OR deletedAt = :null)',
+        ExpressionAttributeValues={
+            ':phone1': clean_phone,
+            ':phone2': phone_with_plus,
+            ':null': None
+        },
         Limit=100  # Scan up to 100 items to find matching phone
     )
     
@@ -434,11 +442,14 @@ def _get_or_create_contact(phone: str, sender_name: str = '') -> Dict[str, Any]:
     contact_id = str(uuid.uuid4())
     now = int(time.time())
     
+    # Ensure phone has + prefix for international format (easier for SMS)
+    formatted_phone = phone if phone.startswith('+') else f'+{phone}'
+    
     contact = {
         'id': contact_id,
         'contactId': contact_id,
         'name': sender_name or '',
-        'phone': phone,
+        'phone': formatted_phone,
         'email': None,
         'optInWhatsApp': True,
         'optInSms': True,

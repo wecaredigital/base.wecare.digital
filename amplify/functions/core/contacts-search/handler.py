@@ -138,7 +138,11 @@ def _matches_query(item: Dict[str, Any], query: str) -> bool:
     phone = str(item.get('phone', '')).lower()
     email = str(item.get('email', '')).lower()
     
-    return query in name or query in phone or query in email
+    # For phone search, also match without + prefix
+    clean_query = query.lstrip('+')
+    clean_phone = phone.lstrip('+')
+    
+    return query in name or query in phone or query in email or clean_query in clean_phone
 
 
 def _convert_from_dynamodb(item: Dict[str, Any]) -> Dict[str, Any]:
