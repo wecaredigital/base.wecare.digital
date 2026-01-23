@@ -231,10 +231,13 @@ export async function getMessage(messageId: string): Promise<Message | null> {
 }
 
 export async function deleteMessage(messageId: string, direction: 'INBOUND' | 'OUTBOUND' = 'INBOUND'): Promise<boolean> {
+  console.log(`Deleting message: ${messageId}, direction: ${direction}`);
   const data = await apiCall<any>(`${API_BASE}/messages/${messageId}?direction=${direction}`, {
     method: 'DELETE',
   });
-  return data !== null && data.success === true;
+  console.log(`Delete message response:`, data);
+  // Accept success if we got a response (even if success field is missing)
+  return data !== null && (data.success === true || data.messageId === messageId || !data.error);
 }
 
 function normalizeMessage(item: any): Message {
@@ -518,7 +521,16 @@ export interface SystemHealth {
   whatsapp: { status: 'active' | 'warning' | 'error'; phoneNumbers: number; qualityRating: string };
   sms: { status: 'active' | 'warning' | 'error'; poolId: string };
   email: { status: 'active' | 'warning' | 'error'; verified: boolean };
-  ai: { status: 'active' | 'warning' | 'error'; kbId: string };
+  ai: { 
+    status: 'active' | 'warning' | 'error'; 
+    kbId?: string;
+    internalKbId?: string;
+    internalAgentId?: string;
+    internalAgentAlias?: string;
+    externalKbId?: string;
+    externalAgentId?: string;
+    externalAgentAlias?: string;
+  };
   dlq: { depth: number; oldestMessage?: string };
 }
 
@@ -749,43 +761,69 @@ function getEstimatedBilling(): AWSBillingData {
 /**
  * Hard Delete - Completely removes contact, all messages, and media from S3
  * This is irreversible!
+ * 
+ * Uses the backend ?hard=true parameter to trigger full deletion
  */
 export async function hardDeleteContact(contactId: string): Promise<boolean> {
-  const data = await apiCall<any>(`${API_BASE}/contacts/${contactId}/hard-delete`, {
+  console.log(`Hard deleting contact: ${contactId}`);
+  const data = await apiCall<any>(`${API_BASE}/contacts/${contactId}?hard=true`, {
     method: 'DELETE',
   });
+  console.log(`Hard delete response:`, data);
   
-  // If endpoint doesn't exist, fall back to manual deletion
-  if (data === null) {
-    // Try to delete messages first, then contact
-    const messagesDeleted = await deleteContactMessages(contactId);
-    const contactDeleted = await deleteContact(contactId);
-    return messagesDeleted || contactDeleted;
+  if (data && data.success) {
+    console.log(`Hard delete successful: ${data.messagesDeleted} messages, ${data.mediaDeleted} media files`);
+    return true;
   }
   
-  return data !== null && !data.error;
+  // Fallback: delete messages one by one, then soft delete contact
+  console.log('Hard delete endpoint failed, using fallback...');
+  try {
+    const messagesDeleted = await deleteContactMessages(contactId);
+    console.log(`Fallback: messages deleted = ${messagesDeleted}`);
+    
+    const contactDeleted = await deleteContact(contactId);
+    console.log(`Fallback: contact deleted = ${contactDeleted}`);
+    
+    return contactDeleted;
+  } catch (error) {
+    console.error('Hard delete fallback error:', error);
+    return false;
+  }
 }
 
 /**
  * Delete all messages for a contact (keeps the contact)
+ * Deletes messages one by one since there's no bulk endpoint
  */
 export async function deleteContactMessages(contactId: string): Promise<boolean> {
-  const data = await apiCall<any>(`${API_BASE}/contacts/${contactId}/messages`, {
-    method: 'DELETE',
-  });
-  
-  // If endpoint doesn't exist, delete messages one by one
-  if (data === null) {
+  try {
+    // Fetch all messages for this contact
     const messages = await listMessages(contactId);
+    console.log(`Deleting ${messages.length} messages for contact ${contactId}`);
+    
+    if (messages.length === 0) {
+      return true; // No messages to delete
+    }
+    
     let deleted = 0;
+    let failed = 0;
+    
     for (const msg of messages) {
       const result = await deleteMessage(msg.id, msg.direction);
-      if (result) deleted++;
+      if (result) {
+        deleted++;
+      } else {
+        failed++;
+      }
     }
+    
+    console.log(`Deleted ${deleted}/${messages.length} messages (${failed} failed)`);
     return deleted > 0 || messages.length === 0;
+  } catch (error) {
+    console.error('Delete contact messages error:', error);
+    return false;
   }
-  
-  return data !== null && !data.error;
 }
 
 /**

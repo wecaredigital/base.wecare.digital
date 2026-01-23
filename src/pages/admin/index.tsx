@@ -202,15 +202,26 @@ const AdminPage: React.FC<PageProps> = ({ signOut, user }) => {
             return;
           }
           let deleted = 0;
+          let failedCount = 0;
+          console.log(`Deleting ${selectedMessages.length} messages...`);
           for (const msgId of selectedMessages) {
             const msg = messages.find(m => m.id === msgId);
             if (msg) {
+              console.log(`Deleting message ${msgId}, direction: ${msg.direction}`);
               const result = await api.deleteMessage(msgId, msg.direction);
-              if (result) deleted++;
+              console.log(`Delete result for ${msgId}:`, result);
+              if (result) {
+                deleted++;
+              } else {
+                failedCount++;
+              }
+            } else {
+              console.warn(`Message not found: ${msgId}`);
+              failedCount++;
             }
           }
           success = deleted > 0;
-          message = `Deleted ${deleted} of ${selectedMessages.length} messages`;
+          message = `Deleted ${deleted} of ${selectedMessages.length} messages${failedCount > 0 ? ` (${failedCount} failed)` : ''}`;
           break;
       }
       
