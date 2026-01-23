@@ -66,37 +66,20 @@ s3://auth.wecare.digital/stream/gen-ai/
    - Attach Internal KB
    - Create alias (e.g., `prod`)
 
-### Step 3: Update Code
+### Step 3: Update Environment Variables
 
-After creating resources, update these files with the new IDs:
+After creating resources, update Lambda environment variables:
 
-**Lambda Environment Variables:**
-```
+```bash
+# External Agent (WhatsApp auto-reply)
 EXTERNAL_AGENT_ID=<your-external-agent-id>
 EXTERNAL_AGENT_ALIAS=<your-external-alias>
 EXTERNAL_KB_ID=<your-external-kb-id>
+
+# Internal Agent (FloatingAgent)
 INTERNAL_AGENT_ID=<your-internal-agent-id>
 INTERNAL_AGENT_ALIAS=<your-internal-alias>
 INTERNAL_KB_ID=<your-internal-kb-id>
-```
-
-**Frontend (FloatingAgent.tsx):**
-```typescript
-const INTERNAL_AGENT_ID = '<your-internal-agent-id>';
-const INTERNAL_AGENT_ALIAS = '<your-internal-alias>';
-const INTERNAL_KB_ID = '<your-internal-kb-id>';
-```
-
-**API Client (client.ts):**
-```typescript
-const AI_CONFIG: AIConfig = {
-  enabled: true,
-  autoReplyEnabled: true,
-  knowledgeBaseId: '<your-external-kb-id>',
-  agentId: '<your-external-agent-id>',
-  agentAliasId: '<your-external-alias>',
-  ...
-};
 ```
 
 ## Language Support

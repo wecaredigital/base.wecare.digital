@@ -176,9 +176,9 @@ export const IAM_POLICIES = {
           'bedrock:Retrieve',
         ],
         Resource: [
-          'arn:aws:bedrock:us-east-1:809904170947:knowledge-base/FZBPKGTOYE',
-          'arn:aws:bedrock:us-east-1:809904170947:agent/HQNT0JXN8G',
-          'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-pro-v1:0',
+          'arn:aws:bedrock:us-east-1:809904170947:knowledge-base/*',
+          'arn:aws:bedrock:us-east-1:809904170947:agent/*',
+          'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-lite-v1:0',
         ],
       },
       {
