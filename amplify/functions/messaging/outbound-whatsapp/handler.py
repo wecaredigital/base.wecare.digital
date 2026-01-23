@@ -763,17 +763,39 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
     
     if is_template and template_name:
         # Template message
+        # Get language from template_params if provided, otherwise default to 'en'
+        template_language = 'en'
+        actual_params = list(template_params) if template_params else []
+        
+        if actual_params and len(actual_params) > 0:
+            # Check if first param is a language code (2-5 chars like 'en', 'en_US')
+            first_param = actual_params[0] if actual_params else ''
+            if isinstance(first_param, str) and (len(first_param) == 2 or (2 <= len(first_param) <= 5 and '_' in first_param)):
+                # Looks like a language code, use it
+                template_language = first_param
+                actual_params = actual_params[1:]  # Remove language from params
+        
         payload['type'] = 'template'
         payload['template'] = {
             'name': template_name,
-            'language': {'code': 'en'},
+            'language': {'code': template_language},
             'components': []
         }
-        if template_params:
+        
+        # Add body parameters if provided (for templates with variables like {{1}}, {{2}})
+        if actual_params and len(actual_params) > 0:
             payload['template']['components'].append({
                 'type': 'body',
-                'parameters': [{'type': 'text', 'text': p} for p in template_params]
+                'parameters': [{'type': 'text', 'text': str(p)} for p in actual_params]
             })
+        
+        logger.info(json.dumps({
+            'event': 'template_payload_built',
+            'templateName': template_name,
+            'language': template_language,
+            'paramCount': len(actual_params),
+            'params': actual_params
+        }))
     elif media_id and media_type:
         # Media message - extract message type from media_type
         # media_type is like 'image/jpeg', we need just 'image'

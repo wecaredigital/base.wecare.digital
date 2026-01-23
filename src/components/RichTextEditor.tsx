@@ -58,6 +58,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [aiError, setAiError] = useState<string | null>(null);
   const [sendingTemplate, setSendingTemplate] = useState(false);
   const [templateMessage, setTemplateMessage] = useState<string | null>(null);
+  const [templateVariableDialog, setTemplateVariableDialog] = useState<{
+    template: api.WhatsAppTemplate;
+    variables: string[];
+    variableCount: number;
+  } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -134,35 +139,32 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setShowFormatting(false);
   };
 
+  // Count variables in template body ({{1}}, {{2}}, etc.)
+  const countTemplateVariables = (template: api.WhatsAppTemplate): number => {
+    const bodyComponent = template.components.find(c => c.type === 'BODY');
+    if (!bodyComponent?.text) return 0;
+    const matches = bodyComponent.text.match(/\{\{\d+\}\}/g);
+    return matches ? matches.length : 0;
+  };
+
   const applyTemplate = async (template: api.WhatsAppTemplate) => {
+    // Check if template has variables
+    const varCount = countTemplateVariables(template);
+    
+    if (varCount > 0 && selectedContactId && phoneNumberId) {
+      // Show variable input dialog
+      setTemplateVariableDialog({
+        template,
+        variables: Array(varCount).fill(''),
+        variableCount: varCount,
+      });
+      setShowTemplates(false);
+      return;
+    }
+    
     // If we have contact and phone number, send the template directly
     if (selectedContactId && phoneNumberId) {
-      setSendingTemplate(true);
-      setTemplateMessage(`Sending template: ${template.name}...`);
-      
-      try {
-        const result = await api.sendWhatsAppTemplateMessage({
-          contactId: selectedContactId,
-          templateName: template.name,
-          language: template.language,
-          phoneNumberId: phoneNumberId,
-        });
-        
-        if (result) {
-          setTemplateMessage(`✓ Template "${template.name}" sent!`);
-          setTimeout(() => setTemplateMessage(null), 3000);
-        } else {
-          setTemplateMessage(`× Failed to send template`);
-          setTimeout(() => setTemplateMessage(null), 3000);
-        }
-      } catch (error: any) {
-        console.error('Template send error:', error);
-        setTemplateMessage(`× Error: ${error.message || 'Failed to send'}`);
-        setTimeout(() => setTemplateMessage(null), 3000);
-      } finally {
-        setSendingTemplate(false);
-        setShowTemplates(false);
-      }
+      await sendTemplateMessage(template, []);
     } else {
       // Fallback: put template body text in editor for manual editing
       const bodyComponent = template.components.find(c => c.type === 'BODY');
@@ -174,6 +176,48 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       }
     }
     textareaRef.current?.focus();
+  };
+
+  // Send template with variables
+  const sendTemplateMessage = async (template: api.WhatsAppTemplate, variables: string[]) => {
+    if (!selectedContactId || !phoneNumberId) return;
+    
+    setSendingTemplate(true);
+    setTemplateMessage(`Sending template: ${template.name}...`);
+    setTemplateVariableDialog(null);
+    
+    try {
+      const result = await api.sendWhatsAppTemplateMessage({
+        contactId: selectedContactId,
+        templateName: template.name,
+        language: template.language,
+        phoneNumberId: phoneNumberId,
+        templateParams: variables.filter(v => v.trim() !== ''),
+      });
+      
+      if (result) {
+        setTemplateMessage(`✓ Template "${template.name}" sent!`);
+        setTimeout(() => setTemplateMessage(null), 3000);
+      } else {
+        setTemplateMessage(`× Failed to send template`);
+        setTimeout(() => setTemplateMessage(null), 3000);
+      }
+    } catch (error: any) {
+      console.error('Template send error:', error);
+      setTemplateMessage(`× Error: ${error.message || 'Failed to send'}`);
+      setTimeout(() => setTemplateMessage(null), 3000);
+    } finally {
+      setSendingTemplate(false);
+      setShowTemplates(false);
+    }
+  };
+
+  // Update variable value in dialog
+  const updateVariableValue = (index: number, value: string) => {
+    if (!templateVariableDialog) return;
+    const newVars = [...templateVariableDialog.variables];
+    newVars[index] = value;
+    setTemplateVariableDialog({ ...templateVariableDialog, variables: newVars });
   };
 
   const insertVariable = (variable: typeof VARIABLES[0]) => {
@@ -299,6 +343,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 const badge = getStatusBadge(template.status);
                 const bodyComponent = template.components.find(c => c.type === 'BODY');
                 const preview = bodyComponent?.text?.substring(0, 50) || '';
+                const varCount = countTemplateVariables(template);
                 return (
                   <button 
                     key={template.id} 
@@ -311,7 +356,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                       <span className={styles['template-name']}>{template.name}</span>
                       {preview && <span className={styles['template-preview']}>{preview}...</span>}
                     </div>
-                    <span className={styles['template-category']}>{template.category}</span>
+                    <span className={styles['template-category']}>
+                      {template.category}
+                      {varCount > 0 && <span className={styles['var-count']}> ({varCount} var)</span>}
+                    </span>
                   </button>
                 );
               })
@@ -324,6 +372,48 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </div>
           <div className={styles['dropdown-hint']}>
             {selectedContactId ? 'Click to send template directly' : 'Select a contact first to send templates'}
+          </div>
+        </div>
+      )}
+
+      {/* Template Variable Input Dialog */}
+      {templateVariableDialog && (
+        <div className={styles['variable-dialog']}>
+          <div className={styles['variable-dialog-header']}>
+            <span>▤ {templateVariableDialog.template.name}</span>
+            <button onClick={() => setTemplateVariableDialog(null)}>×</button>
+          </div>
+          <div className={styles['variable-dialog-preview']}>
+            {templateVariableDialog.template.components.find(c => c.type === 'BODY')?.text || ''}
+          </div>
+          <div className={styles['variable-dialog-inputs']}>
+            {templateVariableDialog.variables.map((val, i) => (
+              <div key={i} className={styles['variable-input-row']}>
+                <label>{`{{${i + 1}}}`}</label>
+                <input
+                  type="text"
+                  value={val}
+                  onChange={(e) => updateVariableValue(i, e.target.value)}
+                  placeholder={`Enter value for variable ${i + 1}`}
+                  autoFocus={i === 0}
+                />
+              </div>
+            ))}
+          </div>
+          <div className={styles['variable-dialog-actions']}>
+            <button 
+              className={styles['cancel-btn']}
+              onClick={() => setTemplateVariableDialog(null)}
+            >
+              Cancel
+            </button>
+            <button 
+              className={styles['send-template-btn']}
+              onClick={() => sendTemplateMessage(templateVariableDialog.template, templateVariableDialog.variables)}
+              disabled={sendingTemplate || templateVariableDialog.variables.some(v => !v.trim())}
+            >
+              {sendingTemplate ? 'Sending...' : 'Send Template'}
+            </button>
           </div>
         </div>
       )}

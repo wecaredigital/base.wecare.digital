@@ -999,15 +999,28 @@ export async function sendWhatsAppTemplateMessage(request: {
   language?: string;
   components?: any[];
   phoneNumberId?: string;
+  templateParams?: string[];  // Variable values like OTP code
 }): Promise<{ messageId: string; status: string } | null> {
+  // Build template params array - include language as first param for Lambda
+  const params: string[] = [];
+  
+  // Add language code as first param (Lambda will extract it)
+  if (request.language) {
+    params.push(request.language);
+  }
+  
+  // Add template variable values
+  if (request.templateParams && request.templateParams.length > 0) {
+    params.push(...request.templateParams);
+  }
+  
   return apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
     method: 'POST',
     body: JSON.stringify({
       contactId: request.contactId,
       isTemplate: true,
       templateName: request.templateName,
-      templateLanguage: request.language || 'en_US',
-      templateComponents: request.components || [],
+      templateParams: params,
       phoneNumberId: request.phoneNumberId,
     }),
   });

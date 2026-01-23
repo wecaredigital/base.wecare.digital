@@ -84,15 +84,34 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Process templates from response
             for template in response.get('templates', []):
+                template_id = template.get('metaTemplateId', '')
+                template_name = template.get('templateName', '')
+                template_lang = template.get('templateLanguage', 'en_US')
+                
+                # Fetch full template details including components
+                components = []
+                try:
+                    detail_response = social_messaging.get_whatsapp_message_template(
+                        id=waba_id,
+                        metaTemplateId=template_id
+                    )
+                    # Parse the template JSON string
+                    template_json = detail_response.get('template', '{}')
+                    if isinstance(template_json, str):
+                        template_data = json.loads(template_json)
+                        components = template_data.get('components', [])
+                except Exception as e:
+                    logger.warning(f"Failed to get template details for {template_name}: {str(e)}")
+                
                 templates.append({
-                    'id': template.get('metaTemplateId', ''),
-                    'name': template.get('templateName', ''),
-                    'language': template.get('templateLanguage', 'en_US'),
+                    'id': template_id,
+                    'name': template_name,
+                    'language': template_lang,
                     'category': template.get('templateCategory', 'UTILITY'),
                     'status': template.get('templateStatus', 'APPROVED'),
                     'qualityScore': template.get('templateQualityScore', ''),
                     'wabaId': waba_id,
-                    'components': []  # Components need separate API call
+                    'components': components
                 })
             
             next_token = response.get('nextToken')
