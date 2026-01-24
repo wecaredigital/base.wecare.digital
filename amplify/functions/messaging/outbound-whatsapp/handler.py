@@ -1053,12 +1053,12 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             'discount': {
                 'value': discount_paise,
                 'offset': 100,
-                'description': 'Discount'
+                'description': 'Promo'
             },
             'shipping': {
                 'value': delivery_paise,
                 'offset': 100,
-                'description': 'Delivery'
+                'description': 'Express'
             },
             'tax': {
                 'value': gst_paise,
