@@ -121,8 +121,9 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
   };
 
   const generateReferenceId = () => {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    setReferenceId(`WC_${timestamp}`);
+    // Generate 8-character random UUID (not guessable)
+    const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
+    setReferenceId(`WDSR_${uuid}`);
   };
 
   const sendPaymentRequest = async () => {
@@ -261,7 +262,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
                   type="text"
                   value={referenceId}
                   onChange={(e) => setReferenceId(e.target.value)}
-                  placeholder="WC_ABC123"
+                  placeholder="WDSR_XXXXXXXX"
                 />
                 <button type="button" onClick={generateReferenceId} className="gen-btn">
                   Generate
