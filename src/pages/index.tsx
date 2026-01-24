@@ -548,17 +548,18 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                     </thead>
                     <tbody>
                       {billingData.services.map((svc, idx) => {
-                        const resource = AWS_RESOURCES[svc.service];
+                        const resource = AWS_RESOURCES[svc.service] || { 
+                          arn: `arn:aws:*:us-east-1:809904170947:${svc.service.toLowerCase().replace(/\s+/g, '-')}/*`, 
+                          accountId: '809904170947' 
+                        };
                         const isExpanded = expandedServices.has(svc.service);
                         return (
                           <React.Fragment key={idx}>
                             <tr className={`billing-row ${svc.status}`}>
                               <td className="expand-cell">
-                                {resource && (
-                                  <button className="expand-btn" onClick={() => toggleServiceExpand(svc.service)}>
-                                    {isExpanded ? '−' : '+'}
-                                  </button>
-                                )}
+                                <button className="expand-btn" onClick={() => toggleServiceExpand(svc.service)}>
+                                  {isExpanded ? '−' : '+'}
+                                </button>
                               </td>
                               <td className="service-name">{svc.service}</td>
                               <td>{svc.usage.toLocaleString()} <small>{svc.unit}</small></td>
@@ -570,7 +571,7 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                                 </span>
                               </td>
                             </tr>
-                            {isExpanded && resource && (
+                            {isExpanded && (
                               <tr className="resource-row">
                                 <td></td>
                                 <td colSpan={5}>
