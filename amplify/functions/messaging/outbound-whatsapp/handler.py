@@ -947,7 +947,7 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                 'image': {'link': payment_header_image}
             },
             'body': {
-                'text': content or 'Your payment is overdue—please tap below to complete it 💳🤝'
+                'text': content or 'Your payment is overdue — please tap below to complete it 💳🤝'
             },
             'footer': {
                 'text': 'WECARE.DIGITAL'

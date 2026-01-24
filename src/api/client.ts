@@ -1175,7 +1175,7 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
       body: JSON.stringify({
         contactId: request.contactId,
         phoneNumberId: request.phoneNumberId,
-        content: request.bodyText || 'Your order is ready for payment',
+        // Don't send content - let Lambda use default with emojis
         isInteractivePayment: true,
         orderDetails: orderDetails,
         headerImageUrl: request.headerImageUrl,
