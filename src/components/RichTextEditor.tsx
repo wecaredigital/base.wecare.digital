@@ -295,13 +295,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   };
 
-  // Send payment message
+  // Send payment message - ALWAYS use interactive mode from inbox
+  // Interactive payments MUST go from WECARE.DIGITAL number
+  const PAYMENT_PHONE_NUMBER_ID = 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54';
+  
   const sendPaymentMessage = async () => {
-    if (!selectedContactId || !phoneNumberId) return;
+    if (!selectedContactId) return;
     if (!paymentForm.itemName || !paymentForm.amount || !paymentForm.referenceId) return;
 
     setSendingPayment(true);
-    setTemplateMessage('Sending payment request...');
+    setTemplateMessage('Sending interactive payment request...');
 
     try {
       const amountInPaise = Math.round(parseFloat(paymentForm.amount) * 100);
@@ -310,7 +313,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
       const result = await api.sendWhatsAppPaymentMessage({
         contactId: selectedContactId,
-        phoneNumberId: phoneNumberId,
+        // HARDCODED: Interactive payments MUST go from WECARE.DIGITAL (has Razorpay)
+        phoneNumberId: PAYMENT_PHONE_NUMBER_ID,
         referenceId: paymentForm.referenceId,
         items: [{
           name: paymentForm.itemName,
@@ -319,6 +323,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }],
         discount: discountInPaise,
         tax: taxInPaise,
+        useInteractive: true, // ALWAYS use interactive mode from inbox
       });
 
       if (result) {
@@ -487,7 +492,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <button onClick={() => setShowPaymentDialog(false)}>×</button>
           </div>
           <div className={styles['variable-dialog-preview']}>
-            Template: 02_wd_pay | Config: WECARE-DIGITAL | UPI Payment
+            <strong>Interactive Payment</strong> via Razorpay | From: +91 93309 94400 (WECARE.DIGITAL)
           </div>
           <div className={styles['variable-dialog-inputs']}>
             <div className={styles['variable-input-row']}>
