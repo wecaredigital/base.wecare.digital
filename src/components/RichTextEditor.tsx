@@ -552,7 +552,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               />
             </div>
             <div className={styles['variable-input-row']}>
-              <label>Quantity</label>
+              <label>Quantity *</label>
               <input
                 type="number"
                 value={paymentForm.quantity}
@@ -562,7 +562,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               />
             </div>
             <div className={styles['variable-input-row']}>
-              <label>Promo (₹)</label>
+              <label>Discount (₹) *</label>
               <input
                 type="number"
                 value={paymentForm.promo}
@@ -573,7 +573,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               />
             </div>
             <div className={styles['variable-input-row']}>
-              <label>Express (₹)</label>
+              <label>Shipping (₹) *</label>
               <input
                 type="number"
                 value={paymentForm.express}
@@ -584,7 +584,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               />
             </div>
             <div className={styles['variable-input-row']}>
-              <label>GST Rate</label>
+              <label>Tax Rate *</label>
               <select
                 value={paymentForm.gstRate}
                 onChange={(e) => setPaymentForm({...paymentForm, gstRate: e.target.value})}
@@ -598,7 +598,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               </select>
             </div>
             <div className={styles['variable-input-row']}>
-              <label>GSTIN</label>
+              <label>GSTIN *</label>
               <input
                 type="text"
                 value={paymentForm.gstin}
