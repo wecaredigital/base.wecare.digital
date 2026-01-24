@@ -1174,9 +1174,9 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
         quantity: item.quantity,
       })),
       subtotal: { value: subtotal, offset: 100 },
-      discount: { value: discount, offset: 100, description: 'Discount' },
-      shipping: { value: delivery, offset: 100, description: 'Shipping' },
-      tax: { value: tax, offset: 100, description: request.taxDescription || 'Tax' },
+      discount: { value: discount, offset: 100, description: 'Promo' },
+      shipping: { value: delivery, offset: 100, description: 'Express' },
+      tax: { value: tax, offset: 100, description: `GSTIN: ${request.gstin || '19AADFW7431N1ZK'}` },
     },
   };
 

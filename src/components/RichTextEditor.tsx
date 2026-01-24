@@ -562,7 +562,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               />
             </div>
             <div className={styles['variable-input-row']}>
-              <label>Discount (₹) *</label>
+              <label>Promo (₹) *</label>
               <input
                 type="number"
                 value={paymentForm.promo}
@@ -573,7 +573,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               />
             </div>
             <div className={styles['variable-input-row']}>
-              <label>Shipping (₹) *</label>
+              <label>Express (₹) *</label>
               <input
                 type="number"
                 value={paymentForm.express}

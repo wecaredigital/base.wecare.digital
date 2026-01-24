@@ -12,8 +12,8 @@
  * 
  * BREAKDOWN:
  * - Subtotal: ₹(auto from items)
- * - Discount: ₹(user input)
- * - Shipping: ₹(user input)
+ * - Promo: ₹(user input)
+ * - Express: ₹(user input)
  * - Tax: ₹(GST auto-calculated based on rate selected) | "GSTIN: 19AADFW7431N1ZK"
  * 
  * TOTAL: ₹(auto-calculated by WhatsApp)
@@ -311,7 +311,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
               <h3>💰 Breakdown (All Mandatory)</h3>
               <div className="breakdown-grid">
                 <div className="breakdown-field">
-                  <label>Discount (₹) *</label>
+                  <label>Promo (₹) *</label>
                   <input
                     type="number"
                     value={discount || ''}
@@ -322,7 +322,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
                   />
                 </div>
                 <div className="breakdown-field">
-                  <label>Shipping (₹) *</label>
+                  <label>Express (₹) *</label>
                   <input
                     type="number"
                     value={shipping || ''}
@@ -400,11 +400,11 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
                   <span>₹{calculateSubtotal().toFixed(2)} <small>(auto from items)</small></span>
                 </div>
                 <div className="breakdown-row">
-                  <span>Discount:</span>
+                  <span>Promo:</span>
                   <span>₹{discount.toFixed(2)}</span>
                 </div>
                 <div className="breakdown-row">
-                  <span>Shipping:</span>
+                  <span>Express:</span>
                   <span>₹{shipping.toFixed(2)}</span>
                 </div>
                 <div className="breakdown-row">
