@@ -969,8 +969,7 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                                         'source': 'wecare-digital',
                                         'reference_id': order_details.get('reference_id', '')
                                     }
-                                },
-                                'allowed_payment_methods': ['card', 'netbanking']
+                                }
                             }
                         }
                     ],
