@@ -1064,17 +1064,17 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             'discount': {
                 'value': discount_paise,
                 'offset': 100,
-                'description': 'Promo'
+                'description': 'Discount'
             },
             'shipping': {
                 'value': delivery_paise,
                 'offset': 100,
-                'description': 'Express'
+                'description': 'Shipping'
             },
             'tax': {
                 'value': gst_paise,
                 'offset': 100,
-                'description': f'GSTIN: {gstin}'
+                'description': f'Tax | GSTIN: {gstin}'
             }
         }
         
