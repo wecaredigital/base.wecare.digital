@@ -39,6 +39,8 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
   const [discount, setDiscount] = useState(0);
   const [tax, setTax] = useState(0);
   const [shipping, setShipping] = useState(0);
+  const [useInteractive, setUseInteractive] = useState(true); // Default to interactive mode
+  const [bodyText, setBodyText] = useState(''); // For template body variable
 
   useEffect(() => {
     loadContacts();
@@ -119,6 +121,8 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         discount: Math.round(discount * 100),
         tax: Math.round(tax * 100),
         shipping: Math.round(shipping * 100),
+        useInteractive: useInteractive,
+        bodyText: bodyText || `Invoice ${referenceId}`,
       });
 
       if (result) {
@@ -175,6 +179,43 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
               </select>
               {contacts.length === 0 && !loading && (
                 <p className="hint">No Indian contacts found. Add contacts with +91 numbers.</p>
+              )}
+            </div>
+
+            <div className="form-section">
+              <h3>⚙️ Message Type</h3>
+              <div className="mode-toggle">
+                <label className={`mode-option ${useInteractive ? 'active' : ''}`}>
+                  <input
+                    type="radio"
+                    checked={useInteractive}
+                    onChange={() => setUseInteractive(true)}
+                  />
+                  <span className="mode-icon">💬</span>
+                  <span className="mode-label">Interactive</span>
+                  <span className="mode-desc">Within 24h window (Razorpay PG)</span>
+                </label>
+                <label className={`mode-option ${!useInteractive ? 'active' : ''}`}>
+                  <input
+                    type="radio"
+                    checked={!useInteractive}
+                    onChange={() => setUseInteractive(false)}
+                  />
+                  <span className="mode-icon">📋</span>
+                  <span className="mode-label">Template</span>
+                  <span className="mode-desc">Outside 24h window</span>
+                </label>
+              </div>
+              {!useInteractive && (
+                <div className="body-text-input">
+                  <label>Template Body Text (variable 1)</label>
+                  <input
+                    type="text"
+                    value={bodyText}
+                    onChange={(e) => setBodyText(e.target.value)}
+                    placeholder={`Invoice ${referenceId || 'REF-001'}`}
+                  />
+                </div>
               )}
             </div>
 
@@ -338,6 +379,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
               </div>
 
               <div className="preview-config">
+                <small>Mode: {useInteractive ? '💬 Interactive (Razorpay PG)' : '📋 Template'}</small>
                 <small>Payment Config: WECARE-DIGITAL</small>
                 <small>Payment Type: UPI</small>
               </div>
@@ -410,6 +452,17 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         
         .preview-config { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
         .preview-config small { display: block; color: #999; font-size: 11px; }
+        
+        .mode-toggle { display: flex; gap: 12px; margin-bottom: 12px; }
+        .mode-option { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .mode-option:hover { border-color: #25D366; }
+        .mode-option.active { border-color: #25D366; background: #f0fdf4; }
+        .mode-option input { display: none; }
+        .mode-icon { font-size: 24px; margin-bottom: 4px; }
+        .mode-label { font-weight: 500; font-size: 14px; }
+        .mode-desc { font-size: 11px; color: #666; text-align: center; margin-top: 4px; }
+        .body-text-input { margin-top: 12px; }
+        .body-text-input label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
         
         .send-btn { width: 100%; padding: 14px; background: #25D366; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; }
         .send-btn:hover:not(:disabled) { background: #1da851; }

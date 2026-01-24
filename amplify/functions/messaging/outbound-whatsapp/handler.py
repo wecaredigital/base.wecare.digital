@@ -83,6 +83,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         order_details = body.get('orderDetails')
         header_image_url = body.get('headerImageUrl')
         
+        # Interactive payment support (for within 24h window - uses payment_settings)
+        is_interactive_payment = body.get('isInteractivePayment', False)
+        
         # Reaction support
         is_reaction = body.get('isReaction', False)
         reaction_message_id = body.get('reactionMessageId')  # WhatsApp message ID to react to
@@ -133,7 +136,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return _handle_live_send(
             message_id, contact_id, recipient_phone, phone_number_id,
             content, media_file, media_type, media_filename, is_template, template_name,
-            template_params, within_window, request_id, is_payment_template, order_details, header_image_url
+            template_params, within_window, request_id, is_payment_template, order_details, 
+            header_image_url, is_interactive_payment
         )
         
     except json.JSONDecodeError:
@@ -321,7 +325,7 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
                       media_type: Optional[str], media_filename: Optional[str], is_template: bool, template_name: Optional[str],
                       template_params: list, within_window: bool, request_id: str,
                       is_payment_template: bool = False, order_details: Optional[Dict] = None,
-                      header_image_url: Optional[str] = None) -> Dict[str, Any]:
+                      header_image_url: Optional[str] = None, is_interactive_payment: bool = False) -> Dict[str, Any]:
     """
     Handle LIVE mode - call AWS EUM Social API.
     Requirements: 5.2, 5.5, 5.6, 5.7, 5.8, 5.10, 5.11
@@ -346,7 +350,7 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         message_payload = _build_message_payload(
             recipient_phone, content, media_type, whatsapp_media_id,
             is_template, template_name, template_params, stored_filename,
-            is_payment_template, order_details, header_image_url
+            is_payment_template, order_details, header_image_url, is_interactive_payment
         )
         
         logger.info(json.dumps({
@@ -753,7 +757,8 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                            media_id: Optional[str], is_template: bool, template_name: Optional[str],
                            template_params: list, filename: Optional[str] = None,
                            is_payment_template: bool = False, order_details: Optional[Dict] = None,
-                           header_image_url: Optional[str] = None) -> Dict[str, Any]:
+                           header_image_url: Optional[str] = None,
+                           is_interactive_payment: bool = False) -> Dict[str, Any]:
     """Build WhatsApp Cloud API message payload."""
     # Normalize phone number - WhatsApp API expects digits only without + prefix for normalization
     formatted_phone = _normalize_phone_number(recipient_phone)
@@ -770,6 +775,75 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
         'recipient_type': 'individual',
         'to': whatsapp_phone
     }
+    
+    # Handle INTERACTIVE order_details message (for within 24h window)
+    # This uses payment_settings array with payment_gateway config
+    if is_interactive_payment and order_details:
+        payload['type'] = 'interactive'
+        
+        # Build interactive order_details payload per Meta/Razorpay docs
+        interactive_payload = {
+            'type': 'order_details',
+            'body': {
+                'text': content or 'Your order is ready for payment'
+            },
+            'footer': {
+                'text': 'WECARE.DIGITAL'
+            },
+            'action': {
+                'name': 'review_and_pay',
+                'parameters': {
+                    'reference_id': order_details.get('reference_id', str(uuid.uuid4())[:8]),
+                    'type': order_details.get('type', 'digital-goods'),
+                    'payment_settings': [
+                        {
+                            'type': 'payment_gateway',
+                            'payment_gateway': {
+                                'type': 'razorpay',
+                                'configuration_name': order_details.get('payment_configuration', 'WECARE-DIGITAL'),
+                                'razorpay': {
+                                    'receipt': order_details.get('reference_id', 'receipt'),
+                                    'notes': {
+                                        'source': 'wecare-digital',
+                                        'reference_id': order_details.get('reference_id', '')
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    'currency': order_details.get('currency', 'INR'),
+                    'total_amount': order_details.get('total_amount', {'value': 100, 'offset': 100}),
+                    'order': order_details.get('order', {
+                        'status': 'pending',
+                        'items': [],
+                        'subtotal': {'value': 100, 'offset': 100},
+                        'tax': {'value': 0, 'offset': 100},
+                        'shipping': {'value': 0, 'offset': 100},
+                        'discount': {'value': 0, 'offset': 100}
+                    })
+                }
+            }
+        }
+        
+        # Add header image if provided
+        if header_image_url:
+            interactive_payload['header'] = {
+                'type': 'image',
+                'image': {'link': header_image_url}
+            }
+        
+        payload['interactive'] = interactive_payload
+        
+        logger.info(json.dumps({
+            'event': 'interactive_payment_payload_built',
+            'referenceId': order_details.get('reference_id'),
+            'totalAmount': order_details.get('total_amount', {}).get('value'),
+            'currency': order_details.get('currency'),
+            'paymentConfig': order_details.get('payment_configuration', 'WECARE-DIGITAL'),
+            'hasHeaderImage': bool(header_image_url)
+        }))
+        
+        return payload
     
     if is_template and template_name:
         # Template message

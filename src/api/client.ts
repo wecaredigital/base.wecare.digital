@@ -1118,7 +1118,7 @@ export interface PaymentOrderItem {
 export interface SendPaymentMessageRequest {
   contactId: string;
   phoneNumberId: string;
-  templateName?: string;  // Default: 02_wd_pay
+  templateName?: string;  // Default: 02_wd_order_payment
   referenceId: string;    // Unique order/invoice ID
   items: PaymentOrderItem[];
   discount?: number;      // In paise
@@ -1126,11 +1126,17 @@ export interface SendPaymentMessageRequest {
   tax?: number;           // In paise
   currency?: string;      // Default: INR
   headerImageUrl?: string;
+  bodyText?: string;      // For template body variable {{1}}
+  useInteractive?: boolean; // Use interactive message instead of template (for within 24h window)
 }
 
 /**
  * Send WhatsApp Payment Message using order_details template
  * Uses the 02_wd_order_payment template with WECARE-DIGITAL payment configuration
+ * 
+ * Two modes:
+ * 1. Template mode (default): Uses approved template - works outside 24h window
+ * 2. Interactive mode: Uses interactive order_details - works within 24h window
  */
 export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequest): Promise<{ messageId: string; status: string } | null> {
   // Calculate totals
@@ -1164,6 +1170,22 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
     type: 'digital-goods',
   };
 
+  // Use interactive mode if specified (for within 24h customer service window)
+  if (request.useInteractive) {
+    return apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
+      method: 'POST',
+      body: JSON.stringify({
+        contactId: request.contactId,
+        phoneNumberId: request.phoneNumberId,
+        content: request.bodyText || 'Your order is ready for payment',
+        isInteractivePayment: true,
+        orderDetails: orderDetails,
+        headerImageUrl: request.headerImageUrl,
+      }),
+    });
+  }
+
+  // Template mode (default) - works outside 24h window
   return apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
     method: 'POST',
     body: JSON.stringify({
@@ -1171,6 +1193,7 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
       phoneNumberId: request.phoneNumberId,
       isTemplate: true,
       templateName: request.templateName || '02_wd_order_payment',
+      templateParams: request.bodyText ? [request.bodyText] : [],
       isPaymentTemplate: true,
       orderDetails: orderDetails,
       headerImageUrl: request.headerImageUrl,
