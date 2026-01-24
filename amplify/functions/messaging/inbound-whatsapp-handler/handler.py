@@ -227,6 +227,17 @@ def _process_message(
     msg_type = message.get('type', 'text')
     timestamp = int(message.get('timestamp', time.time()))
     
+    # Log full message for unsupported types to help debug
+    if msg_type == 'unsupported':
+        logger.warning(json.dumps({
+            'event': 'unsupported_message_raw',
+            'senderPhone': sender_phone,
+            'whatsappMessageId': whatsapp_message_id,
+            'messageType': msg_type,
+            'fullMessage': message,
+            'requestId': request_id
+        }))
+    
     # Use sender profile name from contacts array (passed in)
     # Fall back to checking message.profile if not provided
     sender_name = sender_profile_name
@@ -367,6 +378,11 @@ def _extract_content(message: Dict, msg_type: str) -> str:
             return interactive.get('button_reply', {}).get('title', '[Button Reply]')
         elif interactive_type == 'list_reply':
             return interactive.get('list_reply', {}).get('title', '[List Reply]')
+        elif interactive_type == 'nfm_reply':
+            # Flow reply (WhatsApp Flows)
+            nfm_reply = interactive.get('nfm_reply', {})
+            response_json = nfm_reply.get('response_json', '')
+            return f'[Flow Response: {response_json[:50]}...]' if len(response_json) > 50 else f'[Flow Response: {response_json}]'
         return f'[Interactive: {interactive_type}]'
     elif msg_type == 'button':
         # Quick reply button
@@ -377,10 +393,87 @@ def _extract_content(message: Dict, msg_type: str) -> str:
         # System messages (group changes, etc.)
         return '[System Message]'
     elif msg_type == 'unsupported':
-        # WhatsApp marks some messages as unsupported
-        return '[Unsupported Message Type]'
+        # WhatsApp marks some messages as unsupported - try to extract info
+        return _extract_unsupported_content(message)
+    elif msg_type == 'request_welcome':
+        # User clicked "Message" button on business profile
+        return '[User requested to start conversation]'
+    elif msg_type == 'ephemeral':
+        # Disappearing message
+        return '[Disappearing Message]'
     else:
         return f'[{msg_type}]'
+
+
+def _extract_unsupported_content(message: Dict) -> str:
+    """
+    Extract any available information from unsupported message types.
+    WhatsApp marks certain features as 'unsupported' including:
+    - Live location sharing
+    - Polls
+    - Channels content
+    - View-once messages (after viewed)
+    - Certain sticker types
+    - Product messages from catalogs
+    
+    The 'errors' array may contain hints about what type it was.
+    """
+    # Log the full message for debugging
+    logger.info(json.dumps({
+        'event': 'unsupported_message_received',
+        'messageKeys': list(message.keys()),
+        'fullMessage': message
+    }))
+    
+    # Check for errors array which may contain type hints
+    errors = message.get('errors', [])
+    if errors:
+        for error in errors:
+            error_code = error.get('code', 0)
+            error_title = error.get('title', '')
+            error_details = error.get('details', '')
+            
+            logger.info(json.dumps({
+                'event': 'unsupported_message_error',
+                'errorCode': error_code,
+                'errorTitle': error_title,
+                'errorDetails': error_details
+            }))
+            
+            # Map known error codes to message types
+            # Error code 131051 = "Unsupported message type"
+            if error_details:
+                return f'[Unsupported: {error_details}]'
+            if error_title:
+                return f'[Unsupported: {error_title}]'
+    
+    # Check for referral (from ads, product catalogs)
+    if 'referral' in message:
+        referral = message.get('referral', {})
+        source_type = referral.get('source_type', '')
+        source_id = referral.get('source_id', '')
+        if source_type:
+            return f'[Referral from {source_type}]'
+    
+    # Check for context (reply to another message)
+    if 'context' in message:
+        context = message.get('context', {})
+        if context.get('referred_product'):
+            return '[Product Inquiry]'
+    
+    # Check if there's any text content hidden in the message
+    for key in ['text', 'caption', 'body']:
+        if key in message:
+            text_content = message.get(key, {})
+            if isinstance(text_content, dict):
+                body = text_content.get('body', '')
+                if body:
+                    return body
+            elif isinstance(text_content, str) and text_content:
+                return text_content
+    
+    # Default - show that we received something but can't display it
+    return '[Message type not supported by WhatsApp Business API]'
 
 
 def _message_exists(whatsapp_message_id: str) -> bool:
