@@ -1146,28 +1146,26 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
   const tax = request.tax || 0;
   const total = subtotal - discount + shipping + tax;
 
-  // Build order_details payload
+  // Build order_details payload - field order matters for Meta API
   const orderDetails = {
-    currency: request.currency || 'INR',
-    order: {
-      discount: { offset: 100, value: discount },
-      items: request.items.map((item, idx) => ({
-        amount: { offset: 100, value: item.amount },
-        name: item.name,
-        product_id: item.productId || `ITEM_${idx + 1}`,
-        quantity: item.quantity,
-        retailer_id: 'WECARE_DIGITAL',
-      })),
-      shipping: { offset: 100, value: shipping },
-      status: 'pending',
-      subtotal: { offset: 100, value: subtotal },
-      tax: { offset: 100, value: tax },
-    },
-    payment_configuration: 'WECARE-DIGITAL',
-    payment_type: 'upi',
     reference_id: request.referenceId,
-    total_amount: { offset: 100, value: total },
     type: 'digital-goods',
+    payment_configuration: 'WECARE-DIGITAL',
+    currency: request.currency || 'INR',
+    total_amount: { value: total, offset: 100 },
+    order: {
+      status: 'pending',
+      items: request.items.map((item, idx) => ({
+        retailer_id: 'WECARE_DIGITAL',
+        name: item.name,
+        amount: { value: item.amount, offset: 100 },
+        quantity: item.quantity,
+      })),
+      subtotal: { value: subtotal, offset: 100 },
+      tax: { value: tax, offset: 100 },
+      shipping: { value: shipping, offset: 100 },
+      discount: { value: discount, offset: 100 },
+    },
   };
 
   // Use interactive mode if specified (for within 24h customer service window)
