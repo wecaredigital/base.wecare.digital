@@ -1173,3 +1173,88 @@ input, textarea, select {
     bottom: calc(24px + env(safe-area-inset-bottom));
   }
 }
+
+
+/* ============================================
+   GLOBAL MODAL/POPUP STYLES
+   Ensures all modals stay within browser layout
+   ============================================ */
+
+/* Modal backdrop - covers entire viewport */
+.modal-backdrop,
+.popup-backdrop,
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Modal container - centered in viewport */
+.modal,
+.popup,
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10001;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure modals don't go outside viewport on mobile */
+@media (max-width: 768px) {
+  .modal,
+  .popup,
+  .dialog {
+    width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 100px);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Fix for any absolute positioned elements that should be in viewport */
+[data-modal="true"],
+[role="dialog"],
+[role="alertdialog"] {
+  position: fixed !important;
+  z-index: 10001 !important;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Toast notifications - top right, within viewport */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 10002;
+  max-width: calc(100vw - 48px);
+}
+
+@media (max-width: 480px) {
+  .toast-container {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    max-width: none;
+  }
+}
