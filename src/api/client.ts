@@ -1118,64 +1118,75 @@ export interface PaymentOrderItem {
 export interface SendPaymentMessageRequest {
   contactId: string;
   phoneNumberId: string;
-  templateName?: string;  // Default: 02_wd_order_payment
-  referenceId: string;    // Unique order/invoice ID
+  templateName?: string;
+  referenceId: string;
   items: PaymentOrderItem[];
   discount?: number;      // In paise
-  shipping?: number;      // In paise
-  tax?: number;           // In paise
-  currency?: string;      // Default: INR
+  delivery?: number;      // In paise (shipping/delivery)
+  tax?: number;           // In paise (from frontend - NOT auto-calculated)
+  taxDescription?: string; // e.g., "GST 18%" or "Tax"
+  gstRate?: number;       // GST rate: 0, 3, 5, 12, 18, 28
+  gstin?: string;         // GSTIN number
+  currency?: string;
   headerImageUrl?: string;
-  bodyText?: string;      // For template body variable {{1}}
-  useInteractive?: boolean; // Use interactive message instead of template (for within 24h window)
+  bodyText?: string;
+  useInteractive?: boolean;
 }
 
 /**
- * Send WhatsApp Payment Message using order_details template
- * Uses the 02_wd_order_payment template with WECARE-DIGITAL payment configuration
+ * Send WhatsApp Payment Message using order_details
  * 
- * Two modes:
- * 1. Template mode (default): Uses approved template - works outside 24h window
- * 2. Interactive mode: Uses interactive order_details - works within 24h window
+ * Fields shown in WhatsApp message:
+ * - Reference ID
+ * - Items (name, amount, quantity)
+ * - Discount (₹)
+ * - Delivery (₹)
+ * - Tax (₹) - passed from frontend
+ * 
+ * NOTE: Convenience Fee is handled by Razorpay Fee Bearer model (not in WhatsApp message)
  */
 export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequest): Promise<{ messageId: string; status: string } | null> {
-  // Calculate totals
   const subtotal = request.items.reduce((sum, item) => sum + (item.amount * item.quantity), 0);
   const discount = request.discount || 0;
-  const shipping = request.shipping || 0;
+  const delivery = request.delivery || 0;
   const tax = request.tax || 0;
-  const total = subtotal - discount + shipping + tax;
 
-  // Build order_details payload - field order matters for Meta API
-  const orderDetails = {
+  // Get first item details for backend
+  const firstItem = request.items[0] || { name: 'Service Fee', amount: 100, quantity: 1 };
+
+  // Build order_details payload
+  const orderDetails: any = {
     reference_id: request.referenceId,
     type: 'digital-goods',
     payment_configuration: 'WECARE-DIGITAL',
     currency: request.currency || 'INR',
-    total_amount: { value: total, offset: 100 },
+    // New fields for backend calculation
+    itemName: firstItem.name || 'Service Fee',
+    quantity: firstItem.quantity || 1,
+    gstRate: request.gstRate || 18,
+    gstin: request.gstin || '19AADFW7431N1ZK',
     order: {
       status: 'pending',
       items: request.items.map((item, idx) => ({
-        retailer_id: 'WECARE_DIGITAL',
+        retailer_id: item.productId || `ITEM_${idx + 1}`,
         name: item.name,
         amount: { value: item.amount, offset: 100 },
         quantity: item.quantity,
       })),
       subtotal: { value: subtotal, offset: 100 },
-      tax: { value: tax, offset: 100 },
-      shipping: { value: shipping, offset: 100 },
-      discount: { value: discount, offset: 100 },
+      discount: { value: discount, offset: 100, description: 'Discount' },
+      shipping: { value: delivery, offset: 100, description: 'Delivery' },
+      tax: { value: tax, offset: 100, description: request.taxDescription || 'Tax' },
     },
   };
 
-  // Use interactive mode if specified (for within 24h customer service window)
+  // Use interactive mode if specified
   if (request.useInteractive) {
     return apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
       method: 'POST',
       body: JSON.stringify({
         contactId: request.contactId,
         phoneNumberId: request.phoneNumberId,
-        // Don't send content - let Lambda use default with emojis
         isInteractivePayment: true,
         orderDetails: orderDetails,
         headerImageUrl: request.headerImageUrl,
@@ -1183,7 +1194,7 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
     });
   }
 
-  // Template mode (default) - works outside 24h window
+  // Template mode
   return apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
     method: 'POST',
     body: JSON.stringify({

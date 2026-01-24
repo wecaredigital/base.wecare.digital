@@ -346,29 +346,26 @@ def _handle_order_status_send(message_id: str, contact_id: str, recipient_phone:
     """
     Send order_status interactive message to confirm payment status.
     
-    Order status message format per Meta docs:
-    {
-        "type": "interactive",
-        "interactive": {
-            "type": "order_status",
-            "body": {"text": "Your payment was successful!"},
-            "action": {
-                "name": "review_order",
-                "parameters": {
-                    "reference_id": "ORDER_12345",
-                    "order": {
-                        "status": "completed",
-                        "description": "Payment received. Thank you!"
-                    }
-                }
-            }
-        }
-    }
+    Messages:
+    - Payment Success (captured): Payment of ₹{amount} received successfully! Thank you ✅
+    - Payment Failed: Payment failed. Please try again ❌
     """
     try:
         reference_id = order_status_details.get('reference_id', '')
         order_status = order_status_details.get('order_status', 'completed')
-        description = order_status_details.get('description', 'Order status updated')
+        amount = order_status_details.get('amount', 0)  # Amount in rupees
+        
+        # Generate appropriate message based on status
+        if order_status == 'completed' or order_status == 'captured':
+            body_text = f"Payment of ₹{amount:.2f} received successfully! Thank you ✅"
+            description = "Payment received. Thank you!"
+            order_status = 'completed'
+        elif order_status == 'failed':
+            body_text = "Payment failed. Please try again ❌"
+            description = "Payment failed"
+        else:
+            body_text = order_status_details.get('description', 'Order status updated')
+            description = body_text
         
         # Normalize phone number
         formatted_phone = _normalize_phone_number(recipient_phone)
@@ -383,7 +380,7 @@ def _handle_order_status_send(message_id: str, contact_id: str, recipient_phone:
             'interactive': {
                 'type': 'order_status',
                 'body': {
-                    'text': description
+                    'text': body_text
                 },
                 'action': {
                     'name': 'review_order',
@@ -908,24 +905,26 @@ def _normalize_phone_number(phone: str) -> str:
 def _sanitize_reference_id(reference_id: str) -> str:
     """
     Sanitize reference_id for UPI compatibility.
-    UPI requires: only A-Z, a-z, 0-9, _, - (max 30 chars)
+    UPI requires: only A-Z, a-z, 0-9, _, - (max 35 chars)
     Must be unique for each transaction.
     
     Examples:
     - "New Order" -> "WC_20260124_NEWORDER"
     - "test@123!" -> "WC_20260124_TEST123"
     - "" -> "WC_20260124_XXXXXXXX" (auto-generated)
+    - "WC_20260124_TEST" -> "WC_20260124_TEST" (already has prefix)
     """
     import re
     from datetime import datetime
     
     # Get current date for uniqueness
     date_str = datetime.now().strftime('%Y%m%d')
+    prefix = f"WC_{date_str}_"
     
     if not reference_id or not reference_id.strip():
         # Generate unique reference if empty
         unique_id = str(uuid.uuid4())[:8].upper()
-        return f"WC_{date_str}_{unique_id}"
+        return f"{prefix}{unique_id}"
     
     # Remove all non-alphanumeric characters except _ and -
     sanitized = re.sub(r'[^A-Za-z0-9_-]', '', reference_id.replace(' ', '_'))
@@ -936,14 +935,18 @@ def _sanitize_reference_id(reference_id: str) -> str:
     # If empty after sanitization, generate new
     if not sanitized:
         unique_id = str(uuid.uuid4())[:8].upper()
-        return f"WC_{date_str}_{unique_id}"
+        return f"{prefix}{unique_id}"
     
-    # Prepend WC_ prefix and date for uniqueness
-    result = f"WC_{date_str}_{sanitized}"
+    # Check if already has WC_ prefix (don't double-prefix)
+    if sanitized.startswith('WC_'):
+        result = sanitized
+    else:
+        # Prepend WC_ prefix and date for uniqueness
+        result = f"{prefix}{sanitized}"
     
-    # Truncate to max 30 chars
-    if len(result) > 30:
-        result = result[:30]
+    # Truncate to max 35 chars (UPI limit)
+    if len(result) > 35:
+        result = result[:35]
     
     return result
 
@@ -955,7 +958,7 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                            header_image_url: Optional[str] = None,
                            is_interactive_payment: bool = False) -> Dict[str, Any]:
     """Build WhatsApp Cloud API message payload."""
-    # Normalize phone number - WhatsApp API expects digits only without + prefix for normalization
+    # Normalize phone number - WhatsApp API expects digits only without + prefix
     formatted_phone = _normalize_phone_number(recipient_phone)
     
     # Validate phone number format
@@ -975,14 +978,96 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
     DEFAULT_PAYMENT_HEADER_IMAGE = 'https://auth.wecare.digital/stream/media/m/wecare-digital.png'
     
     # Handle INTERACTIVE order_details message (for within 24h window)
-    # This uses payment_settings array with payment_gateway config
+    # Structure:
+    # BODY: Your payment is overdue—please tap below to complete it 💳🤝
+    # CART ITEMS: 1. Item Name, 2. Convenience Fee
+    # BREAKDOWN: Subtotal, Discount, Shipping, Tax (with GSTIN)
+    # TOTAL: auto-calculated
     if is_interactive_payment and order_details:
+        from decimal import Decimal, ROUND_HALF_UP
+        
+        def round_paise(x: Decimal) -> int:
+            """Round to nearest paise"""
+            return int(x.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        
         payload['type'] = 'interactive'
         
         # Use provided header image or default
         payment_header_image = header_image_url or DEFAULT_PAYMENT_HEADER_IMAGE
         
-        # Build interactive order_details payload per Meta/Razorpay docs
+        # Get order components from frontend
+        order_data = order_details.get('order', {})
+        
+        # Item details (user input)
+        item_name = order_details.get('itemName', 'Service Fee')
+        item_quantity = int(order_details.get('quantity', 1))
+        item_amount_paise = int(order_data.get('subtotal', {}).get('value', 100))
+        
+        # GST rate (0, 3, 5, 12, 18, 28) - default 0 if not selected
+        gst_rate = float(order_details.get('gstRate', 0))
+        gstin = order_details.get('gstin', '19AADFW7431N1ZK')
+        
+        # Discount & Delivery (user input, mandatory - show even if 0)
+        discount_paise = int(order_data.get('discount', {}).get('value', 0))
+        delivery_paise = int(order_data.get('shipping', {}).get('value', 0))
+        
+        # Calculate GST on item amount (0 if no rate selected)
+        gst_paise = round_paise(Decimal(item_amount_paise) * Decimal(str(gst_rate)) / Decimal("100")) if gst_rate > 0 else 0
+        
+        # Convenience Fee: 2% of item_amount + 18% GST on that 2%
+        conv_base = round_paise(Decimal(item_amount_paise) * Decimal("0.02"))
+        conv_gst = round_paise(Decimal(conv_base) * Decimal("0.18"))
+        conv_total = conv_base + conv_gst
+        
+        # Build reference ID
+        ref_id = _sanitize_reference_id(order_details.get('reference_id', ''))
+        
+        # CART ITEMS: Main item + Convenience Fee
+        items_for_whatsapp = [
+            {
+                'retailer_id': 'ITEM_MAIN',
+                'name': item_name,
+                'amount': {'value': item_amount_paise, 'offset': 100},
+                'quantity': item_quantity
+            },
+            {
+                'retailer_id': 'ITEM_CONV',
+                'name': 'Convenience Fee',
+                'amount': {'value': conv_total, 'offset': 100},
+                'quantity': 1
+            }
+        ]
+        
+        # WhatsApp subtotal = sum of cart items (item + conv fee)
+        whatsapp_subtotal = item_amount_paise + conv_total
+        
+        # WhatsApp validates: total = subtotal - discount + shipping + tax
+        # So total = (item + conv) - discount + delivery + gst
+        total_paise = whatsapp_subtotal - discount_paise + delivery_paise + gst_paise
+        
+        # Build order object - ALL fields mandatory (show even if 0)
+        order_obj = {
+            'status': 'pending',
+            'items': items_for_whatsapp,
+            'subtotal': {'value': whatsapp_subtotal, 'offset': 100},
+            'discount': {
+                'value': discount_paise,
+                'offset': 100,
+                'description': 'Discount'
+            },
+            'shipping': {
+                'value': delivery_paise,
+                'offset': 100,
+                'description': 'Delivery'
+            },
+            'tax': {
+                'value': gst_paise,
+                'offset': 100,
+                'description': f'GSTIN: {gstin}'
+            }
+        }
+        
+        # Build interactive order_details payload
         interactive_payload = {
             'type': 'order_details',
             'header': {
@@ -990,17 +1075,15 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                 'image': {'link': payment_header_image}
             },
             'body': {
-                # Always use default text with emojis for interactive payments
-                'text': 'Your payment is overdue — please tap below to complete it 💳🤝'
+                'text': 'Your payment is overdue—please tap below to complete it 💳🤝'
             },
             'footer': {
-                'text': 'WECARE.DIGITAL'
+                'text': order_details.get('footer_text', 'WECARE.DIGITAL')
             },
             'action': {
                 'name': 'review_and_pay',
                 'parameters': {
-                    # Generate UPI-safe reference_id: only A-Z, 0-9, _, - (max 30 chars)
-                    'reference_id': _sanitize_reference_id(order_details.get('reference_id', '')),
+                    'reference_id': ref_id,
                     'type': order_details.get('type', 'digital-goods'),
                     'payment_settings': [
                         {
@@ -1008,18 +1091,12 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                             'payment_gateway': {
                                 'type': 'razorpay',
                                 'configuration_name': order_details.get('payment_configuration', 'WECARE-DIGITAL')
-                                # NOTE: Removed razorpay.receipt and razorpay.notes for UPI compatibility
-                                # UPI fails if notes contains nested JSON or non-string values
                             }
                         }
                     ],
                     'currency': order_details.get('currency', 'INR'),
-                    'total_amount': order_details.get('total_amount', {'value': 100, 'offset': 100}),
-                    'order': order_details.get('order', {
-                        'status': 'pending',
-                        'items': [],
-                        'subtotal': {'value': 100, 'offset': 100}
-                    })
+                    'total_amount': {'value': total_paise, 'offset': 100},
+                    'order': order_obj
                 }
             }
         }
@@ -1028,11 +1105,19 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
         
         logger.info(json.dumps({
             'event': 'interactive_payment_payload_built',
-            'referenceId': _sanitize_reference_id(order_details.get('reference_id', '')),
-            'totalAmount': order_details.get('total_amount', {}).get('value'),
-            'currency': order_details.get('currency'),
-            'paymentConfig': order_details.get('payment_configuration', 'WECARE-DIGITAL'),
-            'headerImage': payment_header_image
+            'referenceId': ref_id,
+            'itemName': item_name,
+            'itemAmount': item_amount_paise / 100,
+            'quantity': item_quantity,
+            'gstRate': gst_rate,
+            'gstAmount': gst_paise / 100,
+            'discount': discount_paise / 100,
+            'delivery': delivery_paise / 100,
+            'convTotal': conv_total / 100,
+            'whatsappSubtotal': whatsapp_subtotal / 100,
+            'total': total_paise / 100,
+            'gstin': gstin,
+            'paymentConfig': order_details.get('payment_configuration', 'WECARE-DIGITAL')
         }))
         
         return payload

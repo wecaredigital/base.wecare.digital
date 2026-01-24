@@ -1,9 +1,13 @@
 /**
  * WhatsApp Payment / Order Details Page
- * Create and send payment requests via WhatsApp order_details template
  * 
- * IMPORTANT: Interactive payments MUST be sent from +91 93309 94400 (WECARE.DIGITAL)
- * This is the only number configured with Razorpay payment gateway
+ * Structure:
+ * BODY: Your payment is overdue—please tap below to complete it 💳🤝
+ * CART ITEMS: Item Name + Convenience Fee
+ * BREAKDOWN: Subtotal, Discount, Shipping, Tax (with GSTIN)
+ * TOTAL: auto-calculated
+ * 
+ * All fields mandatory (show even if 0)
  */
 
 import React, { useState, useEffect } from 'react';
@@ -11,21 +15,30 @@ import Layout from '../../components/Layout';
 import * as api from '../../api/client';
 
 // Payment phone number configuration
-// Interactive payments ONLY work from this number (has Razorpay configured)
 const PAYMENT_PHONE_NUMBER_ID = 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54';
 const PAYMENT_PHONE_DISPLAY = '+91 93309 94400';
 const PAYMENT_PHONE_NAME = 'WECARE.DIGITAL';
 
+// Convenience fee: 2% + 18% GST on that
+const CONVENIENCE_FEE_PERCENT = 2.0;
+const CONVENIENCE_FEE_GST_PERCENT = 18.0;
+
+// GST rate options (0 = default/no GST)
+const GST_RATES = [
+  { value: 0, label: 'No GST (0%)' },
+  { value: 3, label: 'GST 3%' },
+  { value: 5, label: 'GST 5%' },
+  { value: 12, label: 'GST 12%' },
+  { value: 18, label: 'GST 18%' },
+  { value: 28, label: 'GST 28%' },
+];
+
+// Default GSTIN
+const DEFAULT_GSTIN = '19AADFW7431N1ZK';
+
 interface PageProps {
   signOut?: () => void;
   user?: any;
-}
-
-interface OrderItem {
-  name: string;
-  amount: number;
-  quantity: number;
-  productId: string;
 }
 
 interface Contact {
@@ -42,14 +55,15 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Order form state
+  // Form state - all mandatory
   const [referenceId, setReferenceId] = useState('');
-  const [items, setItems] = useState<OrderItem[]>([{ name: '', amount: 0, quantity: 1, productId: '' }]);
-  const [discount, setDiscount] = useState(0);
-  const [tax, setTax] = useState(0);
-  const [shipping, setShipping] = useState(0);
-  const [useInteractive, setUseInteractive] = useState(true); // Default to interactive mode
-  const [bodyText, setBodyText] = useState(''); // For template body variable
+  const [itemName, setItemName] = useState('');
+  const [itemAmount, setItemAmount] = useState<number>(0);
+  const [itemQuantity, setItemQuantity] = useState<number>(1);
+  const [discount, setDiscount] = useState<number>(0);
+  const [delivery, setDelivery] = useState<number>(0);
+  const [gstRate, setGstRate] = useState<number>(0); // Default 0 (no GST)
+  const [gstin, setGstin] = useState<string>(DEFAULT_GSTIN);
 
   useEffect(() => {
     loadContacts();
@@ -59,7 +73,6 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
     setLoading(true);
     try {
       const data = await api.listContacts();
-      // Filter contacts with Indian phone numbers (+91)
       const indianContacts = data.filter(c => c.phone?.startsWith('+91'));
       setContacts(indianContacts);
     } catch (err) {
@@ -69,36 +82,35 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
     }
   };
 
-  const addItem = () => {
-    setItems([...items, { name: '', amount: 0, quantity: 1, productId: '' }]);
+  // Calculate convenience fee: 2% of item amount + 18% GST on that
+  const calculateConvenienceFee = () => {
+    const feeBase = itemAmount * (CONVENIENCE_FEE_PERCENT / 100);
+    const feeGst = feeBase * (CONVENIENCE_FEE_GST_PERCENT / 100);
+    return feeBase + feeGst;
   };
 
-  const removeItem = (index: number) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
-    }
+  // Calculate GST on item amount
+  const calculateGst = () => {
+    return itemAmount * (gstRate / 100);
   };
 
-  const updateItem = (index: number, field: keyof OrderItem, value: string | number) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setItems(newItems);
-  };
-
+  // Subtotal = item + convenience fee
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + (item.amount * item.quantity), 0);
+    return itemAmount + calculateConvenienceFee();
   };
 
+  // Total = subtotal - discount + delivery + tax
   const calculateTotal = () => {
-    return calculateSubtotal() - discount + tax + shipping;
+    return calculateSubtotal() - discount + delivery + calculateGst();
   };
 
   const generateReferenceId = () => {
     const timestamp = Date.now().toString(36).toUpperCase();
-    setReferenceId(`WD-${timestamp}`);
+    setReferenceId(`WC_${timestamp}`);
   };
 
   const sendPaymentRequest = async () => {
+    // Validation
     if (!selectedContact) {
       setMessage({ type: 'error', text: 'Please select a contact' });
       return;
@@ -107,8 +119,12 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
       setMessage({ type: 'error', text: 'Please enter or generate a Reference ID' });
       return;
     }
-    if (items.some(item => !item.name || item.amount <= 0)) {
-      setMessage({ type: 'error', text: 'Please fill in all item details' });
+    if (!itemName) {
+      setMessage({ type: 'error', text: 'Please enter item name' });
+      return;
+    }
+    if (itemAmount <= 0) {
+      setMessage({ type: 'error', text: 'Please enter item amount' });
       return;
     }
 
@@ -118,31 +134,31 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
     try {
       const result = await api.sendWhatsAppPaymentMessage({
         contactId: selectedContact,
-        // HARDCODED: Interactive payments MUST go from WECARE.DIGITAL number
         phoneNumberId: PAYMENT_PHONE_NUMBER_ID,
-        templateName: '02_wd_order_payment',
         referenceId: referenceId,
-        items: items.map((item, idx) => ({
-          name: item.name,
-          amount: Math.round(item.amount * 100), // Convert to paise
-          quantity: item.quantity,
-          productId: item.productId || `ITEM_${idx + 1}`,
-        })),
+        items: [{
+          name: itemName,
+          amount: Math.round(itemAmount * 100), // Convert to paise
+          quantity: itemQuantity,
+          productId: 'ITEM_MAIN',
+        }],
         discount: Math.round(discount * 100),
-        tax: Math.round(tax * 100),
-        shipping: Math.round(shipping * 100),
-        useInteractive: useInteractive,
-        bodyText: bodyText || `Invoice ${referenceId}`,
+        delivery: Math.round(delivery * 100),
+        tax: Math.round(calculateGst() * 100),
+        gstRate: gstRate,
+        gstin: gstin,
+        useInteractive: true,
       });
 
       if (result) {
-        setMessage({ type: 'success', text: `Payment request sent from ${PAYMENT_PHONE_DISPLAY}! Message ID: ${result.messageId}` });
+        setMessage({ type: 'success', text: `Payment request sent! Message ID: ${result.messageId}` });
         // Reset form
         setReferenceId('');
-        setItems([{ name: '', amount: 0, quantity: 1, productId: '' }]);
+        setItemName('');
+        setItemAmount(0);
+        setItemQuantity(1);
         setDiscount(0);
-        setTax(0);
-        setShipping(0);
+        setDelivery(0);
       } else {
         setMessage({ type: 'error', text: 'Failed to send payment request' });
       }
@@ -163,7 +179,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
           <p>Send payment requests via WhatsApp UPI (India only)</p>
         </div>
 
-        {/* Sender Number Notice */}
+        {/* Sender Notice */}
         <div className="sender-notice">
           <div className="sender-icon">📱</div>
           <div className="sender-info">
@@ -187,8 +203,9 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         <div className="pay-layout">
           {/* Order Form */}
           <div className="order-form">
+            {/* Recipient */}
             <div className="form-section">
-              <h3>📱 Recipient</h3>
+              <h3>📱 Recipient *</h3>
               <select
                 value={selectedContact}
                 onChange={(e) => setSelectedContact(e.target.value)}
@@ -201,56 +218,17 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
                   </option>
                 ))}
               </select>
-              {contacts.length === 0 && !loading && (
-                <p className="hint">No Indian contacts found. Add contacts with +91 numbers.</p>
-              )}
             </div>
 
+            {/* Reference ID */}
             <div className="form-section">
-              <h3>⚙️ Message Type</h3>
-              <div className="mode-toggle">
-                <label className={`mode-option ${useInteractive ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    checked={useInteractive}
-                    onChange={() => setUseInteractive(true)}
-                  />
-                  <span className="mode-icon">💬</span>
-                  <span className="mode-label">Interactive</span>
-                  <span className="mode-desc">Within 24h window (Razorpay PG)</span>
-                </label>
-                <label className={`mode-option ${!useInteractive ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    checked={!useInteractive}
-                    onChange={() => setUseInteractive(false)}
-                  />
-                  <span className="mode-icon">📋</span>
-                  <span className="mode-label">Template</span>
-                  <span className="mode-desc">Outside 24h window</span>
-                </label>
-              </div>
-              {!useInteractive && (
-                <div className="body-text-input">
-                  <label>Template Body Text (variable 1)</label>
-                  <input
-                    type="text"
-                    value={bodyText}
-                    onChange={(e) => setBodyText(e.target.value)}
-                    placeholder={`Invoice ${referenceId || 'REF-001'}`}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="form-section">
-              <h3>🔖 Reference ID</h3>
+              <h3>🔖 Reference ID *</h3>
               <div className="ref-row">
                 <input
                   type="text"
                   value={referenceId}
                   onChange={(e) => setReferenceId(e.target.value)}
-                  placeholder="INV-001 or ORDER-123"
+                  placeholder="WC_ABC123"
                 />
                 <button type="button" onClick={generateReferenceId} className="gen-btn">
                   Generate
@@ -258,77 +236,86 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
               </div>
             </div>
 
+            {/* Item Details */}
             <div className="form-section">
-              <h3>📦 Items</h3>
-              {items.map((item, index) => (
-                <div key={index} className="item-row">
+              <h3>📦 Item Details *</h3>
+              <div className="item-grid">
+                <div className="item-field">
+                  <label>Item Name *</label>
                   <input
                     type="text"
-                    value={item.name}
-                    onChange={(e) => updateItem(index, 'name', e.target.value)}
-                    placeholder="Item name"
-                    className="item-name"
+                    value={itemName}
+                    onChange={(e) => setItemName(e.target.value)}
+                    placeholder="Service Fee"
                   />
+                </div>
+                <div className="item-field">
+                  <label>Amount (₹) *</label>
                   <input
                     type="number"
-                    value={item.amount || ''}
-                    onChange={(e) => updateItem(index, 'amount', parseFloat(e.target.value) || 0)}
-                    placeholder="₹ Amount"
-                    className="item-amount"
+                    value={itemAmount || ''}
+                    onChange={(e) => setItemAmount(parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
                     min="0"
                     step="0.01"
                   />
+                </div>
+                <div className="item-field">
+                  <label>Quantity *</label>
                   <input
                     type="number"
-                    value={item.quantity}
-                    onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
-                    placeholder="Qty"
-                    className="item-qty"
+                    value={itemQuantity}
+                    onChange={(e) => setItemQuantity(parseInt(e.target.value) || 1)}
                     min="1"
                   />
-                  {items.length > 1 && (
-                    <button type="button" onClick={() => removeItem(index)} className="remove-btn">
-                      ×
-                    </button>
-                  )}
                 </div>
-              ))}
-              <button type="button" onClick={addItem} className="add-item-btn">
-                + Add Item
-              </button>
+              </div>
             </div>
 
+            {/* Breakdown Fields - All Mandatory */}
             <div className="form-section">
-              <h3>💰 Adjustments</h3>
-              <div className="adjustments">
-                <div className="adj-row">
+              <h3>💰 Breakdown (All Mandatory)</h3>
+              <div className="breakdown-grid">
+                <div className="breakdown-field">
                   <label>Discount (₹)</label>
                   <input
                     type="number"
                     value={discount || ''}
                     onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
                     min="0"
                     step="0.01"
                   />
                 </div>
-                <div className="adj-row">
-                  <label>Tax (₹)</label>
+                <div className="breakdown-field">
+                  <label>Delivery (₹)</label>
                   <input
                     type="number"
-                    value={tax || ''}
-                    onChange={(e) => setTax(parseFloat(e.target.value) || 0)}
+                    value={delivery || ''}
+                    onChange={(e) => setDelivery(parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
                     min="0"
                     step="0.01"
                   />
                 </div>
-                <div className="adj-row">
-                  <label>Shipping (₹)</label>
+                <div className="breakdown-field">
+                  <label>GST Rate</label>
+                  <select
+                    value={gstRate}
+                    onChange={(e) => setGstRate(parseInt(e.target.value))}
+                  >
+                    {GST_RATES.map(rate => (
+                      <option key={rate.value} value={rate.value}>{rate.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="breakdown-field full-width">
+                  <label>GSTIN</label>
                   <input
-                    type="number"
-                    value={shipping || ''}
-                    onChange={(e) => setShipping(parseFloat(e.target.value) || 0)}
-                    min="0"
-                    step="0.01"
+                    type="text"
+                    value={gstin}
+                    onChange={(e) => setGstin(e.target.value)}
+                    placeholder="19AADFW7431N1ZK"
                   />
                 </div>
               </div>
@@ -343,80 +330,75 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
                 <span className="wa-icon">💬</span>
                 <span>WhatsApp Payment</span>
               </div>
-              
-              <div className="preview-recipient">
-                <strong>To:</strong> {selectedContactInfo?.name || selectedContactInfo?.phone || 'Select contact'}
+
+              {/* Body Text */}
+              <div className="preview-body">
+                Your payment is overdue—please tap below to complete it 💳🤝
               </div>
 
-              <div className="preview-ref">
-                <strong>Ref:</strong> {referenceId || 'Not set'}
+              {/* Cart Items */}
+              <div className="preview-section">
+                <div className="section-title">Cart Items</div>
+                <div className="cart-item">
+                  <span className="item-name">{itemName || '(Item Name)'}</span>
+                  <span className="item-details">₹{itemAmount.toFixed(2)} × {itemQuantity}</span>
+                </div>
+                <div className="cart-item conv-fee">
+                  <span className="item-name">Convenience Fee</span>
+                  <span className="item-details">₹{calculateConvenienceFee().toFixed(2)}</span>
+                </div>
               </div>
 
-              <div className="preview-items">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th>Qty</th>
-                      <th>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.filter(i => i.name).map((item, idx) => (
-                      <tr key={idx}>
-                        <td>{item.name}</td>
-                        <td>{item.quantity}</td>
-                        <td>₹{(item.amount * item.quantity).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="preview-totals">
-                <div className="total-row">
+              {/* Breakdown */}
+              <div className="preview-section">
+                <div className="section-title">Breakdown</div>
+                <div className="breakdown-row">
                   <span>Subtotal</span>
                   <span>₹{calculateSubtotal().toFixed(2)}</span>
                 </div>
-                {discount > 0 && (
-                  <div className="total-row discount">
-                    <span>Discount</span>
-                    <span>-₹{discount.toFixed(2)}</span>
-                  </div>
-                )}
-                {tax > 0 && (
-                  <div className="total-row">
-                    <span>Tax</span>
-                    <span>₹{tax.toFixed(2)}</span>
-                  </div>
-                )}
-                {shipping > 0 && (
-                  <div className="total-row">
-                    <span>Shipping</span>
-                    <span>₹{shipping.toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="total-row grand">
-                  <span>Total</span>
-                  <span>₹{calculateTotal().toFixed(2)}</span>
+                <div className="breakdown-row">
+                  <span>Discount</span>
+                  <span>-₹{discount.toFixed(2)}</span>
+                </div>
+                <div className="breakdown-row">
+                  <span>Delivery</span>
+                  <span>₹{delivery.toFixed(2)}</span>
+                </div>
+                <div className="breakdown-row">
+                  <span>Tax {gstRate > 0 && `(GST ${gstRate}%)`}</span>
+                  <span>₹{calculateGst().toFixed(2)}</span>
+                </div>
+                <div className="breakdown-row gstin">
+                  <span>GSTIN: {gstin}</span>
                 </div>
               </div>
 
+              {/* Total */}
+              <div className="preview-total">
+                <span>Total</span>
+                <span>₹{calculateTotal().toFixed(2)}</span>
+              </div>
+
               <div className="preview-config">
-                <small><strong>From:</strong> {PAYMENT_PHONE_DISPLAY} ({PAYMENT_PHONE_NAME})</small>
-                <small>Mode: {useInteractive ? '💬 Interactive (Razorpay PG)' : '📋 Template'}</small>
-                <small>Payment Config: WECARE-DIGITAL</small>
-                <small>Payment Type: UPI + Cards + NetBanking</small>
+                <small>To: {selectedContactInfo?.name || selectedContactInfo?.phone || '—'}</small>
+                <small>Ref: {referenceId || '—'}</small>
               </div>
             </div>
 
             <button
               className="send-btn"
               onClick={sendPaymentRequest}
-              disabled={sending || !selectedContact || !referenceId || calculateTotal() <= 0}
+              disabled={sending || !selectedContact || !referenceId || !itemName || itemAmount <= 0}
             >
               {sending ? 'Sending...' : '💳 Send Payment Request'}
             </button>
+
+            {/* Status Messages Info */}
+            <div className="status-info">
+              <div className="status-title">Status Messages</div>
+              <div className="status-item success">✅ Payment of ₹{'{amount}'} received successfully! Thank you</div>
+              <div className="status-item failed">❌ Payment failed. Please try again</div>
+            </div>
           </div>
         </div>
       </div>
@@ -430,24 +412,24 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         .sender-notice { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%); padding: 16px 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #bbf7d0; }
         .sender-icon { font-size: 28px; }
         .sender-info { flex: 1; }
-        .sender-label { font-size: 11px; color: #166534; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sender-label { font-size: 11px; color: #166534; text-transform: uppercase; }
         .sender-number { font-size: 18px; font-weight: 600; color: #166534; }
         .sender-name { font-size: 13px; color: #15803d; }
-        .sender-badge { display: flex; align-items: center; gap: 6px; background: #166534; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .sender-badge { display: flex; align-items: center; gap: 6px; background: #166534; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; }
         .badge-dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
-        .message-bar { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .message-bar { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; }
         .message-bar.success { background: #dcfce7; color: #166534; }
         .message-bar.error { background: #fee2e2; color: #991b1b; }
         .message-bar button { background: none; border: none; font-size: 18px; cursor: pointer; }
         
-        .pay-layout { display: grid; grid-template-columns: 1fr 400px; gap: 24px; }
+        .pay-layout { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
         
         .order-form { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .form-section { margin-bottom: 24px; }
-        .form-section h3 { font-size: 16px; margin: 0 0 12px 0; color: #333; }
-        .form-section select, .form-section input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .form-section h3 { font-size: 15px; margin: 0 0 12px 0; color: #333; }
+        .form-section select, .form-section input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
         .form-section select:focus, .form-section input:focus { outline: none; border-color: #25D366; }
         
         .ref-row { display: flex; gap: 8px; }
@@ -455,60 +437,52 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         .gen-btn { padding: 10px 16px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; white-space: nowrap; }
         .gen-btn:hover { background: #e5e5e5; }
         
-        .item-row { display: flex; gap: 8px; margin-bottom: 8px; }
-        .item-name { flex: 2; }
-        .item-amount { flex: 1; }
-        .item-qty { width: 60px; flex: none; }
-        .remove-btn { width: 36px; background: #fee2e2; border: none; border-radius: 8px; cursor: pointer; color: #991b1b; }
-        .add-item-btn { padding: 8px 16px; background: #f0f0f0; border: 1px dashed #ccc; border-radius: 8px; cursor: pointer; width: 100%; }
-        .add-item-btn:hover { background: #e5e5e5; }
+        .item-grid { display: grid; grid-template-columns: 2fr 1fr 80px; gap: 12px; }
+        .item-field label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
         
-        .adjustments { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-        .adj-row label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
-        .adj-row input { width: 100%; }
+        .breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .breakdown-field label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+        .breakdown-field.full-width { grid-column: span 2; }
         
-        .order-preview { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: fit-content; position: sticky; top: 20px; }
-        .order-preview h3 { margin: 0 0 16px 0; }
-        
-        .preview-card { background: #f9f9f9; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-        .preview-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 500; }
+        .order-preview { }
+        .order-preview h3 { font-size: 15px; margin: 0 0 12px 0; }
+        .preview-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; }
+        .preview-header { display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid #eee; margin-bottom: 12px; }
         .wa-icon { font-size: 20px; }
-        .preview-recipient, .preview-ref { font-size: 14px; margin-bottom: 8px; }
         
-        .preview-items table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-        .preview-items th, .preview-items td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-        .preview-items th { color: #666; font-weight: 500; }
-        .preview-items td:last-child { text-align: right; }
+        .preview-body { background: #dcfce7; padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
         
-        .preview-totals { border-top: 1px solid #ddd; padding-top: 12px; }
-        .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
-        .total-row.discount { color: #166534; }
-        .total-row.grand { font-weight: 600; font-size: 16px; border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px; }
+        .preview-section { margin-bottom: 16px; }
+        .section-title { font-size: 11px; color: #666; text-transform: uppercase; margin-bottom: 8px; }
         
-        .preview-config { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
-        .preview-config small { display: block; color: #999; font-size: 11px; }
+        .cart-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; }
+        .cart-item.conv-fee { color: #666; font-size: 13px; }
+        .item-name { font-weight: 500; }
+        .item-details { color: #666; }
         
-        .mode-toggle { display: flex; gap: 12px; margin-bottom: 12px; }
-        .mode-option { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
-        .mode-option:hover { border-color: #25D366; }
-        .mode-option.active { border-color: #25D366; background: #f0fdf4; }
-        .mode-option input { display: none; }
-        .mode-icon { font-size: 24px; margin-bottom: 4px; }
-        .mode-label { font-weight: 500; font-size: 14px; }
-        .mode-desc { font-size: 11px; color: #666; text-align: center; margin-top: 4px; }
-        .body-text-input { margin-top: 12px; }
-        .body-text-input label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+        .breakdown-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+        .breakdown-row.gstin { color: #666; font-size: 12px; justify-content: flex-start; }
         
-        .send-btn { width: 100%; padding: 14px; background: #25D366; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; }
-        .send-btn:hover:not(:disabled) { background: #1da851; }
+        .preview-total { display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #333; font-size: 18px; font-weight: 600; }
+        
+        .preview-config { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
+        .preview-config small { color: #666; font-size: 12px; }
+        
+        .send-btn { width: 100%; padding: 14px; background: #25D366; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .send-btn:hover:not(:disabled) { background: #128C7E; }
         .send-btn:disabled { background: #ccc; cursor: not-allowed; }
         
-        .hint { font-size: 12px; color: #999; margin-top: 8px; }
+        .status-info { margin-top: 16px; padding: 16px; background: #f9fafb; border-radius: 8px; }
+        .status-title { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 8px; }
+        .status-item { font-size: 13px; padding: 4px 0; }
+        .status-item.success { color: #166534; }
+        .status-item.failed { color: #991b1b; }
         
         @media (max-width: 900px) {
           .pay-layout { grid-template-columns: 1fr; }
-          .order-preview { position: static; }
-          .adjustments { grid-template-columns: 1fr; }
+          .item-grid { grid-template-columns: 1fr; }
+          .breakdown-grid { grid-template-columns: 1fr; }
+          .breakdown-field.full-width { grid-column: span 1; }
         }
       `}</style>
     </Layout>

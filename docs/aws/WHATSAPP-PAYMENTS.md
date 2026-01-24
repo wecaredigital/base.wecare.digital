@@ -6,6 +6,16 @@
 
 ---
 
+## Important Notes
+
+### Convenience Fee
+- WhatsApp validates that `total_amount = subtotal - discount + shipping + tax`
+- Convenience fee CANNOT be added to the WhatsApp payment message
+- Use Razorpay's **Fee Bearer** model to add convenience fee at payment time
+- Enable Fee Bearer in Razorpay Dashboard → Settings → Checkout Settings
+
+---
+
 ## Payment Configuration: WECARE-DIGITAL
 
 | Setting | Value |
