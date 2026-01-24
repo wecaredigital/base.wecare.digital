@@ -905,6 +905,49 @@ def _normalize_phone_number(phone: str) -> str:
     return digits_only
 
 
+def _sanitize_reference_id(reference_id: str) -> str:
+    """
+    Sanitize reference_id for UPI compatibility.
+    UPI requires: only A-Z, a-z, 0-9, _, - (max 30 chars)
+    Must be unique for each transaction.
+    
+    Examples:
+    - "New Order" -> "WC_20260124_NEWORDER"
+    - "test@123!" -> "WC_20260124_TEST123"
+    - "" -> "WC_20260124_XXXXXXXX" (auto-generated)
+    """
+    import re
+    from datetime import datetime
+    
+    # Get current date for uniqueness
+    date_str = datetime.now().strftime('%Y%m%d')
+    
+    if not reference_id or not reference_id.strip():
+        # Generate unique reference if empty
+        unique_id = str(uuid.uuid4())[:8].upper()
+        return f"WC_{date_str}_{unique_id}"
+    
+    # Remove all non-alphanumeric characters except _ and -
+    sanitized = re.sub(r'[^A-Za-z0-9_-]', '', reference_id.replace(' ', '_'))
+    
+    # Convert to uppercase for consistency
+    sanitized = sanitized.upper()
+    
+    # If empty after sanitization, generate new
+    if not sanitized:
+        unique_id = str(uuid.uuid4())[:8].upper()
+        return f"WC_{date_str}_{unique_id}"
+    
+    # Prepend WC_ prefix and date for uniqueness
+    result = f"WC_{date_str}_{sanitized}"
+    
+    # Truncate to max 30 chars
+    if len(result) > 30:
+        result = result[:30]
+    
+    return result
+
+
 def _build_message_payload(recipient_phone: str, content: str, media_type: Optional[str],
                            media_id: Optional[str], is_template: bool, template_name: Optional[str],
                            template_params: list, filename: Optional[str] = None,
@@ -956,21 +999,17 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             'action': {
                 'name': 'review_and_pay',
                 'parameters': {
-                    'reference_id': order_details.get('reference_id', str(uuid.uuid4())[:8]),
+                    # Generate UPI-safe reference_id: only A-Z, 0-9, _, - (max 30 chars)
+                    'reference_id': _sanitize_reference_id(order_details.get('reference_id', '')),
                     'type': order_details.get('type', 'digital-goods'),
                     'payment_settings': [
                         {
                             'type': 'payment_gateway',
                             'payment_gateway': {
                                 'type': 'razorpay',
-                                'configuration_name': order_details.get('payment_configuration', 'WECARE-DIGITAL'),
-                                'razorpay': {
-                                    'receipt': order_details.get('reference_id', 'receipt'),
-                                    'notes': {
-                                        'source': 'wecare-digital',
-                                        'reference_id': order_details.get('reference_id', '')
-                                    }
-                                }
+                                'configuration_name': order_details.get('payment_configuration', 'WECARE-DIGITAL')
+                                # NOTE: Removed razorpay.receipt and razorpay.notes for UPI compatibility
+                                # UPI fails if notes contains nested JSON or non-string values
                             }
                         }
                     ],
@@ -979,10 +1018,7 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
                     'order': order_details.get('order', {
                         'status': 'pending',
                         'items': [],
-                        'subtotal': {'value': 100, 'offset': 100},
-                        'tax': {'value': 0, 'offset': 100},
-                        'shipping': {'value': 0, 'offset': 100},
-                        'discount': {'value': 0, 'offset': 100}
+                        'subtotal': {'value': 100, 'offset': 100}
                     })
                 }
             }
@@ -992,7 +1028,7 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
         
         logger.info(json.dumps({
             'event': 'interactive_payment_payload_built',
-            'referenceId': order_details.get('reference_id'),
+            'referenceId': _sanitize_reference_id(order_details.get('reference_id', '')),
             'totalAmount': order_details.get('total_amount', {}).get('value'),
             'currency': order_details.get('currency'),
             'paymentConfig': order_details.get('payment_configuration', 'WECARE-DIGITAL'),
