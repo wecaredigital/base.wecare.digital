@@ -19,14 +19,11 @@ const PAYMENT_PHONE = '+91 93309 94400';
 const PAYMENT_NAME = 'WECARE.DIGITAL';
 
 // AWS Resource ARNs for billing display - All resources in account 809904170947
+// Comprehensive list including used and available services for future updates
 const AWS_RESOURCES: Record<string, { arn: string; accountId: string; details?: string[] }> = {
-  'Amazon Bedrock': { 
-    arn: 'arn:aws:bedrock:us-east-1:809904170947:*', 
-    accountId: '809904170947',
-    details: ['Knowledge Base: wecare-digital-kb', 'Agent: wecare-digital-agent']
-  },
+  // COMPUTE
   'AWS Lambda': { 
-    arn: 'arn:aws:lambda:us-east-1:809904170947:function:wecare-*', 
+    arn: 'arn:aws:lambda:us-east-1:809904170947:function:*', 
     accountId: '809904170947',
     details: [
       'wecare-outbound-whatsapp',
@@ -39,11 +36,30 @@ const AWS_RESOURCES: Record<string, { arn: string; accountId: string; details?: 
       'wecare-whatsapp-templates',
       'wecare-ai-generate-response',
       'wecare-ai-query-kb',
-      'wecare-outbound-sms'
+      'wecare-outbound-sms',
+      'wecare-bulk-job-control',
+      'wecare-dlq-replay'
     ]
   },
+  'Amazon EC2': { 
+    arn: 'arn:aws:ec2:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'Amazon ECS': { 
+    arn: 'arn:aws:ecs:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'AWS Fargate': { 
+    arn: 'arn:aws:ecs:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  
+  // DATABASE
   'Amazon DynamoDB': { 
-    arn: 'arn:aws:dynamodb:us-east-1:809904170947:table/base-wecare-*', 
+    arn: 'arn:aws:dynamodb:us-east-1:809904170947:table/*', 
     accountId: '809904170947',
     details: [
       'base-wecare-digital-ContactsTable',
@@ -52,64 +68,219 @@ const AWS_RESOURCES: Record<string, { arn: string; accountId: string; details?: 
       'base-wecare-digital-RateLimitTable'
     ]
   },
+  'Amazon RDS': { 
+    arn: 'arn:aws:rds:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'Amazon Aurora': { 
+    arn: 'arn:aws:rds:us-east-1:809904170947:cluster:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'Amazon ElastiCache': { 
+    arn: 'arn:aws:elasticache:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  
+  // STORAGE
   'Amazon S3': { 
     arn: 'arn:aws:s3:::auth.wecare.digital', 
     accountId: '809904170947',
-    details: ['Bucket: auth.wecare.digital', 'Media storage for WhatsApp']
+    details: ['auth.wecare.digital - Media storage for WhatsApp']
   },
-  'Amazon API Gateway': { 
-    arn: 'arn:aws:apigateway:us-east-1::/restapis/k4vqzmi07b', 
+  'Amazon EBS': { 
+    arn: 'arn:aws:ec2:us-east-1:809904170947:volume/*', 
     accountId: '809904170947',
-    details: ['REST API: k4vqzmi07b', 'Stage: prod']
+    details: ['Not currently used']
   },
-  'AWS Amplify': { 
-    arn: 'arn:aws:amplify:us-east-1:809904170947:apps/dtiq7il2x5c5g', 
+  'Amazon EFS': { 
+    arn: 'arn:aws:elasticfilesystem:us-east-1:809904170947:*', 
     accountId: '809904170947',
-    details: ['App: dtiq7il2x5c5g', 'Branch: base', 'Domain: base.wecare.digital']
+    details: ['Not currently used']
   },
-  'Amazon SNS': { 
-    arn: 'arn:aws:sns:us-east-1:809904170947:wecare-*', 
-    accountId: '809904170947',
-    details: ['wecare-whatsapp-inbound-topic']
-  },
-  'Amazon SQS': { 
-    arn: 'arn:aws:sqs:us-east-1:809904170947:wecare-*', 
-    accountId: '809904170947',
-    details: ['wecare-whatsapp-dlq']
-  },
-  'AWS End User Messaging': { 
-    arn: 'arn:aws:social-messaging:us-east-1:809904170947:*', 
-    accountId: '809904170947',
-    details: [
-      'Phone: +91 93309 94400 (WECARE.DIGITAL)',
-      'Phone: +91 99033 00044 (Manish Agarwal)',
-      'WABA ID: 1347766229904230'
-    ]
-  },
-  'Amazon Cognito': { 
-    arn: 'arn:aws:cognito-idp:us-east-1:809904170947:userpool/*', 
-    accountId: '809904170947',
-    details: ['User Pool for authentication']
-  },
-  'CloudWatch': { 
-    arn: 'arn:aws:logs:us-east-1:809904170947:log-group:/aws/lambda/wecare-*', 
-    accountId: '809904170947',
-    details: ['Log groups for all Lambda functions']
-  },
-  'Amazon Route 53': { 
-    arn: 'arn:aws:route53:::hostedzone/Z0123456789', 
-    accountId: '809904170947',
-    details: ['Domain: wecare.digital', 'Subdomain: base.wecare.digital', 'Subdomain: auth.wecare.digital']
-  },
+  
+  // NETWORKING & CDN
   'Amazon CloudFront': { 
     arn: 'arn:aws:cloudfront::809904170947:distribution/*', 
     accountId: '809904170947',
     details: ['CDN for static assets']
   },
-  'Amazon OpenSearch': { 
-    arn: 'arn:aws:es:us-east-1:809904170947:domain/*', 
+  'Amazon Route 53': { 
+    arn: 'arn:aws:route53:::hostedzone/*', 
     accountId: '809904170947',
-    details: ['Serverless collection for Bedrock KB']
+    details: ['wecare.digital', 'base.wecare.digital', 'auth.wecare.digital']
+  },
+  'Amazon VPC': { 
+    arn: 'arn:aws:ec2:us-east-1:809904170947:vpc/*', 
+    accountId: '809904170947',
+    details: ['Default VPC']
+  },
+  'Elastic Load Balancing': { 
+    arn: 'arn:aws:elasticloadbalancing:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  
+  // API & INTEGRATION
+  'Amazon API Gateway': { 
+    arn: 'arn:aws:apigateway:us-east-1::/restapis/*', 
+    accountId: '809904170947',
+    details: ['k4vqzmi07b - REST API (prod stage)']
+  },
+  'AWS AppSync': { 
+    arn: 'arn:aws:appsync:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'Amazon EventBridge': { 
+    arn: 'arn:aws:events:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'AWS Step Functions': { 
+    arn: 'arn:aws:states:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  
+  // MESSAGING
+  'Amazon SNS': { 
+    arn: 'arn:aws:sns:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['wecare-whatsapp-inbound-topic']
+  },
+  'Amazon SQS': { 
+    arn: 'arn:aws:sqs:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['wecare-whatsapp-dlq']
+  },
+  'Amazon SES': { 
+    arn: 'arn:aws:ses:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Email sending service']
+  },
+  'Amazon Pinpoint': { 
+    arn: 'arn:aws:mobiletargeting:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['SMS/Voice campaigns']
+  },
+  'AWS End User Messaging': { 
+    arn: 'arn:aws:social-messaging:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: [
+      '+91 93309 94400 (WECARE.DIGITAL) - Razorpay enabled',
+      '+91 99033 00044 (Manish Agarwal)',
+      'WABA ID: 1347766229904230'
+    ]
+  },
+  
+  // AI/ML
+  'Amazon Bedrock': { 
+    arn: 'arn:aws:bedrock:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Knowledge Base: wecare-digital-kb', 'Agent: wecare-digital-agent', 'Model: Claude']
+  },
+  'Amazon OpenSearch': { 
+    arn: 'arn:aws:aoss:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Serverless collection for Bedrock KB vector store']
+  },
+  'Amazon SageMaker': { 
+    arn: 'arn:aws:sagemaker:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'Amazon Comprehend': { 
+    arn: 'arn:aws:comprehend:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'Amazon Rekognition': { 
+    arn: 'arn:aws:rekognition:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'Amazon Transcribe': { 
+    arn: 'arn:aws:transcribe:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'Amazon Polly': { 
+    arn: 'arn:aws:polly:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'Amazon Translate': { 
+    arn: 'arn:aws:translate:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  
+  // SECURITY & IDENTITY
+  'Amazon Cognito': { 
+    arn: 'arn:aws:cognito-idp:us-east-1:809904170947:userpool/*', 
+    accountId: '809904170947',
+    details: ['User Pool for authentication']
+  },
+  'AWS IAM': { 
+    arn: 'arn:aws:iam::809904170947:*', 
+    accountId: '809904170947',
+    details: ['wecare-digital-lambda-role', 'amplify-service-role']
+  },
+  'AWS Secrets Manager': { 
+    arn: 'arn:aws:secretsmanager:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'AWS KMS': { 
+    arn: 'arn:aws:kms:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Default encryption keys']
+  },
+  'AWS WAF': { 
+    arn: 'arn:aws:wafv2:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  
+  // MONITORING & MANAGEMENT
+  'CloudWatch': { 
+    arn: 'arn:aws:logs:us-east-1:809904170947:log-group:*', 
+    accountId: '809904170947',
+    details: [
+      '/aws/lambda/wecare-outbound-whatsapp',
+      '/aws/lambda/wecare-inbound-whatsapp',
+      '/aws/lambda/wecare-* (all functions)'
+    ]
+  },
+  'AWS X-Ray': { 
+    arn: 'arn:aws:xray:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
+  },
+  'AWS CloudTrail': { 
+    arn: 'arn:aws:cloudtrail:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['API activity logging']
+  },
+  
+  // DEVELOPER TOOLS
+  'AWS Amplify': { 
+    arn: 'arn:aws:amplify:us-east-1:809904170947:apps/dtiq7il2x5c5g', 
+    accountId: '809904170947',
+    details: ['App: dtiq7il2x5c5g', 'Branch: base', 'Domain: base.wecare.digital']
+  },
+  'AWS CodeBuild': { 
+    arn: 'arn:aws:codebuild:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Amplify build process']
+  },
+  'AWS CodePipeline': { 
+    arn: 'arn:aws:codepipeline:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Not currently used']
   },
 };
 
