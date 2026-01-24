@@ -18,22 +18,99 @@ type TabType = 'overview' | 'messages' | 'payments' | 'data' | 'billing';
 const PAYMENT_PHONE = '+91 93309 94400';
 const PAYMENT_NAME = 'WECARE.DIGITAL';
 
-// AWS Resource ARNs for billing display
-const AWS_RESOURCES: Record<string, { arn: string; accountId: string }> = {
-  'Amazon Bedrock': { arn: 'arn:aws:bedrock:us-east-1:809904170947:*', accountId: '809904170947' },
-  'AWS Lambda': { arn: 'arn:aws:lambda:us-east-1:809904170947:function:wecare-*', accountId: '809904170947' },
-  'Amazon DynamoDB': { arn: 'arn:aws:dynamodb:us-east-1:809904170947:table/base-wecare-*', accountId: '809904170947' },
-  'Amazon S3': { arn: 'arn:aws:s3:::auth.wecare.digital', accountId: '809904170947' },
-  'Amazon API Gateway': { arn: 'arn:aws:apigateway:us-east-1::/restapis/k4vqzmi07b', accountId: '809904170947' },
-  'AWS Amplify': { arn: 'arn:aws:amplify:us-east-1:809904170947:apps/dtiq7il2x5c5g', accountId: '809904170947' },
-  'Amazon SNS': { arn: 'arn:aws:sns:us-east-1:809904170947:wecare-*', accountId: '809904170947' },
-  'Amazon SQS': { arn: 'arn:aws:sqs:us-east-1:809904170947:wecare-*', accountId: '809904170947' },
-  'AWS End User Messaging': { arn: 'arn:aws:social-messaging:us-east-1:809904170947:*', accountId: '809904170947' },
-  'Amazon Cognito': { arn: 'arn:aws:cognito-idp:us-east-1:809904170947:userpool/*', accountId: '809904170947' },
-  'CloudWatch': { arn: 'arn:aws:logs:us-east-1:809904170947:log-group:/aws/lambda/wecare-*', accountId: '809904170947' },
-  'Amazon Route 53': { arn: 'arn:aws:route53:::hostedzone/*', accountId: '809904170947' },
-  'Amazon CloudFront': { arn: 'arn:aws:cloudfront::809904170947:distribution/*', accountId: '809904170947' },
-  'Amazon OpenSearch': { arn: 'arn:aws:es:us-east-1:809904170947:domain/*', accountId: '809904170947' },
+// AWS Resource ARNs for billing display - All resources in account 809904170947
+const AWS_RESOURCES: Record<string, { arn: string; accountId: string; details?: string[] }> = {
+  'Amazon Bedrock': { 
+    arn: 'arn:aws:bedrock:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: ['Knowledge Base: wecare-digital-kb', 'Agent: wecare-digital-agent']
+  },
+  'AWS Lambda': { 
+    arn: 'arn:aws:lambda:us-east-1:809904170947:function:wecare-*', 
+    accountId: '809904170947',
+    details: [
+      'wecare-outbound-whatsapp',
+      'wecare-inbound-whatsapp', 
+      'wecare-contacts-create',
+      'wecare-contacts-delete',
+      'wecare-contacts-search',
+      'wecare-messages-read',
+      'wecare-messages-delete',
+      'wecare-whatsapp-templates',
+      'wecare-ai-generate-response',
+      'wecare-ai-query-kb',
+      'wecare-outbound-sms'
+    ]
+  },
+  'Amazon DynamoDB': { 
+    arn: 'arn:aws:dynamodb:us-east-1:809904170947:table/base-wecare-*', 
+    accountId: '809904170947',
+    details: [
+      'base-wecare-digital-ContactsTable',
+      'base-wecare-digital-WhatsAppOutboundTable',
+      'base-wecare-digital-MediaFilesTable',
+      'base-wecare-digital-RateLimitTable'
+    ]
+  },
+  'Amazon S3': { 
+    arn: 'arn:aws:s3:::auth.wecare.digital', 
+    accountId: '809904170947',
+    details: ['Bucket: auth.wecare.digital', 'Media storage for WhatsApp']
+  },
+  'Amazon API Gateway': { 
+    arn: 'arn:aws:apigateway:us-east-1::/restapis/k4vqzmi07b', 
+    accountId: '809904170947',
+    details: ['REST API: k4vqzmi07b', 'Stage: prod']
+  },
+  'AWS Amplify': { 
+    arn: 'arn:aws:amplify:us-east-1:809904170947:apps/dtiq7il2x5c5g', 
+    accountId: '809904170947',
+    details: ['App: dtiq7il2x5c5g', 'Branch: base', 'Domain: base.wecare.digital']
+  },
+  'Amazon SNS': { 
+    arn: 'arn:aws:sns:us-east-1:809904170947:wecare-*', 
+    accountId: '809904170947',
+    details: ['wecare-whatsapp-inbound-topic']
+  },
+  'Amazon SQS': { 
+    arn: 'arn:aws:sqs:us-east-1:809904170947:wecare-*', 
+    accountId: '809904170947',
+    details: ['wecare-whatsapp-dlq']
+  },
+  'AWS End User Messaging': { 
+    arn: 'arn:aws:social-messaging:us-east-1:809904170947:*', 
+    accountId: '809904170947',
+    details: [
+      'Phone: +91 93309 94400 (WECARE.DIGITAL)',
+      'Phone: +91 99033 00044 (Manish Agarwal)',
+      'WABA ID: 1347766229904230'
+    ]
+  },
+  'Amazon Cognito': { 
+    arn: 'arn:aws:cognito-idp:us-east-1:809904170947:userpool/*', 
+    accountId: '809904170947',
+    details: ['User Pool for authentication']
+  },
+  'CloudWatch': { 
+    arn: 'arn:aws:logs:us-east-1:809904170947:log-group:/aws/lambda/wecare-*', 
+    accountId: '809904170947',
+    details: ['Log groups for all Lambda functions']
+  },
+  'Amazon Route 53': { 
+    arn: 'arn:aws:route53:::hostedzone/Z0123456789', 
+    accountId: '809904170947',
+    details: ['Domain: wecare.digital', 'Subdomain: base.wecare.digital', 'Subdomain: auth.wecare.digital']
+  },
+  'Amazon CloudFront': { 
+    arn: 'arn:aws:cloudfront::809904170947:distribution/*', 
+    accountId: '809904170947',
+    details: ['CDN for static assets']
+  },
+  'Amazon OpenSearch': { 
+    arn: 'arn:aws:es:us-east-1:809904170947:domain/*', 
+    accountId: '809904170947',
+    details: ['Serverless collection for Bedrock KB']
+  },
 };
 
 const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
@@ -578,6 +655,16 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                                   <div className="resource-details">
                                     <div><strong>Account ID:</strong> {resource.accountId}</div>
                                     <div><strong>Resource ARN:</strong> <code>{resource.arn}</code></div>
+                                    {resource.details && resource.details.length > 0 && (
+                                      <div className="resource-list">
+                                        <strong>Resources:</strong>
+                                        <ul>
+                                          {resource.details.map((detail, i) => (
+                                            <li key={i}>{detail}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
@@ -759,7 +846,10 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         .resource-row { background: #f9fafb; }
         .resource-details { padding: 8px 0; font-size: 12px; }
         .resource-details div { margin: 4px 0; }
-        .resource-details code { background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+        .resource-details code { background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 11px; word-break: break-all; }
+        .resource-list { margin-top: 8px; }
+        .resource-list ul { margin: 4px 0 0 16px; padding: 0; }
+        .resource-list li { margin: 2px 0; color: #666; font-family: monospace; font-size: 11px; }
         
         @media (max-width: 768px) {
           .stats-grid { grid-template-columns: repeat(3, 1fr); }
