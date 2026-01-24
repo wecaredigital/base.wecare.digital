@@ -56,7 +56,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
     ]},
     { path: '/contacts', label: 'Contacts', icon: '⊕' },
     { path: '/bulk', label: 'Bulk', icon: '⫶' },
-    { path: '/admin', label: 'Admin', icon: '⚙', adminOnly: true },
   ];
 
   // Auto-expand DM or Bulk menu if on those pages
