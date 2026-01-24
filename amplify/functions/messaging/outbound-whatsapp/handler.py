@@ -1022,11 +1022,14 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
         discount_paise = int(order_data.get('discount', {}).get('value', 0))
         delivery_paise = int(order_data.get('shipping', {}).get('value', 0))
         
-        # Calculate GST on item amount (0 if no rate selected)
-        gst_paise = round_paise(Decimal(item_amount_paise) * Decimal(str(gst_rate)) / Decimal("100")) if gst_rate > 0 else 0
+        # Total item value = unit price * quantity
+        item_total_paise = item_amount_paise * item_quantity
         
-        # Convenience Fee: 2% of item_amount + 18% GST on that 2%
-        conv_base = round_paise(Decimal(item_amount_paise) * Decimal("0.02"))
+        # Calculate GST on total item value (0 if no rate selected)
+        gst_paise = round_paise(Decimal(item_total_paise) * Decimal(str(gst_rate)) / Decimal("100")) if gst_rate > 0 else 0
+        
+        # Convenience Fee: 2% of total item value + 18% GST on that 2%
+        conv_base = round_paise(Decimal(item_total_paise) * Decimal("0.02"))
         conv_gst = round_paise(Decimal(conv_base) * Decimal("0.18"))
         conv_total = conv_base + conv_gst
         
@@ -1034,6 +1037,7 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
         ref_id = _sanitize_reference_id(order_details.get('reference_id', ''))
         
         # CART ITEMS: Main item + Convenience Fee
+        # WhatsApp calculates: subtotal = sum(item.amount * item.quantity)
         items_for_whatsapp = [
             {
                 'retailer_id': 'ITEM_MAIN',
@@ -1049,11 +1053,11 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             }
         ]
         
-        # WhatsApp subtotal = sum of cart items (item + conv fee)
-        whatsapp_subtotal = item_amount_paise + conv_total
+        # WhatsApp subtotal = sum of (item.amount * item.quantity) for all items
+        # = (item_amount_paise * item_quantity) + (conv_total * 1)
+        whatsapp_subtotal = item_total_paise + conv_total
         
         # WhatsApp validates: total = subtotal - discount + shipping + tax
-        # So total = (item + conv) - discount + delivery + gst
         total_paise = whatsapp_subtotal - discount_paise + delivery_paise + gst_paise
         
         # Build order object - ALL fields mandatory (show even if 0)
@@ -1124,13 +1128,14 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             'event': 'interactive_payment_payload_built',
             'referenceId': ref_id,
             'itemName': item_name,
-            'itemAmount': item_amount_paise / 100,
+            'itemUnitPrice': item_amount_paise / 100,
             'quantity': item_quantity,
+            'itemTotal': item_total_paise / 100,
             'gstRate': gst_rate,
             'gstAmount': gst_paise / 100,
             'discount': discount_paise / 100,
-            'delivery': delivery_paise / 100,
-            'convTotal': conv_total / 100,
+            'shipping': delivery_paise / 100,
+            'convFee': conv_total / 100,
             'whatsappSubtotal': whatsapp_subtotal / 100,
             'total': total_paise / 100,
             'gstin': gstin,
