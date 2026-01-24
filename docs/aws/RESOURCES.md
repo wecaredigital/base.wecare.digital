@@ -3,6 +3,24 @@
 **AWS Account:** 809904170947  
 **Region:** us-east-1
 
+---
+
+## WhatsApp Payments (Razorpay)
+
+| Setting | Value |
+|---------|-------|
+| Configuration Name | `WECARE-DIGITAL` |
+| Status | ✅ Active |
+| Gateway | Razorpay |
+| Merchant ID (MID) | `acc_HDfub6wOfQybuH` |
+| UPI VPA | `wecaredigital83.rzp@icici` |
+| MCC | 4722 (Travel agencies) |
+| Purpose Code | 03 (Travel) |
+| WABA ID | `1347766229904230` |
+| Phone Number | +91 93309 94400 |
+
+---
+
 ## Cognito
 
 | Resource | Value |

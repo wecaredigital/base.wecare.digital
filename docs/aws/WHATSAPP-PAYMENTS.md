@@ -1,99 +1,118 @@
 # WhatsApp Payments API Documentation
 
 **Last Updated**: 2026-01-24  
-**Region**: India Only (UPI Payments)  
-**Payment Gateway**: Razorpay (MID: acc_HDfub6wOfQybuH)  
-**Payment Configuration**: WECARE-DIGITAL
+**Region**: India Only  
+**Status**: ✅ Active & Working
 
 ---
 
-## Overview
+## Payment Configuration: WECARE-DIGITAL
 
-WhatsApp Payments allows businesses to receive payments directly inside WhatsApp using UPI. There are TWO ways to send payment requests:
+| Setting | Value |
+|---------|-------|
+| Configuration Name | `WECARE-DIGITAL` |
+| Status | ✅ Active |
+| WABA ID | `1347766229904230` |
+| Phone Number | +91 93309 94400 |
 
-1. **Interactive `order_details` Message** - Within 24-hour customer service window
-2. **Order Details Template Message** - Outside 24-hour window (requires approved template)
+### Payment Gateway (Razorpay)
+
+| Setting | Value |
+|---------|-------|
+| Gateway Type | Razorpay |
+| Merchant ID (MID) | `acc_HDfub6wOfQybuH` |
+| MCC | 4722 (Travel agencies and tour operators) |
+| Purpose Code | 03 (Travel) |
+
+### UPI Configuration
+
+| Setting | Value |
+|---------|-------|
+| UPI VPA | `wecaredigital83.rzp@icici` |
+| MCC | 4722 (Travel agencies and tour operators) |
+| Purpose Code | 03 (Travel) |
 
 ---
 
-## 1. Interactive Order Details Message (Within 24h Window)
+## API Endpoints
 
-Use this format when the customer has messaged you within the last 24 hours.
+### Razorpay API
+
+| Resource | Value |
+|----------|-------|
+| API Base URL | `https://api.razorpay.com/v1` |
+| Key ID | Get from Razorpay Dashboard → Settings → API Keys |
+| Key Secret | Get from Razorpay Dashboard → Settings → API Keys |
+| Webhook Secret | Get from Razorpay Dashboard → Settings → Webhooks |
+
+### Razorpay Webhook Events
+
+Configure these webhooks in Razorpay Dashboard → Settings → Webhooks:
+
+| Event | Description |
+|-------|-------------|
+| `payment.authorized` | Payment authorized (for manual capture) |
+| `payment.captured` | Payment captured successfully |
+| `payment.failed` | Payment failed |
+| `refund.created` | Refund initiated |
+| `refund.processed` | Refund completed |
+
+**Webhook URL**: `https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod/razorpay-webhook`
+
+---
+
+## Payment Methods Available
+
+| Method | Status | Notes |
+|--------|--------|-------|
+| UPI (Native WhatsApp) | ✅ Working | Pay on WhatsApp, GPay, PhonePe, Paytm |
+| UPI (via Razorpay) | ✅ Working | Through "Other Payment Methods" |
+| Cards | ✅ Working | Credit/Debit cards via Razorpay |
+| NetBanking | ✅ Working | All major banks via Razorpay |
+| Wallets | ✅ Working | Paytm, PhonePe, etc. via Razorpay |
+
+---
+
+## Message Types
+
+### 1. Interactive Order Details (Within 24h Window)
+
+Use `payment_settings` with `payment_gateway`:
 
 ```json
 {
-  "messaging_product": "whatsapp",
-  "recipient_type": "individual",
-  "to": "+919876543210",
   "type": "interactive",
   "interactive": {
     "type": "order_details",
     "header": {
       "type": "image",
-      "image": {
-        "link": "https://example.com/invoice.png"
-      }
+      "image": { "link": "https://example.com/invoice.png" }
     },
-    "body": {
-      "text": "Your order is ready for payment"
-    },
-    "footer": {
-      "text": "WECARE.DIGITAL"
-    },
+    "body": { "text": "Your payment is overdue — please tap below to complete it 💳🤝" },
+    "footer": { "text": "WECARE.DIGITAL" },
     "action": {
       "name": "review_and_pay",
       "parameters": {
-        "reference_id": "ORDER_12345",
+        "reference_id": "WC_20260124_ORDER001",
         "type": "digital-goods",
-        "payment_settings": [
-          {
-            "type": "payment_gateway",
-            "payment_gateway": {
-              "type": "razorpay",
-              "configuration_name": "WECARE-DIGITAL",
-              "razorpay": {
-                "receipt": "receipt-12345",
-                "notes": {
-                  "order_id": "ORDER_12345"
-                }
-              }
-            }
+        "payment_settings": [{
+          "type": "payment_gateway",
+          "payment_gateway": {
+            "type": "razorpay",
+            "configuration_name": "WECARE-DIGITAL"
           }
-        ],
+        }],
         "currency": "INR",
-        "total_amount": {
-          "value": 10000,
-          "offset": 100
-        },
+        "total_amount": { "value": 10000, "offset": 100 },
         "order": {
           "status": "pending",
-          "items": [
-            {
-              "retailer_id": "WECARE_DIGITAL",
-              "name": "Consultation Fee",
-              "amount": {
-                "value": 10000,
-                "offset": 100
-              },
-              "quantity": 1
-            }
-          ],
-          "subtotal": {
-            "value": 10000,
-            "offset": 100
-          },
-          "tax": {
-            "value": 0,
-            "offset": 100
-          },
-          "shipping": {
-            "value": 0,
-            "offset": 100
-          },
-          "discount": {
-            "value": 0,
-            "offset": 100
-          }
+          "items": [{
+            "retailer_id": "SKU001",
+            "name": "Service Fee",
+            "amount": { "value": 10000, "offset": 100 },
+            "quantity": 1
+          }],
+          "subtotal": { "value": 10000, "offset": 100 }
         }
       }
     }
@@ -101,211 +120,18 @@ Use this format when the customer has messaged you within the last 24 hours.
 }
 ```
 
-### Key Fields for Interactive Message:
-- `type`: Must be `"interactive"`
-- `interactive.type`: Must be `"order_details"`
-- `action.name`: Must be `"review_and_pay"`
-- `payment_settings`: Array containing payment gateway configuration
-- `payment_gateway.type`: `"razorpay"` (or `"payu"`, `"billdesk"`, `"zaakpay"`)
-- `payment_gateway.configuration_name`: Your payment config name in Meta Business Manager
-
----
-
-## 2. Order Details Template Message (Outside 24h Window)
-
-Use this format when sending payment requests outside the 24-hour window. Requires an approved template with ORDER_DETAILS button.
-
-### Template Requirements:
-- **Category**: UTILITY (Payment Utility sub-category)
-- **Button Type**: ORDER_DETAILS
-- **Button Text**: e.g., "Review and Pay"
-
-### Template Message Payload:
-```json
-{
-  "messaging_product": "whatsapp",
-  "recipient_type": "individual",
-  "to": "+919876543210",
-  "type": "template",
-  "template": {
-    "name": "02_wd_order_payment",
-    "language": {
-      "code": "en"
-    },
-    "components": [
-      {
-        "type": "header",
-        "parameters": [
-          {
-            "type": "image",
-            "image": {
-              "link": "https://example.com/invoice.png"
-            }
-          }
-        ]
-      },
-      {
-        "type": "body",
-        "parameters": [
-          {
-            "type": "text",
-            "text": "Invoice #12345"
-          }
-        ]
-      },
-      {
-        "type": "button",
-        "sub_type": "order_details",
-        "index": 0,
-        "parameters": [
-          {
-            "type": "action",
-            "action": {
-              "order_details": {
-                "reference_id": "ORDER_12345",
-                "type": "digital-goods",
-                "payment_configuration": "WECARE-DIGITAL",
-                "payment_type": "upi",
-                "currency": "INR",
-                "total_amount": {
-                  "value": 10000,
-                  "offset": 100
-                },
-                "order": {
-                  "status": "pending",
-                  "items": [
-                    {
-                      "retailer_id": "WECARE_DIGITAL",
-                      "product_id": "CONSULT_001",
-                      "name": "Consultation Fee",
-                      "amount": {
-                        "value": 10000,
-                        "offset": 100
-                      },
-                      "quantity": 1
-                    }
-                  ],
-                  "subtotal": {
-                    "value": 10000,
-                    "offset": 100
-                  },
-                  "tax": {
-                    "value": 0,
-                    "offset": 100
-                  },
-                  "shipping": {
-                    "value": 0,
-                    "offset": 100
-                  },
-                  "discount": {
-                    "value": 0,
-                    "offset": 100
-                  }
-                }
-              }
-            }
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Key Differences from Interactive Message:
-- `type`: `"template"` instead of `"interactive"`
-- Uses `payment_configuration` (string) instead of `payment_settings` (array)
-- Uses `payment_type: "upi"` instead of `payment_gateway.type`
-- Button component with `sub_type: "order_details"`
-
----
-
-## Payment Configuration Setup
-
-### In Meta Business Manager:
-1. Go to WhatsApp Manager → Direct Pay Methods → India
-2. Add Payment Gateway (Razorpay)
-3. Enter Razorpay MID: `acc_HDfub6wOfQybuH`
-4. Configuration Name: `WECARE-DIGITAL`
-5. Complete verification
-
-### Supported Payment Gateways (India):
-- Razorpay
-- PayU
-- BillDesk
-- Zaakpay
-
----
-
-## Amount Format
-
-All amounts use `offset` for decimal precision:
-- `offset: 100` means divide value by 100
-- `value: 10000` with `offset: 100` = ₹100.00
-- `value: 15050` with `offset: 100` = ₹150.50
-
----
-
-## Payment Status Webhooks
-
-When payment status changes, you receive a webhook that is processed by the inbound handler:
-
-```json
-{
-  "statuses": [{
-    "id": "wamid.xxx",
-    "recipient_id": "919876543210",
-    "type": "payment",
-    "status": "captured",
-    "payment": {
-      "reference_id": "ORDER_12345",
-      "amount": {
-        "value": 10000,
-        "offset": 100
-      },
-      "currency": "INR",
-      "transaction": {
-        "id": "txn_xxx",
-        "type": "upi",
-        "status": "success"
-      }
-    },
-    "timestamp": "1706140800"
-  }]
-}
-```
-
-### Payment Status Values:
-- `pending` - Payment initiated
-- `captured` - Payment successful ✅
-- `failed` - Payment failed ❌
-
-### Automatic Order Status Updates
-
-When a payment webhook is received, the system automatically:
-1. Stores the payment record in DynamoDB
-2. Sends an `order_status` message to the customer:
-   - **captured** → `completed` status with success message
-   - **failed** → `canceled` status with retry message
-
----
-
-## Order Status Updates
-
-Send order status updates using `order_status` interactive message:
+### 2. Order Status Update (Payment Confirmation)
 
 ```json
 {
   "type": "interactive",
   "interactive": {
     "type": "order_status",
-    "body": {
-      "text": "Your payment was successful!"
-    },
+    "body": { "text": "Payment of ₹100.00 received successfully! Thank you ✅" },
     "action": {
       "name": "review_order",
       "parameters": {
-        "reference_id": "ORDER_12345",
+        "reference_id": "WC_20260124_ORDER001",
         "order": {
           "status": "completed",
           "description": "Payment received. Thank you!"
@@ -316,98 +142,146 @@ Send order status updates using `order_status` interactive message:
 }
 ```
 
-### Order Status Values:
-- `pending` - Order created, awaiting payment
-- `processing` - Payment received, processing order
-- `shipped` - Order shipped
-- `completed` - Order delivered
-- `canceled` - Order canceled
+---
+
+## Payment Webhook Format
+
+WhatsApp sends payment status updates via webhook:
+
+```json
+{
+  "statuses": [{
+    "id": "wamid.xxx",
+    "recipient_id": "919876543210",
+    "type": "payment",
+    "status": "captured",
+    "payment": {
+      "reference_id": "WC_20260124_ORDER001",
+      "amount": { "value": 10000, "offset": 100 },
+      "currency": "INR",
+      "transaction": {
+        "id": "order_xxx",
+        "type": "razorpay",
+        "status": "success",
+        "method": { "type": "upi" }
+      }
+    },
+    "timestamp": "1706140800"
+  }]
+}
+```
+
+### Payment Status Values
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Payment initiated |
+| `captured` | Payment successful ✅ |
+| `failed` | Payment failed ❌ |
+
+### Transaction Method Types
+
+| Type | Description |
+|------|-------------|
+| `upi` | UPI payment (GPay, PhonePe, Paytm, etc.) |
+| `card` | Credit/Debit card |
+| `netbanking` | Net banking |
+| `wallet` | Digital wallet |
 
 ---
 
-## WECARE.DIGITAL Configuration
+## Amount Format
 
-| Setting | Value |
-|---------|-------|
-| Payment Config Name | WECARE-DIGITAL |
-| Payment Gateway | Razorpay |
-| Razorpay MID | acc_HDfub6wOfQybuH |
-| MCC | 4722 (Travel agencies) |
-| Purpose Code | 03 (Travel) |
-| WABA ID | 1347766229904230 |
-| Phone Number | +91 93309 94400 |
+All amounts use `offset` for decimal precision:
 
----
-
-## Current Template: 02_wd_order_payment
-
-| Property | Value |
-|----------|-------|
-| Name | 02_wd_order_payment |
-| Category | MARKETING (should be UTILITY) |
-| Sub-category | ORDER_DETAILS |
-| Status | APPROVED |
-| Language | en |
-| Meta Template ID | 1346233717276909 |
-
-### Template Components:
-1. **HEADER**: Image format
-2. **BODY**: "👀 Quick reminder\nYour payment for {{1}} is still pending.\nTap below to pay now 💳 🤝\n\nNeed help? Reply SUPPORT anytime."
-3. **FOOTER**: "WECARE.DIGITAL"
-4. **BUTTON**: ORDER_DETAILS type, text "Review and Pay"
+| Value | Offset | Actual Amount |
+|-------|--------|---------------|
+| 100 | 100 | ₹1.00 |
+| 1000 | 100 | ₹10.00 |
+| 10000 | 100 | ₹100.00 |
+| 100000 | 100 | ₹1,000.00 |
 
 ---
 
-## Known Issues
+## Reference ID Format
 
-1. **Template Category**: Current template is MARKETING, should be UTILITY for payment templates
-2. **Message Delivery**: API returns success but messages may not be delivered if:
-   - Payment configuration not properly linked
-   - Template category incorrect
-   - Recipient not in India (UPI only works for Indian numbers)
+Reference IDs must be unique and UPI-safe:
+- Only: A-Z, a-z, 0-9, _, -
+- Max length: 35 characters
+- Must be unique per transaction
 
----
+**Recommended format**: `WC_YYYYMMDD_ORDERID`
 
-## References
-
-- [360dialog Payments Documentation](https://docs.360dialog.com/docs/waba-messaging/payments-india-only)
-- [Meta WhatsApp Payments API](https://developers.facebook.com/docs/whatsapp/cloud-api/payments-api/payments-in)
-- [AWS EUM Social Messaging](https://docs.aws.amazon.com/social-messaging/latest/userguide/whatsapp-send-message.html)
+Example: `WC_20260124_INV001`
 
 ---
 
-## Implementation Details
-
-### Lambda Functions
+## Lambda Functions
 
 | Function | Purpose |
 |----------|---------|
-| `outbound-whatsapp` | Sends payment requests (interactive + template) and order_status messages |
-| `inbound-whatsapp-handler` | Processes payment webhooks and triggers order_status messages |
+| `wecare-outbound-whatsapp` | Sends payment requests (order_details) |
+| `wecare-inbound-whatsapp` | Processes payment webhooks, sends order_status |
 
-### Payment Flow
+---
+
+## Automatic Payment Flow
 
 ```
-1. User sends payment request via /pay page
+1. Dashboard sends payment request
    ↓
-2. outbound-whatsapp Lambda sends order_details message
+2. wecare-outbound-whatsapp sends order_details message
    ↓
 3. Customer receives payment request in WhatsApp
    ↓
 4. Customer pays via UPI/Cards/NetBanking
    ↓
-5. Meta sends payment webhook to SNS → inbound-whatsapp-handler
+5. WhatsApp sends payment webhook → SNS → wecare-inbound-whatsapp
    ↓
-6. inbound-whatsapp-handler:
+6. wecare-inbound-whatsapp:
    - Stores payment record in DynamoDB
-   - Triggers order_status message via outbound-whatsapp
+   - Sends order_status message (success/failed)
    ↓
 7. Customer receives payment confirmation in WhatsApp
 ```
 
-### Files Modified
+---
 
-- `amplify/functions/messaging/outbound-whatsapp/handler.py` - Payment message sending
-- `amplify/functions/messaging/inbound-whatsapp-handler/handler.py` - Payment webhook handling
-- `src/api/client.ts` - `sendWhatsAppPaymentMessage()` API function
-- `src/pages/pay/index.tsx` - Payment request UI
+## Payment Messages
+
+| Event | Message |
+|-------|---------|
+| Payment Request | Your payment is overdue — please tap below to complete it 💳🤝 |
+| Payment Success | Payment of ₹{amount} received successfully! Thank you ✅ |
+| Payment Failed | Payment failed. Please try again ❌ |
+
+---
+
+## Razorpay Dashboard Links
+
+| Resource | URL |
+|----------|-----|
+| Dashboard | https://dashboard.razorpay.com |
+| API Keys | https://dashboard.razorpay.com/app/keys |
+| Webhooks | https://dashboard.razorpay.com/app/webhooks |
+| Transactions | https://dashboard.razorpay.com/app/payments |
+| Settlements | https://dashboard.razorpay.com/app/settlements |
+
+---
+
+## Troubleshooting
+
+### UPI Payment Fails
+1. Check UPI VPA is configured in Meta Business Manager
+2. Verify Razorpay MID is linked correctly
+3. Ensure reference_id is unique and UPI-safe (no special chars)
+
+### Payment Not Delivered
+1. Check 24-hour customer service window
+2. Verify phone number format (+91XXXXXXXXXX)
+3. Check CloudWatch logs for errors
+
+### Webhook Not Received
+1. Verify SNS topic subscription
+2. Check Lambda function permissions
+3. Review CloudWatch logs for inbound handler
