@@ -694,3 +694,72 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         .select-header button { background: none; border: none; color: #25D366; cursor: pointer; font-size: 13px; }
         .msg-select-row { display: grid; grid-template-columns: 20px 20px 1fr 70px; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #f5f5f5; align-items: center; cursor: pointer; font-size: 13px; }
         .msg-select-row:hover { background: #fafafa; }
+        .btn-secondary { padding: 8px 16px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .btn-danger { padding: 8px 16px; background: #ef4444; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .btn-danger.hard { background: #991b1b; }
+        .btn-danger:disabled { background: #fca5a5; }
+        
+        .payment-info { background: #f0fdf4; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; border: 1px solid #bbf7d0; }
+        
+        .data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #eee; }
+        .data-table th, .data-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .data-table th { background: #fafafa; font-weight: 500; color: #666; }
+        .data-table td small { color: #999; }
+        .empty { text-align: center; padding: 24px; color: #999; }
+        
+        .delete-options { display: flex; gap: 10px; margin-bottom: 16px; }
+        .delete-options button { padding: 10px 16px; border: 2px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; }
+        .delete-options button:hover { border-color: #999; }
+        .delete-options button.active { border-color: #25D366; background: #f0fdf4; }
+        .delete-options button.danger.active { border-color: #ef4444; background: #fef2f2; }
+        
+        .delete-panel { background: #fafafa; padding: 16px; border-radius: 10px; }
+        .delete-panel.danger { background: #fef2f2; border: 1px solid #fecaca; }
+        .warning { background: #fef3c7; color: #92400e; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; }
+        .preview { background: #fff; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; }
+        .preview p { margin: 4px 0; }
+        .form-row { margin-bottom: 12px; }
+        .form-row label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+        .form-row select, .form-row input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .delete-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        
+        .msg-select-list { background: #fff; border-radius: 8px; max-height: 250px; overflow-y: auto; margin-bottom: 12px; border: 1px solid #eee; }
+        .select-header { display: flex; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .select-header button { background: none; border: none; color: #25D366; cursor: pointer; font-size: 13px; }
+        .msg-select-row { display: grid; grid-template-columns: 20px 20px 1fr 70px; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #f5f5f5; align-items: center; cursor: pointer; font-size: 13px; }
+        .msg-select-row:hover { background: #fafafa; }
+        
+        .billing-summary { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 20px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 20px; }
+        .billing-total .amount { font-size: 32px; font-weight: 600; }
+        .billing-total .label { display: block; font-size: 12px; color: #666; }
+        .billing-meta { text-align: right; }
+        .billing-meta .period { font-size: 13px; color: #666; }
+        .billing-meta .account { font-size: 12px; color: #999; margin-top: 4px; }
+        
+        .billing-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #eee; }
+        .billing-table th, .billing-table td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .billing-table th { background: #fafafa; font-weight: 500; color: #666; }
+        .billing-row.warning { background: #fffbeb; }
+        .billing-row.paid { background: #fef2f2; }
+        .expand-cell { width: 30px; }
+        .expand-btn { width: 24px; height: 24px; border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer; font-size: 14px; }
+        .expand-btn:hover { background: #f5f5f5; }
+        .service-name { font-weight: 500; }
+        .resource-row { background: #f9fafb; }
+        .resource-details { padding: 8px 0; font-size: 12px; }
+        .resource-details div { margin: 4px 0; }
+        .resource-details code { background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+        
+        @media (max-width: 768px) {
+          .stats-grid { grid-template-columns: repeat(3, 1fr); }
+          .msg-item { grid-template-columns: 20px 80px 1fr; }
+          .msg-item .time { display: none; }
+          .billing-summary { flex-direction: column; text-align: center; gap: 12px; }
+          .billing-meta { text-align: center; }
+        }
+      `}</style>
+    </Layout>
+  );
+};
+
+export default Dashboard;
