@@ -1,11 +1,20 @@
 /**
  * WhatsApp Payment / Order Details Page
  * Create and send payment requests via WhatsApp order_details template
+ * 
+ * IMPORTANT: Interactive payments MUST be sent from +91 93309 94400 (WECARE.DIGITAL)
+ * This is the only number configured with Razorpay payment gateway
  */
 
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import * as api from '../../api/client';
+
+// Payment phone number configuration
+// Interactive payments ONLY work from this number (has Razorpay configured)
+const PAYMENT_PHONE_NUMBER_ID = 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54';
+const PAYMENT_PHONE_DISPLAY = '+91 93309 94400';
+const PAYMENT_PHONE_NAME = 'WECARE.DIGITAL';
 
 interface PageProps {
   signOut?: () => void;
@@ -109,7 +118,8 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
     try {
       const result = await api.sendWhatsAppPaymentMessage({
         contactId: selectedContact,
-        phoneNumberId: 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54',
+        // HARDCODED: Interactive payments MUST go from WECARE.DIGITAL number
+        phoneNumberId: PAYMENT_PHONE_NUMBER_ID,
         templateName: '02_wd_order_payment',
         referenceId: referenceId,
         items: items.map((item, idx) => ({
@@ -126,7 +136,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
       });
 
       if (result) {
-        setMessage({ type: 'success', text: `Payment request sent! Message ID: ${result.messageId}` });
+        setMessage({ type: 'success', text: `Payment request sent from ${PAYMENT_PHONE_DISPLAY}! Message ID: ${result.messageId}` });
         // Reset form
         setReferenceId('');
         setItems([{ name: '', amount: 0, quantity: 1, productId: '' }]);
@@ -151,6 +161,20 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         <div className="pay-header">
           <h1>💳 WhatsApp Payment Request</h1>
           <p>Send payment requests via WhatsApp UPI (India only)</p>
+        </div>
+
+        {/* Sender Number Notice */}
+        <div className="sender-notice">
+          <div className="sender-icon">📱</div>
+          <div className="sender-info">
+            <div className="sender-label">Sending From</div>
+            <div className="sender-number">{PAYMENT_PHONE_DISPLAY}</div>
+            <div className="sender-name">{PAYMENT_PHONE_NAME}</div>
+          </div>
+          <div className="sender-badge">
+            <span className="badge-dot"></span>
+            Razorpay Enabled
+          </div>
         </div>
 
         {message && (
@@ -379,9 +403,10 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
               </div>
 
               <div className="preview-config">
+                <small><strong>From:</strong> {PAYMENT_PHONE_DISPLAY} ({PAYMENT_PHONE_NAME})</small>
                 <small>Mode: {useInteractive ? '💬 Interactive (Razorpay PG)' : '📋 Template'}</small>
                 <small>Payment Config: WECARE-DIGITAL</small>
-                <small>Payment Type: UPI</small>
+                <small>Payment Type: UPI + Cards + NetBanking</small>
               </div>
             </div>
 
@@ -401,6 +426,16 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         .pay-header { margin-bottom: 24px; }
         .pay-header h1 { font-size: 24px; margin: 0 0 8px 0; }
         .pay-header p { color: #666; margin: 0; }
+        
+        .sender-notice { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%); padding: 16px 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #bbf7d0; }
+        .sender-icon { font-size: 28px; }
+        .sender-info { flex: 1; }
+        .sender-label { font-size: 11px; color: #166534; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sender-number { font-size: 18px; font-weight: 600; color: #166534; }
+        .sender-name { font-size: 13px; color: #15803d; }
+        .sender-badge { display: flex; align-items: center; gap: 6px; background: #166534; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .badge-dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
         .message-bar { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
         .message-bar.success { background: #dcfce7; color: #166534; }
