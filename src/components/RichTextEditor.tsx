@@ -14,8 +14,10 @@ interface PaymentDialogState {
   amount: string;
   quantity: string;
   referenceId: string;
-  discount: string;
-  tax: string;
+  promo: string;      // Discount/Promo
+  express: string;    // Delivery/Express
+  gstRate: string;    // GST rate (0, 3, 5, 12, 18, 28)
+  gstin: string;      // GSTIN number
 }
 
 interface RichTextEditorProps {
@@ -79,8 +81,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     amount: '',
     quantity: '1',
     referenceId: '',
-    discount: '0',
-    tax: '0',
+    promo: '0',
+    express: '0',
+    gstRate: '0',
+    gstin: '19AADFW7431N1ZK',
   });
   const [sendingPayment, setSendingPayment] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -308,8 +312,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
     try {
       const amountInPaise = Math.round(parseFloat(paymentForm.amount) * 100);
-      const discountInPaise = Math.round(parseFloat(paymentForm.discount || '0') * 100);
-      const taxInPaise = Math.round(parseFloat(paymentForm.tax || '0') * 100);
+      const promoInPaise = Math.round(parseFloat(paymentForm.promo || '0') * 100);
+      const expressInPaise = Math.round(parseFloat(paymentForm.express || '0') * 100);
+      const gstRate = parseInt(paymentForm.gstRate) || 0;
 
       const result = await api.sendWhatsAppPaymentMessage({
         contactId: selectedContactId,
@@ -321,15 +326,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           amount: amountInPaise,
           quantity: parseInt(paymentForm.quantity) || 1,
         }],
-        discount: discountInPaise,
-        tax: taxInPaise,
+        discount: promoInPaise,
+        delivery: expressInPaise,
+        gstRate: gstRate,
+        gstin: paymentForm.gstin || '19AADFW7431N1ZK',
         useInteractive: true, // ALWAYS use interactive mode from inbox
       });
 
       if (result) {
         setTemplateMessage(`✓ Payment request sent! Ref: ${paymentForm.referenceId}`);
         setShowPaymentDialog(false);
-        setPaymentForm({ itemName: '', amount: '', quantity: '1', referenceId: '', discount: '0', tax: '0' });
+        setPaymentForm({ itemName: '', amount: '', quantity: '1', referenceId: '', promo: '0', express: '0', gstRate: '0', gstin: '19AADFW7431N1ZK' });
       } else {
         setTemplateMessage('× Failed to send payment request');
       }
@@ -536,25 +543,48 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               />
             </div>
             <div className={styles['variable-input-row']}>
-              <label>Discount (₹)</label>
+              <label>Promo (₹)</label>
               <input
                 type="number"
-                value={paymentForm.discount}
-                onChange={(e) => setPaymentForm({...paymentForm, discount: e.target.value})}
+                value={paymentForm.promo}
+                onChange={(e) => setPaymentForm({...paymentForm, promo: e.target.value})}
                 placeholder="0"
                 step="0.01"
                 min="0"
               />
             </div>
             <div className={styles['variable-input-row']}>
-              <label>Tax (₹)</label>
+              <label>Express (₹)</label>
               <input
                 type="number"
-                value={paymentForm.tax}
-                onChange={(e) => setPaymentForm({...paymentForm, tax: e.target.value})}
+                value={paymentForm.express}
+                onChange={(e) => setPaymentForm({...paymentForm, express: e.target.value})}
                 placeholder="0"
                 step="0.01"
                 min="0"
+              />
+            </div>
+            <div className={styles['variable-input-row']}>
+              <label>GST Rate</label>
+              <select
+                value={paymentForm.gstRate}
+                onChange={(e) => setPaymentForm({...paymentForm, gstRate: e.target.value})}
+              >
+                <option value="0">No GST (0%)</option>
+                <option value="3">GST 3%</option>
+                <option value="5">GST 5%</option>
+                <option value="12">GST 12%</option>
+                <option value="18">GST 18%</option>
+                <option value="28">GST 28%</option>
+              </select>
+            </div>
+            <div className={styles['variable-input-row']}>
+              <label>GSTIN</label>
+              <input
+                type="text"
+                value={paymentForm.gstin}
+                onChange={(e) => setPaymentForm({...paymentForm, gstin: e.target.value})}
+                placeholder="19AADFW7431N1ZK"
               />
             </div>
           </div>
