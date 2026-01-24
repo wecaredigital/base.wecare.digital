@@ -937,7 +937,7 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
         interactive_payload = {
             'type': 'order_details',
             'body': {
-                'text': content or 'Your order is ready for payment'
+                'text': content or 'Your payment is overdue—please tap below to complete it 💳🤝'
             },
             'footer': {
                 'text': 'WECARE.DIGITAL'

@@ -805,7 +805,7 @@ def _process_payment_status(status: Dict, request_id: str) -> None:
             recipient_id=recipient_id,
             reference_id=reference_id,
             order_status='completed',
-            description=f'Payment of ₹{actual_amount:.2f} received. Thank you!',
+            description=f'✅ Payment of ₹{actual_amount:.2f} received successfully! Thank you for your payment 🙏',
             request_id=request_id
         )
     elif payment_status == 'failed':
@@ -813,7 +813,7 @@ def _process_payment_status(status: Dict, request_id: str) -> None:
             recipient_id=recipient_id,
             reference_id=reference_id,
             order_status='canceled',
-            description='Payment failed. Please try again or contact support.',
+            description='❌ Payment failed. Please try again or reply HELP for assistance.',
             request_id=request_id
         )
 
