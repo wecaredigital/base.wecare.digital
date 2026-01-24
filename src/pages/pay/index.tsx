@@ -108,6 +108,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
       const result = await api.sendWhatsAppPaymentMessage({
         contactId: selectedContact,
         phoneNumberId: 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54',
+        templateName: '02_wd_order_payment',
         referenceId: referenceId,
         items: items.map((item, idx) => ({
           name: item.name,

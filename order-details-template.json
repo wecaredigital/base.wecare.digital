@@ -4,7 +4,7 @@
   "to": "+919900000000",
   "type": "template",
   "template": {
-    "name": "02_wd_pay",
+    "name": "02_wd_order_payment",
     "language": {
       "policy": "deterministic",
       "code": "en"

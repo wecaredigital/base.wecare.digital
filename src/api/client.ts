@@ -1130,7 +1130,7 @@ export interface SendPaymentMessageRequest {
 
 /**
  * Send WhatsApp Payment Message using order_details template
- * Uses the 02_wd_pay template with WECARE-DIGITAL payment configuration
+ * Uses the 02_wd_order_payment template with WECARE-DIGITAL payment configuration
  */
 export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequest): Promise<{ messageId: string; status: string } | null> {
   // Calculate totals
@@ -1170,7 +1170,7 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
       contactId: request.contactId,
       phoneNumberId: request.phoneNumberId,
       isTemplate: true,
-      templateName: request.templateName || '02_wd_pay',
+      templateName: request.templateName || '02_wd_order_payment',
       isPaymentTemplate: true,
       orderDetails: orderDetails,
       headerImageUrl: request.headerImageUrl,
