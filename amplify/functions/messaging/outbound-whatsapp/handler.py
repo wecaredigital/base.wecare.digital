@@ -1057,6 +1057,7 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
         total_paise = whatsapp_subtotal - discount_paise + delivery_paise + gst_paise
         
         # Build order object - ALL fields mandatory (show even if 0)
+        # WhatsApp interactive order_details supports: items, subtotal, discount, shipping, tax
         order_obj = {
             'status': 'pending',
             'items': items_for_whatsapp,
@@ -1074,11 +1075,16 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             'tax': {
                 'value': gst_paise,
                 'offset': 100,
-                'description': f'Tax | GSTIN: {gstin}'
+                'description': f'Tax | GSTIN: {gstin}' if gst_paise > 0 else f'GSTIN: {gstin}'
             }
         }
         
         # Build interactive order_details payload
+        # Structure per WhatsApp API:
+        # - header: image
+        # - body: text message
+        # - footer: business name
+        # - action: review_and_pay with order details
         interactive_payload = {
             'type': 'order_details',
             'header': {
