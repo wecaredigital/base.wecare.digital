@@ -90,18 +90,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         is_order_status = body.get('isOrderStatus', False)
         order_status_details = body.get('orderStatusDetails')
         
+        # Direct phone number (fallback when contactId not available)
+        recipient_phone_direct = body.get('recipientPhone')
+        
         # Reaction support
         is_reaction = body.get('isReaction', False)
         reaction_message_id = body.get('reactionMessageId')  # WhatsApp message ID to react to
         reaction_emoji = body.get('reactionEmoji', '\U0001F44D')  # Default: thumbs up
         
-        if not contact_id:
-            return _error_response(400, 'contactId is required')
+        # Allow sending without contactId if recipientPhone is provided (for order_status)
+        if not contact_id and not recipient_phone_direct:
+            return _error_response(400, 'contactId or recipientPhone is required')
         
-        # Retrieve contact
-        contact = _get_contact(contact_id)
-        if not contact:
-            return _error_response(404, 'Contact not found')
+        # If we have recipientPhone but no contactId, use phone directly
+        if not contact_id and recipient_phone_direct:
+            contact = {'phone': recipient_phone_direct, 'id': '', 'contactId': ''}
+            recipient_phone = recipient_phone_direct
+        else:
+            # Retrieve contact
+            contact = _get_contact(contact_id)
+            if not contact:
+                return _error_response(404, 'Contact not found')
+            recipient_phone = contact.get('phone')
         
         # Validate reaction request
         if is_reaction and not reaction_message_id:
@@ -121,7 +131,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Generate message ID
         message_id = str(uuid.uuid4())
-        recipient_phone = contact.get('phone')
         
         # Requirement 5.3: DRY_RUN mode - log without API call
         if SEND_MODE == 'DRY_RUN':

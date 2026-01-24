@@ -885,25 +885,48 @@ def _get_contact_by_phone(phone: str) -> Optional[Dict]:
     try:
         contacts_table = dynamodb.Table(CONTACTS_TABLE)
         
-        # Clean phone number
+        # Clean phone number - handle various formats
+        # Webhook sends: 918100330063
+        # DB stores: +918100330063
         clean_phone = phone.lstrip('+')
         phone_with_plus = f'+{clean_phone}'
         
+        logger.info(json.dumps({
+            'event': 'contact_lookup_by_phone',
+            'originalPhone': phone,
+            'cleanPhone': clean_phone,
+            'phoneWithPlus': phone_with_plus
+        }))
+        
+        # Try multiple phone formats
         response = contacts_table.scan(
-            FilterExpression='(phone = :phone1 OR phone = :phone2) AND (attribute_not_exists(deletedAt) OR deletedAt = :null)',
+            FilterExpression='(phone = :phone1 OR phone = :phone2 OR phone = :phone3) AND (attribute_not_exists(deletedAt) OR deletedAt = :null)',
             ExpressionAttributeValues={
                 ':phone1': clean_phone,
                 ':phone2': phone_with_plus,
+                ':phone3': phone,  # Original format
                 ':null': None
             },
-            Limit=1
+            Limit=10  # Increase limit to ensure we find the contact
         )
         
         items = response.get('Items', [])
+        
+        logger.info(json.dumps({
+            'event': 'contact_lookup_result',
+            'phone': phone,
+            'foundCount': len(items),
+            'contactId': items[0].get('id', '') if items else None
+        }))
+        
         return items[0] if items else None
         
     except Exception as e:
-        logger.error(f"Failed to get contact by phone: {str(e)}")
+        logger.error(json.dumps({
+            'event': 'contact_lookup_error',
+            'phone': phone,
+            'error': str(e)
+        }))
         return None
 
 
@@ -935,22 +958,29 @@ def _send_order_status_message(recipient_id: str, reference_id: str,
     try:
         # Find contact by phone number
         contact = _get_contact_by_phone(recipient_id)
+        
         if not contact:
             logger.warning(json.dumps({
                 'event': 'order_status_no_contact',
                 'recipientId': recipient_id,
                 'referenceId': reference_id,
-                'requestId': request_id
+                'requestId': request_id,
+                'note': 'Will try to send using phone number directly'
             }))
-            return
+            # Create a minimal contact object with phone number
+            # Format phone for WhatsApp: +918100330063
+            formatted_phone = f'+{recipient_id}' if not recipient_id.startswith('+') else recipient_id
+            contact = {'id': '', 'phone': formatted_phone}
         
         contact_id = contact.get('id', '')
+        contact_phone = contact.get('phone', f'+{recipient_id}')
         
-        # Build order_status payload
+        # Build order_status payload - send directly to outbound Lambda
         order_status_payload = {
             'body': json.dumps({
-                'contactId': contact_id,
-                'phoneNumberId': PHONE_NUMBER_ID_1,  # Use primary phone number
+                'contactId': contact_id if contact_id else None,
+                'recipientPhone': contact_phone,  # Fallback to phone if no contactId
+                'phoneNumberId': PHONE_NUMBER_ID_1,
                 'isOrderStatus': True,
                 'orderStatusDetails': {
                     'reference_id': reference_id,
@@ -959,6 +989,15 @@ def _send_order_status_message(recipient_id: str, reference_id: str,
                 }
             })
         }
+        
+        logger.info(json.dumps({
+            'event': 'order_status_message_sending',
+            'contactId': contact_id,
+            'contactPhone': contact_phone,
+            'referenceId': reference_id,
+            'orderStatus': order_status,
+            'requestId': request_id
+        }))
         
         # Invoke outbound Lambda to send order_status message
         response = lambda_client.invoke(
@@ -970,6 +1009,7 @@ def _send_order_status_message(recipient_id: str, reference_id: str,
         logger.info(json.dumps({
             'event': 'order_status_message_triggered',
             'contactId': contact_id,
+            'contactPhone': contact_phone,
             'referenceId': reference_id,
             'orderStatus': order_status,
             'statusCode': response.get('StatusCode'),
