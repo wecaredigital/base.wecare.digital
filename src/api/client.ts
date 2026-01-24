@@ -1163,7 +1163,7 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
     // New fields for backend calculation
     itemName: firstItem.name || 'Service Fee',
     quantity: firstItem.quantity || 1,
-    gstRate: request.gstRate || 18,
+    gstRate: request.gstRate ?? 0,  // Use 0 as default if not specified
     gstin: request.gstin || '19AADFW7431N1ZK',
     order: {
       status: 'pending',
@@ -1175,14 +1175,16 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
       })),
       subtotal: { value: subtotal, offset: 100 },
       discount: { value: discount, offset: 100, description: 'Discount' },
-      shipping: { value: delivery, offset: 100, description: 'Delivery' },
+      shipping: { value: delivery, offset: 100, description: 'Shipping' },
       tax: { value: tax, offset: 100, description: request.taxDescription || 'Tax' },
     },
   };
 
+  console.log('Sending payment message:', { contactId: request.contactId, orderDetails });
+
   // Use interactive mode if specified
   if (request.useInteractive) {
-    return apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
+    const result = await apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
       method: 'POST',
       body: JSON.stringify({
         contactId: request.contactId,
@@ -1192,6 +1194,8 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
         headerImageUrl: request.headerImageUrl,
       }),
     });
+    console.log('Payment message result:', result);
+    return result;
   }
 
   // Template mode

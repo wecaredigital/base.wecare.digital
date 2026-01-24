@@ -148,6 +148,19 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
     setMessage(null);
 
     try {
+      console.log('Sending payment request with:', {
+        contactId: selectedContact,
+        phoneNumberId: PAYMENT_PHONE_NUMBER_ID,
+        referenceId,
+        itemName,
+        itemAmount,
+        itemQuantity,
+        discount,
+        shipping,
+        gstRate,
+        gstin,
+      });
+
       const result = await api.sendWhatsAppPaymentMessage({
         contactId: selectedContact,
         phoneNumberId: PAYMENT_PHONE_NUMBER_ID,
@@ -166,6 +179,8 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         useInteractive: true,
       });
 
+      console.log('Payment request result:', result);
+
       if (result) {
         setMessage({ type: 'success', text: `Payment request sent! Message ID: ${result.messageId}` });
         // Reset form
@@ -176,9 +191,11 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         setDiscount(0);
         setShipping(0);
       } else {
-        setMessage({ type: 'error', text: 'Failed to send payment request' });
+        const connStatus = api.getConnectionStatus();
+        setMessage({ type: 'error', text: `Failed to send payment request: ${connStatus.lastError || 'Unknown error'}` });
       }
     } catch (err: any) {
+      console.error('Payment request error:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to send payment request' });
     } finally {
       setSending(false);
