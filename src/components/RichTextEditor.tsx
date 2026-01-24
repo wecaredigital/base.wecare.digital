@@ -315,6 +315,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       const promoInPaise = Math.round(parseFloat(paymentForm.promo || '0') * 100);
       const expressInPaise = Math.round(parseFloat(paymentForm.express || '0') * 100);
       const gstRate = parseInt(paymentForm.gstRate) || 0;
+      // Calculate tax based on GST rate
+      const taxInPaise = Math.round(amountInPaise * gstRate / 100);
+
+      console.log('Sending payment from RichTextEditor:', {
+        contactId: selectedContactId,
+        itemName: paymentForm.itemName,
+        amount: amountInPaise,
+        quantity: paymentForm.quantity,
+        discount: promoInPaise,
+        shipping: expressInPaise,
+        gstRate,
+        tax: taxInPaise,
+        gstin: paymentForm.gstin,
+      });
 
       const result = await api.sendWhatsAppPaymentMessage({
         contactId: selectedContactId,
@@ -328,23 +342,28 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }],
         discount: promoInPaise,
         delivery: expressInPaise,
+        tax: taxInPaise,
         gstRate: gstRate,
         gstin: paymentForm.gstin || '19AADFW7431N1ZK',
         useInteractive: true, // ALWAYS use interactive mode from inbox
       });
+
+      console.log('Payment result:', result);
 
       if (result) {
         setTemplateMessage(`✓ Payment request sent! Ref: ${paymentForm.referenceId}`);
         setShowPaymentDialog(false);
         setPaymentForm({ itemName: '', amount: '', quantity: '1', referenceId: '', promo: '0', express: '0', gstRate: '0', gstin: '19AADFW7431N1ZK' });
       } else {
-        setTemplateMessage('× Failed to send payment request');
+        const connStatus = api.getConnectionStatus();
+        setTemplateMessage(`× Failed: ${connStatus.lastError || 'Unknown error'}`);
       }
     } catch (error: any) {
+      console.error('Payment send error:', error);
       setTemplateMessage(`× Error: ${error.message || 'Failed to send'}`);
     } finally {
       setSendingPayment(false);
-      setTimeout(() => setTemplateMessage(null), 3000);
+      setTimeout(() => setTemplateMessage(null), 5000);
     }
   };
 
