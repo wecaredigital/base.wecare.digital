@@ -41,23 +41,75 @@
 | Resource | Value |
 |----------|-------|
 | API Base URL | `https://api.razorpay.com/v1` |
-| Key ID | Get from Razorpay Dashboard → Settings → API Keys |
-| Key Secret | Get from Razorpay Dashboard → Settings → API Keys |
-| Webhook Secret | Get from Razorpay Dashboard → Settings → Webhooks |
+| Webhook URL | `https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod/razorpay-webhook` |
+| Webhook Secret | `b@c4mk9t9Z8qLq3` |
 
-### Razorpay Webhook Events
+### Razorpay Webhook Events (41 Active)
 
-Configure these webhooks in Razorpay Dashboard → Settings → Webhooks:
+**Payment Events:**
+- `payment.authorized` - Payment authorized
+- `payment.captured` - Payment captured ✅
+- `payment.failed` - Payment failed ❌
 
-| Event | Description |
-|-------|-------------|
-| `payment.authorized` | Payment authorized (for manual capture) |
-| `payment.captured` | Payment captured successfully |
-| `payment.failed` | Payment failed |
-| `refund.created` | Refund initiated |
-| `refund.processed` | Refund completed |
+**Dispute Events:**
+- `payment.dispute.created` - Dispute created
+- `payment.dispute.won` - Dispute won
+- `payment.dispute.lost` - Dispute lost
+- `payment.dispute.closed` - Dispute closed
+- `payment.dispute.under_review` - Under review
+- `payment.dispute.action_required` - Action required
 
-**Webhook URL**: `https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod/razorpay-webhook`
+**Order Events:**
+- `order.paid` - Order paid
+- `order.notification.delivered` - Notification delivered
+- `order.notification.failed` - Notification failed
+
+**Invoice Events:**
+- `invoice.paid` - Invoice paid
+- `invoice.partially_paid` - Partially paid
+- `invoice.expired` - Invoice expired
+
+**Refund Events:**
+- `refund.created` - Refund created
+- `refund.processed` - Refund processed
+- `refund.failed` - Refund failed
+- `refund.speed_changed` - Speed changed
+
+**Settlement Events:**
+- `settlement.processed` - Settlement processed
+
+**Payout Events:**
+- `payout.initiated` - Payout initiated
+- `payout.processed` - Payout processed
+- `payout.reversed` - Payout reversed
+- `payout.updated` - Payout updated
+- `payout.rejected` - Payout rejected
+- `payout.pending` - Payout pending
+
+**Fund Account Events:**
+- `fund_account.validation.completed` - Validation completed
+- `fund_account.validation.failed` - Validation failed
+
+**Payment Link Events:**
+- `payment_link.paid` - Payment link paid
+- `payment_link.partially_paid` - Partially paid
+- `payment_link.expired` - Link expired
+- `payment_link.cancelled` - Link cancelled
+
+**Downtime Events:**
+- `payment.downtime.started` - Downtime started
+- `payment.downtime.updated` - Downtime updated
+- `payment.downtime.resolved` - Downtime resolved
+
+**Account Events:**
+- `account.instantly_activated` - Account activated
+- `account.activated_kyc_pending` - KYC pending
+
+**Token Events:**
+- `token.service_provider.activated` - Token activated
+- `token.service_provider.failed` - Token failed
+- `token.service_provider.cancelled` - Token cancelled
+- `token.service_provider.deactivated` - Token deactivated
 
 ---
 
