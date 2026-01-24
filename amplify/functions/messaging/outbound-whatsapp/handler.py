@@ -928,14 +928,24 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
         'to': whatsapp_phone
     }
     
+    # Default header image for interactive payments
+    DEFAULT_PAYMENT_HEADER_IMAGE = 'https://auth.wecare.digital/stream/media/m/wecare-digital.png'
+    
     # Handle INTERACTIVE order_details message (for within 24h window)
     # This uses payment_settings array with payment_gateway config
     if is_interactive_payment and order_details:
         payload['type'] = 'interactive'
         
+        # Use provided header image or default
+        payment_header_image = header_image_url or DEFAULT_PAYMENT_HEADER_IMAGE
+        
         # Build interactive order_details payload per Meta/Razorpay docs
         interactive_payload = {
             'type': 'order_details',
+            'header': {
+                'type': 'image',
+                'image': {'link': payment_header_image}
+            },
             'body': {
                 'text': content or 'Your payment is overdue—please tap below to complete it 💳🤝'
             },
@@ -977,13 +987,6 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             }
         }
         
-        # Add header image if provided
-        if header_image_url:
-            interactive_payload['header'] = {
-                'type': 'image',
-                'image': {'link': header_image_url}
-            }
-        
         payload['interactive'] = interactive_payload
         
         logger.info(json.dumps({
@@ -992,7 +995,7 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             'totalAmount': order_details.get('total_amount', {}).get('value'),
             'currency': order_details.get('currency'),
             'paymentConfig': order_details.get('payment_configuration', 'WECARE-DIGITAL'),
-            'hasHeaderImage': bool(header_image_url)
+            'headerImage': payment_header_image
         }))
         
         return payload
