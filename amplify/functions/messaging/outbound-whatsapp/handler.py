@@ -86,6 +86,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Interactive payment support (for within 24h window - uses payment_settings)
         is_interactive_payment = body.get('isInteractivePayment', False)
         
+        # Order status support (for payment confirmation messages)
+        is_order_status = body.get('isOrderStatus', False)
+        order_status_details = body.get('orderStatusDetails')
+        
         # Reaction support
         is_reaction = body.get('isReaction', False)
         reaction_message_id = body.get('reactionMessageId')  # WhatsApp message ID to react to
@@ -130,6 +134,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return _handle_reaction_send(
                 message_id, contact_id, recipient_phone, phone_number_id,
                 reaction_message_id, reaction_emoji, request_id
+            )
+        
+        # Handle order_status messages (payment confirmation)
+        if is_order_status and order_status_details:
+            return _handle_order_status_send(
+                message_id, contact_id, recipient_phone, phone_number_id,
+                order_status_details, request_id
             )
         
         # Requirement 5.2: LIVE mode - call API
@@ -318,6 +329,138 @@ def _handle_reaction_send(message_id: str, contact_id: str, recipient_phone: str
         }))
         _emit_delivery_metric('failed', is_template=False)
         return _error_response(500, f'Failed to send reaction: {error_msg}')
+
+
+def _handle_order_status_send(message_id: str, contact_id: str, recipient_phone: str,
+                               phone_number_id: str, order_status_details: Dict,
+                               request_id: str) -> Dict[str, Any]:
+    """
+    Send order_status interactive message to confirm payment status.
+    
+    Order status message format per Meta docs:
+    {
+        "type": "interactive",
+        "interactive": {
+            "type": "order_status",
+            "body": {"text": "Your payment was successful!"},
+            "action": {
+                "name": "review_order",
+                "parameters": {
+                    "reference_id": "ORDER_12345",
+                    "order": {
+                        "status": "completed",
+                        "description": "Payment received. Thank you!"
+                    }
+                }
+            }
+        }
+    }
+    """
+    try:
+        reference_id = order_status_details.get('reference_id', '')
+        order_status = order_status_details.get('order_status', 'completed')
+        description = order_status_details.get('description', 'Order status updated')
+        
+        # Normalize phone number
+        formatted_phone = _normalize_phone_number(recipient_phone)
+        whatsapp_phone = f"+{formatted_phone}"
+        
+        # Build order_status payload
+        order_status_payload = {
+            'messaging_product': 'whatsapp',
+            'recipient_type': 'individual',
+            'to': whatsapp_phone,
+            'type': 'interactive',
+            'interactive': {
+                'type': 'order_status',
+                'body': {
+                    'text': description
+                },
+                'action': {
+                    'name': 'review_order',
+                    'parameters': {
+                        'reference_id': reference_id,
+                        'order': {
+                            'status': order_status,
+                            'description': description
+                        }
+                    }
+                }
+            }
+        }
+        
+        logger.info(json.dumps({
+            'event': 'order_status_payload',
+            'to': whatsapp_phone,
+            'referenceId': reference_id,
+            'orderStatus': order_status,
+            'payload': order_status_payload,
+            'requestId': request_id
+        }))
+        
+        # Call SendWhatsAppMessage API
+        response = social_messaging.send_whatsapp_message(
+            originationPhoneNumberId=phone_number_id,
+            message=json.dumps(order_status_payload),
+            metaApiVersion=META_API_VERSION
+        )
+        
+        whatsapp_message_id = response.get('messageId', '')
+        
+        # Store message record
+        _store_message_record(
+            message_id=message_id,
+            contact_id=contact_id,
+            content=f'Order Status: {order_status} - {description}',
+            status='sent',
+            is_template=False,
+            whatsapp_message_id=whatsapp_message_id,
+            phone_number_id=phone_number_id
+        )
+        
+        logger.info(json.dumps({
+            'event': 'order_status_sent',
+            'messageId': message_id,
+            'whatsappMessageId': whatsapp_message_id,
+            'contactId': contact_id,
+            'referenceId': reference_id,
+            'orderStatus': order_status,
+            'requestId': request_id
+        }))
+        
+        # Emit success metric
+        _emit_delivery_metric('success', is_template=False)
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
+            'body': json.dumps({
+                'messageId': message_id,
+                'whatsappMessageId': whatsapp_message_id,
+                'status': 'sent',
+                'mode': 'LIVE',
+                'type': 'order_status',
+                'referenceId': reference_id,
+                'orderStatus': order_status
+            })
+        }
+        
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(json.dumps({
+            'event': 'order_status_send_error',
+            'messageId': message_id,
+            'referenceId': order_status_details.get('reference_id', ''),
+            'error': error_msg,
+            'requestId': request_id
+        }))
+        _emit_delivery_metric('failed', is_template=False)
+        return _error_response(500, f'Failed to send order status: {error_msg}')
 
 
 def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,

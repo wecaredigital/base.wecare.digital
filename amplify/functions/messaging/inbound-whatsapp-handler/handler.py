@@ -670,14 +670,27 @@ def _store_media_record(message_id: str, s3_key: str, media_data: Dict, whatsapp
 
 def _process_status(status: Dict, request_id: str) -> None:
     """
-    Process message status update (sent|delivered|read|failed).
+    Process message status update (sent|delivered|read|failed|payment).
     Per AWS docs: Can also send status updates back to WhatsApp to mark as read.
+    
+    Payment status webhooks have type='payment' with payment object containing:
+    - reference_id: Order/invoice reference
+    - amount: {value, offset}
+    - currency: INR
+    - status: pending|captured|failed
     """
     whatsapp_message_id = status.get('id')
     status_value = status.get('status')
+    status_type = status.get('type', '')  # 'payment' for payment webhooks
     timestamp = int(status.get('timestamp', time.time()))
+    recipient_id = status.get('recipient_id', '')
     
     if not whatsapp_message_id or not status_value:
+        return
+    
+    # Handle payment status webhooks
+    if status_type == 'payment':
+        _process_payment_status(status, request_id)
         return
     
     try:
@@ -714,6 +727,260 @@ def _process_status(status: Dict, request_id: str) -> None:
         logger.error(json.dumps({
             'event': 'status_update_error',
             'whatsappMessageId': whatsapp_message_id,
+            'error': str(e),
+            'requestId': request_id
+        }))
+
+
+def _process_payment_status(status: Dict, request_id: str) -> None:
+    """
+    Process payment status webhook from WhatsApp.
+    
+    Payment webhook format:
+    {
+        "id": "wamid.xxx",
+        "recipient_id": "919876543210",
+        "type": "payment",
+        "status": "captured",  // pending, captured, failed
+        "payment": {
+            "reference_id": "ORDER_12345",
+            "amount": {"value": 10000, "offset": 100},
+            "currency": "INR",
+            "transaction": {
+                "id": "txn_xxx",
+                "type": "upi",
+                "status": "success"
+            }
+        },
+        "timestamp": "1706140800"
+    }
+    """
+    payment_data = status.get('payment', {})
+    reference_id = payment_data.get('reference_id', '')
+    payment_status = status.get('status', '')
+    recipient_id = status.get('recipient_id', '')
+    timestamp = int(status.get('timestamp', time.time()))
+    
+    amount = payment_data.get('amount', {})
+    amount_value = amount.get('value', 0)
+    amount_offset = amount.get('offset', 100)
+    currency = payment_data.get('currency', 'INR')
+    
+    # Calculate actual amount (value / offset)
+    actual_amount = amount_value / amount_offset if amount_offset else amount_value
+    
+    transaction = payment_data.get('transaction', {})
+    transaction_id = transaction.get('id', '')
+    transaction_type = transaction.get('type', '')
+    
+    logger.info(json.dumps({
+        'event': 'payment_status_received',
+        'referenceId': reference_id,
+        'paymentStatus': payment_status,
+        'recipientId': recipient_id,
+        'amount': actual_amount,
+        'currency': currency,
+        'transactionId': transaction_id,
+        'transactionType': transaction_type,
+        'requestId': request_id
+    }))
+    
+    # Store payment record in DynamoDB
+    _store_payment_record(
+        reference_id=reference_id,
+        recipient_id=recipient_id,
+        payment_status=payment_status,
+        amount_value=amount_value,
+        amount_offset=amount_offset,
+        currency=currency,
+        transaction_id=transaction_id,
+        transaction_type=transaction_type,
+        timestamp=timestamp,
+        request_id=request_id
+    )
+    
+    # Send order_status message based on payment status
+    if payment_status == 'captured':
+        _send_order_status_message(
+            recipient_id=recipient_id,
+            reference_id=reference_id,
+            order_status='completed',
+            description=f'Payment of ₹{actual_amount:.2f} received. Thank you!',
+            request_id=request_id
+        )
+    elif payment_status == 'failed':
+        _send_order_status_message(
+            recipient_id=recipient_id,
+            reference_id=reference_id,
+            order_status='canceled',
+            description='Payment failed. Please try again or contact support.',
+            request_id=request_id
+        )
+
+
+def _store_payment_record(reference_id: str, recipient_id: str, payment_status: str,
+                          amount_value: int, amount_offset: int, currency: str,
+                          transaction_id: str, transaction_type: str,
+                          timestamp: int, request_id: str) -> None:
+    """Store payment record in Messages table for tracking."""
+    try:
+        # Find contact by phone number
+        contact = _get_contact_by_phone(recipient_id)
+        contact_id = contact.get('id', '') if contact else ''
+        
+        payment_id = str(uuid.uuid4())
+        now = int(time.time())
+        expires_at = now + MESSAGE_TTL_SECONDS
+        
+        # Calculate actual amount
+        actual_amount = amount_value / amount_offset if amount_offset else amount_value
+        
+        payment_record = {
+            'id': payment_id,
+            'messageId': payment_id,
+            'contactId': contact_id,
+            'channel': 'whatsapp',
+            'direction': 'inbound',
+            'messageType': 'payment',
+            'content': f'Payment {payment_status}: ₹{actual_amount:.2f} ({currency})',
+            'status': payment_status,
+            'senderPhone': recipient_id,
+            # Payment-specific fields
+            'paymentReferenceId': reference_id,
+            'paymentStatus': payment_status,
+            'paymentAmount': Decimal(str(amount_value)),
+            'paymentOffset': Decimal(str(amount_offset)),
+            'paymentCurrency': currency,
+            'transactionId': transaction_id,
+            'transactionType': transaction_type,
+            'timestamp': Decimal(str(timestamp)),
+            'createdAt': Decimal(str(now)),
+            'expiresAt': Decimal(str(expires_at)),
+        }
+        
+        messages_table = dynamodb.Table(MESSAGES_TABLE)
+        messages_table.put_item(Item={k: v for k, v in payment_record.items() if v is not None and v != ''})
+        
+        logger.info(json.dumps({
+            'event': 'payment_record_stored',
+            'paymentId': payment_id,
+            'referenceId': reference_id,
+            'contactId': contact_id,
+            'paymentStatus': payment_status,
+            'amount': actual_amount,
+            'requestId': request_id
+        }))
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'payment_record_store_error',
+            'referenceId': reference_id,
+            'error': str(e),
+            'requestId': request_id
+        }))
+
+
+def _get_contact_by_phone(phone: str) -> Optional[Dict]:
+    """Get contact by phone number."""
+    try:
+        contacts_table = dynamodb.Table(CONTACTS_TABLE)
+        
+        # Clean phone number
+        clean_phone = phone.lstrip('+')
+        phone_with_plus = f'+{clean_phone}'
+        
+        response = contacts_table.scan(
+            FilterExpression='(phone = :phone1 OR phone = :phone2) AND (attribute_not_exists(deletedAt) OR deletedAt = :null)',
+            ExpressionAttributeValues={
+                ':phone1': clean_phone,
+                ':phone2': phone_with_plus,
+                ':null': None
+            },
+            Limit=1
+        )
+        
+        items = response.get('Items', [])
+        return items[0] if items else None
+        
+    except Exception as e:
+        logger.error(f"Failed to get contact by phone: {str(e)}")
+        return None
+
+
+def _send_order_status_message(recipient_id: str, reference_id: str, 
+                                order_status: str, description: str,
+                                request_id: str) -> None:
+    """
+    Send order_status interactive message to confirm payment status.
+    
+    Order status message format:
+    {
+        "type": "interactive",
+        "interactive": {
+            "type": "order_status",
+            "body": {"text": "Your payment was successful!"},
+            "action": {
+                "name": "review_order",
+                "parameters": {
+                    "reference_id": "ORDER_12345",
+                    "order": {
+                        "status": "completed",  // pending, processing, shipped, completed, canceled
+                        "description": "Payment received. Thank you!"
+                    }
+                }
+            }
+        }
+    }
+    """
+    try:
+        # Find contact by phone number
+        contact = _get_contact_by_phone(recipient_id)
+        if not contact:
+            logger.warning(json.dumps({
+                'event': 'order_status_no_contact',
+                'recipientId': recipient_id,
+                'referenceId': reference_id,
+                'requestId': request_id
+            }))
+            return
+        
+        contact_id = contact.get('id', '')
+        
+        # Build order_status payload
+        order_status_payload = {
+            'body': json.dumps({
+                'contactId': contact_id,
+                'phoneNumberId': PHONE_NUMBER_ID_1,  # Use primary phone number
+                'isOrderStatus': True,
+                'orderStatusDetails': {
+                    'reference_id': reference_id,
+                    'order_status': order_status,
+                    'description': description
+                }
+            })
+        }
+        
+        # Invoke outbound Lambda to send order_status message
+        response = lambda_client.invoke(
+            FunctionName=OUTBOUND_WHATSAPP_FUNCTION,
+            InvocationType='Event',  # Async
+            Payload=json.dumps(order_status_payload)
+        )
+        
+        logger.info(json.dumps({
+            'event': 'order_status_message_triggered',
+            'contactId': contact_id,
+            'referenceId': reference_id,
+            'orderStatus': order_status,
+            'statusCode': response.get('StatusCode'),
+            'requestId': request_id
+        }))
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'order_status_message_error',
+            'recipientId': recipient_id,
+            'referenceId': reference_id,
             'error': str(e),
             'requestId': request_id
         }))

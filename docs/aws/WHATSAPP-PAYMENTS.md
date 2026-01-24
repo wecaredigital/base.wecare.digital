@@ -248,7 +248,7 @@ All amounts use `offset` for decimal precision:
 
 ## Payment Status Webhooks
 
-When payment status changes, you receive a webhook:
+When payment status changes, you receive a webhook that is processed by the inbound handler:
 
 ```json
 {
@@ -263,7 +263,12 @@ When payment status changes, you receive a webhook:
         "value": 10000,
         "offset": 100
       },
-      "currency": "INR"
+      "currency": "INR",
+      "transaction": {
+        "id": "txn_xxx",
+        "type": "upi",
+        "status": "success"
+      }
     },
     "timestamp": "1706140800"
   }]
@@ -272,8 +277,16 @@ When payment status changes, you receive a webhook:
 
 ### Payment Status Values:
 - `pending` - Payment initiated
-- `captured` - Payment successful
-- `failed` - Payment failed
+- `captured` - Payment successful ✅
+- `failed` - Payment failed ❌
+
+### Automatic Order Status Updates
+
+When a payment webhook is received, the system automatically:
+1. Stores the payment record in DynamoDB
+2. Sends an `order_status` message to the customer:
+   - **captured** → `completed` status with success message
+   - **failed** → `canceled` status with retry message
 
 ---
 
@@ -360,3 +373,41 @@ Send order status updates using `order_status` interactive message:
 - [360dialog Payments Documentation](https://docs.360dialog.com/docs/waba-messaging/payments-india-only)
 - [Meta WhatsApp Payments API](https://developers.facebook.com/docs/whatsapp/cloud-api/payments-api/payments-in)
 - [AWS EUM Social Messaging](https://docs.aws.amazon.com/social-messaging/latest/userguide/whatsapp-send-message.html)
+
+---
+
+## Implementation Details
+
+### Lambda Functions
+
+| Function | Purpose |
+|----------|---------|
+| `outbound-whatsapp` | Sends payment requests (interactive + template) and order_status messages |
+| `inbound-whatsapp-handler` | Processes payment webhooks and triggers order_status messages |
+
+### Payment Flow
+
+```
+1. User sends payment request via /pay page
+   ↓
+2. outbound-whatsapp Lambda sends order_details message
+   ↓
+3. Customer receives payment request in WhatsApp
+   ↓
+4. Customer pays via UPI/Cards/NetBanking
+   ↓
+5. Meta sends payment webhook to SNS → inbound-whatsapp-handler
+   ↓
+6. inbound-whatsapp-handler:
+   - Stores payment record in DynamoDB
+   - Triggers order_status message via outbound-whatsapp
+   ↓
+7. Customer receives payment confirmation in WhatsApp
+```
+
+### Files Modified
+
+- `amplify/functions/messaging/outbound-whatsapp/handler.py` - Payment message sending
+- `amplify/functions/messaging/inbound-whatsapp-handler/handler.py` - Payment webhook handling
+- `src/api/client.ts` - `sendWhatsAppPaymentMessage()` API function
+- `src/pages/pay/index.tsx` - Payment request UI
