@@ -249,10 +249,18 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
                   </Link>
                   <Link href="/pay" className="action-card payment">
                     <span className="icon">$</span>
-                    <span>Payments</span>
+                    <span>Pay</span>
+                  </Link>
+                  <Link href="/invoice" className="action-card invoice">
+                    <span className="icon">⎘</span>
+                    <span>Invoice</span>
+                  </Link>
+                  <Link href="/link" className="action-card link-card">
+                    <span className="icon">⊕</span>
+                    <span>Link</span>
                   </Link>
                   <Link href="/contacts" className="action-card">
-                    <span className="icon">⊕</span>
+                    <span className="icon">◉</span>
                     <span>Contacts</span>
                   </Link>
                   <Link href="/bulk" className="action-card">
@@ -628,6 +636,8 @@ const Dashboard: React.FC<PageProps> = ({ signOut, user }) => {
         .action-card .icon { font-size: 20px; margin-bottom: 6px; }
         .action-card.whatsapp { border-left: 3px solid #25D366; }
         .action-card.payment { border-left: 3px solid #f59e0b; }
+        .action-card.invoice { border-left: 3px solid #8b5cf6; }
+        .action-card.link-card { border-left: 3px solid #3b82f6; }
         
         .msg-list { background: #fff; border-radius: 10px; border: 1px solid #eee; overflow: hidden; }
         .msg-list.full { max-height: 400px; overflow-y: auto; }
