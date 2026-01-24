@@ -48,8 +48,8 @@ Single bucket: `auth.wecare.digital`
 │   ├── components/    # React components
 │   ├── pages/         # Next.js pages
 │   └── styles/        # CSS styles
-├── docs/              # Documentation
-└── tests/             # Integration tests
+├── docs/aws/          # AWS Documentation
+└── scripts/           # Admin scripts
 ```
 
 ## Lambda Functions
@@ -64,7 +64,13 @@ All Lambda functions use Python 3.12 runtime with prefix `wecare-*`:
 
 ## Documentation
 
-See `docs/` folder for:
+See `docs/aws/` folder for:
 - [AWS Resources](docs/aws/RESOURCES.md)
 - [WhatsApp API Reference](docs/aws/WHATSAPP-API-REFERENCE.md)
-- [S3 Folder Mapping](docs/S3_FOLDER_MAPPING.md)
+- [WhatsApp Payments](docs/aws/WHATSAPP-PAYMENTS.md)
+- [S3 Bucket Config](docs/aws/S3-BUCKET-CONFIG.md)
+- [Bedrock KB Setup](docs/aws/BEDROCK-KB.md)
+
+## Admin Scripts
+
+- `scripts/delete_all_messages.py` - Delete all messages from DynamoDB and S3
