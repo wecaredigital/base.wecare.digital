@@ -1001,7 +1001,18 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
         # Item details (user input)
         item_name = order_details.get('itemName', 'Service Fee')
         item_quantity = int(order_details.get('quantity', 1))
-        item_amount_paise = int(order_data.get('subtotal', {}).get('value', 100))
+        
+        # Get item amount from the first item in the items array (user input amount)
+        items_list = order_data.get('items', [])
+        if items_list and len(items_list) > 0:
+            first_item = items_list[0]
+            item_amount_paise = int(first_item.get('amount', {}).get('value', 100))
+            # Also get item name from items if not provided at top level
+            if not order_details.get('itemName'):
+                item_name = first_item.get('name', 'Service Fee')
+        else:
+            # Fallback to subtotal if no items array
+            item_amount_paise = int(order_data.get('subtotal', {}).get('value', 100))
         
         # GST rate (0, 3, 5, 12, 18, 28) - default 0 if not selected
         gst_rate = float(order_details.get('gstRate', 0))

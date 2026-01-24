@@ -1,13 +1,29 @@
 /**
- * WhatsApp Payment / Order Details Page
+ * WhatsApp Interactive Payment Page
  * 
- * Structure:
- * BODY: Your payment is overdue—please tap below to complete it 💳🤝
- * CART ITEMS: Item Name + Convenience Fee
- * BREAKDOWN: Subtotal, Discount, Shipping, Tax (with GSTIN)
- * TOTAL: auto-calculated
+ * Message Structure:
+ * BODY TEXT: Your payment is overdue—please tap below to complete it 💳🤝
+ * 
+ * CART ITEMS:
+ * - Name: (user input)
+ * - Amount: ₹(user input)
+ * - Quantity: (user input)
+ * - Convenience Fee: ₹(auto-calculated by backend: 2% + 18% GST)
+ * 
+ * BREAKDOWN:
+ * - Subtotal: ₹(auto from items)
+ * - Discount: ₹(user input)
+ * - Shipping: ₹(user input)
+ * - Tax: ₹(GST auto-calculated based on rate selected) | "GSTIN: 19AADFW7431N1ZK"
+ * 
+ * TOTAL: ₹(auto-calculated by WhatsApp)
  * 
  * All fields mandatory (show even if 0)
+ * 
+ * Status Messages:
+ * 1. Payment Request: Your payment is overdue—please tap below to complete it 💳🤝
+ * 2. Payment Success (Captured): Payment of ₹{amount} received successfully! Thank you ✅
+ * 3. Payment Failed: Payment failed. Please try again ❌
  */
 
 import React, { useState, useEffect } from 'react';
@@ -19,7 +35,7 @@ const PAYMENT_PHONE_NUMBER_ID = 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce5
 const PAYMENT_PHONE_DISPLAY = '+91 93309 94400';
 const PAYMENT_PHONE_NAME = 'WECARE.DIGITAL';
 
-// Convenience fee: 2% + 18% GST on that
+// Convenience fee: 2% + 18% GST on that (calculated by backend)
 const CONVENIENCE_FEE_PERCENT = 2.0;
 const CONVENIENCE_FEE_GST_PERCENT = 18.0;
 
@@ -61,7 +77,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
   const [itemAmount, setItemAmount] = useState<number>(0);
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   const [discount, setDiscount] = useState<number>(0);
-  const [delivery, setDelivery] = useState<number>(0);
+  const [shipping, setShipping] = useState<number>(0);
   const [gstRate, setGstRate] = useState<number>(0); // Default 0 (no GST)
   const [gstin, setGstin] = useState<string>(DEFAULT_GSTIN);
 
@@ -82,26 +98,26 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
     }
   };
 
-  // Calculate convenience fee: 2% of item amount + 18% GST on that
+  // Calculate convenience fee: 2% of item amount + 18% GST on that (auto by backend)
   const calculateConvenienceFee = () => {
     const feeBase = itemAmount * (CONVENIENCE_FEE_PERCENT / 100);
     const feeGst = feeBase * (CONVENIENCE_FEE_GST_PERCENT / 100);
     return feeBase + feeGst;
   };
 
-  // Calculate GST on item amount
-  const calculateGst = () => {
+  // Calculate GST on item amount (auto based on selected rate)
+  const calculateTax = () => {
     return itemAmount * (gstRate / 100);
   };
 
-  // Subtotal = item + convenience fee
+  // Subtotal = item amount + convenience fee (auto from items)
   const calculateSubtotal = () => {
     return itemAmount + calculateConvenienceFee();
   };
 
-  // Total = subtotal - discount + delivery + tax
+  // Total = subtotal - discount + shipping + tax (auto-calculated by WhatsApp)
   const calculateTotal = () => {
-    return calculateSubtotal() - discount + delivery + calculateGst();
+    return calculateSubtotal() - discount + shipping + calculateTax();
   };
 
   const generateReferenceId = () => {
@@ -143,8 +159,8 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
           productId: 'ITEM_MAIN',
         }],
         discount: Math.round(discount * 100),
-        delivery: Math.round(delivery * 100),
-        tax: Math.round(calculateGst() * 100),
+        delivery: Math.round(shipping * 100),
+        tax: Math.round(calculateTax() * 100),
         gstRate: gstRate,
         gstin: gstin,
         useInteractive: true,
@@ -158,7 +174,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         setItemAmount(0);
         setItemQuantity(1);
         setDiscount(0);
-        setDelivery(0);
+        setShipping(0);
       } else {
         setMessage({ type: 'error', text: 'Failed to send payment request' });
       }
@@ -277,7 +293,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
               <h3>💰 Breakdown (All Mandatory)</h3>
               <div className="breakdown-grid">
                 <div className="breakdown-field">
-                  <label>Promo (₹)</label>
+                  <label>Discount (₹) *</label>
                   <input
                     type="number"
                     value={discount || ''}
@@ -288,18 +304,18 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
                   />
                 </div>
                 <div className="breakdown-field">
-                  <label>Express (₹)</label>
+                  <label>Shipping (₹) *</label>
                   <input
                     type="number"
-                    value={delivery || ''}
-                    onChange={(e) => setDelivery(parseFloat(e.target.value) || 0)}
+                    value={shipping || ''}
+                    onChange={(e) => setShipping(parseFloat(e.target.value) || 0)}
                     placeholder="0.00"
                     min="0"
                     step="0.01"
                   />
                 </div>
                 <div className="breakdown-field">
-                  <label>GST Rate</label>
+                  <label>Tax Rate *</label>
                   <select
                     value={gstRate}
                     onChange={(e) => setGstRate(parseInt(e.target.value))}
@@ -310,7 +326,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
                   </select>
                 </div>
                 <div className="breakdown-field full-width">
-                  <label>GSTIN</label>
+                  <label>GSTIN *</label>
                   <input
                     type="text"
                     value={gstin}
@@ -322,61 +338,67 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
             </div>
           </div>
 
-          {/* Order Preview */}
+          {/* Order Preview - Exact WhatsApp Message Structure */}
           <div className="order-preview">
-            <h3>📋 Order Preview</h3>
+            <h3>📋 WhatsApp Message Preview</h3>
             <div className="preview-card">
               <div className="preview-header">
                 <span className="wa-icon">💬</span>
-                <span>WhatsApp Payment</span>
+                <span>Interactive Payment Message</span>
               </div>
 
               {/* Body Text */}
               <div className="preview-body">
+                <div className="body-label">BODY TEXT:</div>
                 Your payment is overdue—please tap below to complete it 💳🤝
               </div>
 
               {/* Cart Items */}
               <div className="preview-section">
-                <div className="section-title">Cart Items</div>
+                <div className="section-title">CART ITEMS:</div>
                 <div className="cart-item">
-                  <span className="item-name">{itemName || '(Item Name)'}</span>
-                  <span className="item-details">₹{itemAmount.toFixed(2)} × {itemQuantity}</span>
+                  <span className="item-label">Name:</span>
+                  <span className="item-value">{itemName || '(user input)'}</span>
+                </div>
+                <div className="cart-item">
+                  <span className="item-label">Amount:</span>
+                  <span className="item-value">₹{itemAmount.toFixed(2)}</span>
+                </div>
+                <div className="cart-item">
+                  <span className="item-label">Quantity:</span>
+                  <span className="item-value">{itemQuantity}</span>
                 </div>
                 <div className="cart-item conv-fee">
-                  <span className="item-name">Convenience Fee</span>
-                  <span className="item-details">₹{calculateConvenienceFee().toFixed(2)}</span>
+                  <span className="item-label">Convenience Fee:</span>
+                  <span className="item-value">₹{calculateConvenienceFee().toFixed(2)} <small>(auto by backend)</small></span>
                 </div>
               </div>
 
               {/* Breakdown */}
               <div className="preview-section">
-                <div className="section-title">Breakdown</div>
+                <div className="section-title">BREAKDOWN:</div>
                 <div className="breakdown-row">
-                  <span>Subtotal</span>
-                  <span>₹{calculateSubtotal().toFixed(2)}</span>
+                  <span>Subtotal:</span>
+                  <span>₹{calculateSubtotal().toFixed(2)} <small>(auto from items)</small></span>
                 </div>
                 <div className="breakdown-row">
-                  <span>Promo</span>
-                  <span>-₹{discount.toFixed(2)}</span>
+                  <span>Discount:</span>
+                  <span>₹{discount.toFixed(2)}</span>
                 </div>
                 <div className="breakdown-row">
-                  <span>Express</span>
-                  <span>₹{delivery.toFixed(2)}</span>
+                  <span>Shipping:</span>
+                  <span>₹{shipping.toFixed(2)}</span>
                 </div>
                 <div className="breakdown-row">
-                  <span>Tax {gstRate > 0 && `(GST ${gstRate}%)`}</span>
-                  <span>₹{calculateGst().toFixed(2)}</span>
-                </div>
-                <div className="breakdown-row gstin">
-                  <span>GSTIN: {gstin}</span>
+                  <span>Tax {gstRate > 0 ? `(GST ${gstRate}%)` : ''}:</span>
+                  <span>₹{calculateTax().toFixed(2)} | "GSTIN: {gstin}"</span>
                 </div>
               </div>
 
               {/* Total */}
               <div className="preview-total">
-                <span>Total</span>
-                <span>₹{calculateTotal().toFixed(2)}</span>
+                <span>TOTAL:</span>
+                <span>₹{calculateTotal().toFixed(2)} <small>(auto by WhatsApp)</small></span>
               </div>
 
               <div className="preview-config">
@@ -395,9 +417,22 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
 
             {/* Status Messages Info */}
             <div className="status-info">
-              <div className="status-title">Status Messages</div>
-              <div className="status-item success">✅ Payment of ₹{'{amount}'} received successfully! Thank you</div>
-              <div className="status-item failed">❌ Payment failed. Please try again</div>
+              <div className="status-title">Status Messages (Icebreaker 2)</div>
+              <div className="status-item request">
+                <span className="status-num">1.</span>
+                <span className="status-label">Payment Request:</span>
+                <span>Your payment is overdue—please tap below to complete it 💳🤝</span>
+              </div>
+              <div className="status-item success">
+                <span className="status-num">2.</span>
+                <span className="status-label">Payment Success (Captured):</span>
+                <span>Payment of ₹{calculateTotal().toFixed(2)} received successfully! Thank you ✅</span>
+              </div>
+              <div className="status-item failed">
+                <span className="status-num">3.</span>
+                <span className="status-label">Payment Failed:</span>
+                <span>Payment failed. Please try again ❌</span>
+              </div>
             </div>
           </div>
         </div>
@@ -424,7 +459,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         .message-bar.error { background: #fee2e2; color: #991b1b; }
         .message-bar button { background: none; border: none; font-size: 18px; cursor: pointer; }
         
-        .pay-layout { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+        .pay-layout { display: grid; grid-template-columns: 1fr 420px; gap: 24px; }
         
         .order-form { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .form-section { margin-bottom: 24px; }
@@ -446,24 +481,28 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         
         .order-preview { }
         .order-preview h3 { font-size: 15px; margin: 0 0 12px 0; }
-        .preview-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; }
-        .preview-header { display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid #eee; margin-bottom: 12px; }
+        .preview-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; border: 2px solid #25D366; }
+        .preview-header { display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid #eee; margin-bottom: 12px; font-weight: 600; }
         .wa-icon { font-size: 20px; }
         
         .preview-body { background: #dcfce7; padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
+        .body-label { font-size: 11px; color: #166534; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
         
-        .preview-section { margin-bottom: 16px; }
-        .section-title { font-size: 11px; color: #666; text-transform: uppercase; margin-bottom: 8px; }
+        .preview-section { margin-bottom: 16px; padding: 12px; background: #f9fafb; border-radius: 8px; }
+        .section-title { font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; margin-bottom: 10px; }
         
-        .cart-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; }
-        .cart-item.conv-fee { color: #666; font-size: 13px; }
-        .item-name { font-weight: 500; }
-        .item-details { color: #666; }
+        .cart-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e5e7eb; }
+        .cart-item:last-child { border-bottom: none; }
+        .cart-item.conv-fee { color: #666; font-style: italic; }
+        .item-label { font-weight: 500; color: #374151; }
+        .item-value { color: #111; }
+        .item-value small { color: #9ca3af; font-size: 11px; }
         
         .breakdown-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
-        .breakdown-row.gstin { color: #666; font-size: 12px; justify-content: flex-start; }
+        .breakdown-row small { color: #9ca3af; font-size: 11px; }
         
-        .preview-total { display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #333; font-size: 18px; font-weight: 600; }
+        .preview-total { display: flex; justify-content: space-between; padding: 14px; background: #25D366; color: #fff; border-radius: 8px; font-size: 18px; font-weight: 600; margin-top: 8px; }
+        .preview-total small { color: rgba(255,255,255,0.7); font-size: 11px; font-weight: normal; }
         
         .preview-config { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
         .preview-config small { color: #666; font-size: 12px; }
@@ -472,9 +511,13 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
         .send-btn:hover:not(:disabled) { background: #128C7E; }
         .send-btn:disabled { background: #ccc; cursor: not-allowed; }
         
-        .status-info { margin-top: 16px; padding: 16px; background: #f9fafb; border-radius: 8px; }
-        .status-title { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 8px; }
-        .status-item { font-size: 13px; padding: 4px 0; }
+        .status-info { margin-top: 16px; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }
+        .status-title { font-size: 12px; color: #374151; text-transform: uppercase; font-weight: 600; margin-bottom: 12px; }
+        .status-item { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #e5e7eb; display: flex; flex-wrap: wrap; gap: 4px; }
+        .status-item:last-child { border-bottom: none; }
+        .status-num { font-weight: 600; color: #6b7280; min-width: 20px; }
+        .status-label { font-weight: 500; color: #374151; }
+        .status-item.request { color: #1f2937; }
         .status-item.success { color: #166534; }
         .status-item.failed { color: #991b1b; }
         
