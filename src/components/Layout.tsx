@@ -41,7 +41,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   
   // Navigation items - Unicode symbols (matching dashboard)
   const menuItems: MenuItem[] = [
-    { path: '/', label: 'Home', icon: '⊞' },
+    { path: '/dashboard', label: 'Dashboard', icon: '⊞', subItems: [
+      { path: '/dashboard', label: 'Overview' },
+      { path: '/dashboard/messages', label: 'Messages' },
+      { path: '/dashboard/payments', label: 'Payments' },
+      { path: '/dashboard/data', label: 'Data' },
+      { path: '/dashboard/billing', label: 'Billing' },
+    ]},
     { path: '/pay', label: 'Pay', icon: '₹', subItems: [
       { path: '/pay/wa', label: 'WhatsApp' },
       { path: '/pay/link', label: 'Link' },
@@ -84,6 +90,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
 
   // Auto-expand menus if on those pages
   useEffect(() => {
+    if (router.pathname.startsWith('/dashboard')) {
+      setExpandedMenus(prev => prev.includes('/dashboard') ? prev : [...prev, '/dashboard']);
+    }
     if (router.pathname.startsWith('/pay')) {
       setExpandedMenus(prev => prev.includes('/pay') ? prev : [...prev, '/pay']);
     }
