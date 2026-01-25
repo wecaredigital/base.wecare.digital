@@ -51,9 +51,18 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       { path: '/link/create', label: 'Create' },
       { path: '/link/logs', label: 'Logs' },
     ]},
-    { path: '/forms', label: 'Forms', icon: '☐' },
-    { path: '/docs', label: 'Docs', icon: '⎙' },
-    { path: '/invoice', label: 'Invoice', icon: '⧉' },
+    { path: '/forms', label: 'Forms', icon: '☐', subItems: [
+      { path: '/forms/create', label: 'Create' },
+      { path: '/forms/logs', label: 'Logs' },
+    ]},
+    { path: '/docs', label: 'Docs', icon: '⎙', subItems: [
+      { path: '/docs/create', label: 'Create' },
+      { path: '/docs/logs', label: 'Logs' },
+    ]},
+    { path: '/invoice', label: 'Invoice', icon: '⧉', subItems: [
+      { path: '/invoice/create', label: 'Create' },
+      { path: '/invoice/logs', label: 'Logs' },
+    ]},
     { path: '/dm', label: 'Messages', icon: '◈', subItems: [
       { path: '/dm/whatsapp', label: 'WhatsApp' },
       { path: '/dm/sms', label: 'SMS' },
@@ -80,6 +89,15 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
     }
     if (router.pathname.startsWith('/link')) {
       setExpandedMenus(prev => prev.includes('/link') ? prev : [...prev, '/link']);
+    }
+    if (router.pathname.startsWith('/forms')) {
+      setExpandedMenus(prev => prev.includes('/forms') ? prev : [...prev, '/forms']);
+    }
+    if (router.pathname.startsWith('/docs')) {
+      setExpandedMenus(prev => prev.includes('/docs') ? prev : [...prev, '/docs']);
+    }
+    if (router.pathname.startsWith('/invoice')) {
+      setExpandedMenus(prev => prev.includes('/invoice') ? prev : [...prev, '/invoice']);
     }
     if (router.pathname.startsWith('/dm')) {
       setExpandedMenus(prev => prev.includes('/dm') ? prev : [...prev, '/dm']);
