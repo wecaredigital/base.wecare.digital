@@ -59,7 +59,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       { path: '/dm/rcs', label: 'RCS' },
     ]},
     { path: '/contacts', label: 'Contacts', icon: '⊕' },
-    { path: '/bulk', label: 'Bulk', icon: '⫶' },
+    { path: '/bulk', label: 'Bulk', icon: '⫶', subItems: [
+      { path: '/bulk/whatsapp', label: 'WhatsApp' },
+      { path: '/bulk/sms', label: 'SMS' },
+      { path: '/bulk/ses', label: 'Email' },
+      { path: '/bulk/voice', label: 'Voice' },
+      { path: '/bulk/rcs', label: 'RCS' },
+    ]},
   ];
 
   // Auto-expand menus if on those pages
