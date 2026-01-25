@@ -41,7 +41,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   
   // Navigation items - Unicode symbols (matching dashboard)
   const menuItems: MenuItem[] = [
-    { path: '/', label: 'Dashboard', icon: '⊞' },
+    { path: '/', label: 'Home', icon: '⊞' },
     { path: '/pay', label: 'Pay', icon: '₹', subItems: [
       { path: '/pay/wa', label: 'WhatsApp' },
       { path: '/pay/link', label: 'Link' },
