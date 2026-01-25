@@ -1047,7 +1047,7 @@ def _build_message_payload(recipient_phone: str, content: str, media_type: Optio
             },
             {
                 'retailer_id': 'ITEM_CONV',
-                'name': 'Convenience Fee (Bank Collected)',
+                'name': 'Convenience Fee (Collected by Bank)',
                 'amount': {'value': conv_total, 'offset': 100},
                 'quantity': 1
             }
