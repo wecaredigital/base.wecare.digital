@@ -8,7 +8,7 @@
  * - Name: (user input)
  * - Amount: ₹(user input)
  * - Quantity: (user input)
- * - Convenience Fee: ₹(auto-calculated by backend: 2% + 18% GST)
+ * - Convenience Fee (Collected by Bank): ₹(auto-calculated by backend: 2% + 18% GST)
  * 
  * BREAKDOWN:
  * - Subtotal: ₹(auto from items)
@@ -387,7 +387,7 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
                   <span className="item-value">{itemQuantity}</span>
                 </div>
                 <div className="cart-item conv-fee">
-                  <span className="item-label">Convenience Fee:</span>
+                  <span className="item-label">Convenience Fee (Collected by Bank):</span>
                   <span className="item-value">₹{calculateConvenienceFee().toFixed(2)} <small>(auto by backend)</small></span>
                 </div>
               </div>
