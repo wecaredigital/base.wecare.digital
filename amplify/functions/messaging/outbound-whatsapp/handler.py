@@ -909,22 +909,15 @@ def _sanitize_reference_id(reference_id: str) -> str:
     Must be unique for each transaction.
     
     Examples:
-    - "New Order" -> "WC_20260124_NEWORDER"
-    - "test@123!" -> "WC_20260124_TEST123"
-    - "" -> "WC_20260124_XXXXXXXX" (auto-generated)
-    - "WC_20260124_TEST" -> "WC_20260124_TEST" (already has prefix)
+    - "WDSR_ABC12345" -> "WDSR_ABC12345" (keep as-is)
+    - "" -> "WDSR_XXXXXXXX" (auto-generated)
     """
     import re
-    from datetime import datetime
-    
-    # Get current date for uniqueness
-    date_str = datetime.now().strftime('%Y%m%d')
-    prefix = f"WC_{date_str}_"
     
     if not reference_id or not reference_id.strip():
         # Generate unique reference if empty
-        unique_id = str(uuid.uuid4())[:8].upper()
-        return f"{prefix}{unique_id}"
+        unique_id = str(uuid.uuid4()).replace('-', '')[:8].upper()
+        return f"WDSR_{unique_id}"
     
     # Remove all non-alphanumeric characters except _ and -
     sanitized = re.sub(r'[^A-Za-z0-9_-]', '', reference_id.replace(' ', '_'))
@@ -934,15 +927,15 @@ def _sanitize_reference_id(reference_id: str) -> str:
     
     # If empty after sanitization, generate new
     if not sanitized:
-        unique_id = str(uuid.uuid4())[:8].upper()
-        return f"{prefix}{unique_id}"
+        unique_id = str(uuid.uuid4()).replace('-', '')[:8].upper()
+        return f"WDSR_{unique_id}"
     
-    # Check if already has WC_ prefix (don't double-prefix)
-    if sanitized.startswith('WC_'):
+    # Keep as-is if already has WDSR_ prefix
+    if sanitized.startswith('WDSR_'):
         result = sanitized
     else:
-        # Prepend WC_ prefix and date for uniqueness
-        result = f"{prefix}{sanitized}"
+        # Add WDSR_ prefix
+        result = f"WDSR_{sanitized}"
     
     # Truncate to max 35 chars (UPI limit)
     if len(result) > 35:

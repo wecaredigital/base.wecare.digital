@@ -512,99 +512,102 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
       {/* Payment Dialog */}
       {showPaymentDialog && (
-        <div className={styles['variable-dialog']}>
+        <div className={`${styles['variable-dialog']} ${styles['payment-dialog']}`}>
           <div className={styles['variable-dialog-header']}>
-            <span>💳 Send Payment Request</span>
+            <span>💳 Payment Request</span>
             <button onClick={() => setShowPaymentDialog(false)}>×</button>
           </div>
           <div className={styles['variable-dialog-preview']}>
-            <strong>Interactive Payment</strong> via Razorpay | From: +91 93309 94400 (WECARE.DIGITAL)
+            Razorpay UPI | +91 93309 94400
           </div>
           <div className={styles['variable-dialog-inputs']}>
-            <div className={styles['variable-input-row']}>
-              <label>Reference ID *</label>
-              <input
-                type="text"
-                value={paymentForm.referenceId}
-                onChange={(e) => setPaymentForm({...paymentForm, referenceId: e.target.value})}
-                placeholder="WDSR_XXXXXXXX"
-                autoFocus
-              />
-            </div>
-            <div className={styles['variable-input-row']}>
-              <label>Item Name *</label>
-              <input
-                type="text"
-                value={paymentForm.itemName}
-                onChange={(e) => setPaymentForm({...paymentForm, itemName: e.target.value})}
-                placeholder="Consultation Fee"
-              />
-            </div>
-            <div className={styles['variable-input-row']}>
-              <label>Amount (₹) *</label>
-              <input
-                type="number"
-                value={paymentForm.amount}
-                onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})}
-                placeholder="1000.00"
-                step="0.01"
-                min="1"
-              />
-            </div>
-            <div className={styles['variable-input-row']}>
-              <label>Quantity *</label>
-              <input
-                type="number"
-                value={paymentForm.quantity}
-                onChange={(e) => setPaymentForm({...paymentForm, quantity: e.target.value})}
-                placeholder="1"
-                min="1"
-              />
-            </div>
-            <div className={styles['variable-input-row']}>
-              <label>Promo (₹) *</label>
-              <input
-                type="number"
-                value={paymentForm.promo}
-                onChange={(e) => setPaymentForm({...paymentForm, promo: e.target.value})}
-                placeholder="0"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className={styles['variable-input-row']}>
-              <label>Express (₹) *</label>
-              <input
-                type="number"
-                value={paymentForm.express}
-                onChange={(e) => setPaymentForm({...paymentForm, express: e.target.value})}
-                placeholder="0"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div className={styles['variable-input-row']}>
-              <label>Tax Rate *</label>
-              <select
-                value={paymentForm.gstRate}
-                onChange={(e) => setPaymentForm({...paymentForm, gstRate: e.target.value})}
-              >
-                <option value="0">No GST (0%)</option>
-                <option value="3">GST 3%</option>
-                <option value="5">GST 5%</option>
-                <option value="12">GST 12%</option>
-                <option value="18">GST 18%</option>
-                <option value="28">GST 28%</option>
-              </select>
-            </div>
-            <div className={styles['variable-input-row']}>
-              <label>GSTIN *</label>
-              <input
-                type="text"
-                value={paymentForm.gstin}
-                onChange={(e) => setPaymentForm({...paymentForm, gstin: e.target.value})}
-                placeholder="19AADFW7431N1ZK"
-              />
+            <div className={styles['payment-grid']}>
+              <div className={`${styles['variable-input-row']} ${styles['full-width']}`}>
+                <label>Ref ID</label>
+                <input
+                  type="text"
+                  value={paymentForm.referenceId}
+                  onChange={(e) => setPaymentForm({...paymentForm, referenceId: e.target.value})}
+                  placeholder="WDSR_XXXXXXXX"
+                  readOnly
+                />
+              </div>
+              <div className={`${styles['variable-input-row']} ${styles['full-width']}`}>
+                <label>Item Name *</label>
+                <input
+                  type="text"
+                  value={paymentForm.itemName}
+                  onChange={(e) => setPaymentForm({...paymentForm, itemName: e.target.value})}
+                  placeholder="Service Fee"
+                  autoFocus
+                />
+              </div>
+              <div className={styles['variable-input-row']}>
+                <label>Amount (₹) *</label>
+                <input
+                  type="number"
+                  value={paymentForm.amount}
+                  onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})}
+                  placeholder="100"
+                  step="0.01"
+                  min="1"
+                />
+              </div>
+              <div className={styles['variable-input-row']}>
+                <label>Qty *</label>
+                <input
+                  type="number"
+                  value={paymentForm.quantity}
+                  onChange={(e) => setPaymentForm({...paymentForm, quantity: e.target.value})}
+                  placeholder="1"
+                  min="1"
+                />
+              </div>
+              <div className={styles['variable-input-row']}>
+                <label>Promo (₹)</label>
+                <input
+                  type="number"
+                  value={paymentForm.promo}
+                  onChange={(e) => setPaymentForm({...paymentForm, promo: e.target.value})}
+                  placeholder="0"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <div className={styles['variable-input-row']}>
+                <label>Express (₹)</label>
+                <input
+                  type="number"
+                  value={paymentForm.express}
+                  onChange={(e) => setPaymentForm({...paymentForm, express: e.target.value})}
+                  placeholder="0"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <div className={styles['variable-input-row']}>
+                <label>Tax Rate</label>
+                <select
+                  value={paymentForm.gstRate}
+                  onChange={(e) => setPaymentForm({...paymentForm, gstRate: e.target.value})}
+                >
+                  <option value="0">0%</option>
+                  <option value="3">3%</option>
+                  <option value="5">5%</option>
+                  <option value="12">12%</option>
+                  <option value="18">18%</option>
+                  <option value="28">28%</option>
+                </select>
+              </div>
+              <div className={styles['variable-input-row']}>
+                <label>GSTIN</label>
+                <input
+                  type="text"
+                  value={paymentForm.gstin}
+                  onChange={(e) => setPaymentForm({...paymentForm, gstin: e.target.value})}
+                  placeholder="19AADFW7431N1ZK"
+                />
+              </div>
             </div>
           </div>
           <div className={styles['variable-dialog-actions']}>
@@ -616,7 +619,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               onClick={sendPaymentMessage}
               disabled={sendingPayment || !paymentForm.itemName || !paymentForm.amount || !paymentForm.referenceId}
             >
-              {sendingPayment ? 'Sending...' : '💳 Send Payment'}
+              {sendingPayment ? 'Sending...' : '💳 Send'}
             </button>
           </div>
         </div>
@@ -695,7 +698,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             className={`${styles['toolbar-btn']} ${showPaymentDialog ? styles['active'] : ''}`}
-            onClick={() => { setShowPaymentDialog(!showPaymentDialog); setShowTemplates(false); setShowVariables(false); setShowFormatting(false); }}
+            onClick={() => { 
+              if (!showPaymentDialog) {
+                // Auto-generate reference ID when opening
+                const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
+                setPaymentForm(prev => ({...prev, referenceId: `WDSR_${uuid}`}));
+              }
+              setShowPaymentDialog(!showPaymentDialog); 
+              setShowTemplates(false); 
+              setShowVariables(false); 
+              setShowFormatting(false); 
+            }}
             title="Send Payment Request (UPI)"
           >
             💳

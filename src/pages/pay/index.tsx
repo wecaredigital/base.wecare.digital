@@ -81,8 +81,12 @@ const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
   const [gstRate, setGstRate] = useState<number>(0); // Default 0 (no GST)
   const [gstin, setGstin] = useState<string>(DEFAULT_GSTIN);
 
+  // Auto-generate reference ID on load
   useEffect(() => {
     loadContacts();
+    // Generate initial reference ID
+    const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
+    setReferenceId(`WDSR_${uuid}`);
   }, []);
 
   const loadContacts = async () => {
