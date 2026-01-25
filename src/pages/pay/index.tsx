@@ -40,6 +40,16 @@ const PayHubPage: React.FC<PageProps> = ({ signOut, user }) => {
             </div>
             <div className="option-badge">Coming Soon</div>
           </Link>
+
+          <Link href="/pay/logs" className="pay-option logs">
+            <div className="option-icon">📊</div>
+            <div className="option-info">
+              <h3>Payment Logs</h3>
+              <p>View Payment History</p>
+              <span className="option-desc">Track all payment requests, status, and transactions</span>
+            </div>
+            <div className="option-badge">Live</div>
+          </Link>
         </div>
       </div>
 
@@ -56,6 +66,7 @@ const PayHubPage: React.FC<PageProps> = ({ signOut, user }) => {
         
         .pay-option.whatsapp { border-left: 4px solid #25D366; }
         .pay-option.link { border-left: 4px solid #3b82f6; }
+        .pay-option.logs { border-left: 4px solid #8b5cf6; }
         
         .option-icon { font-size: 40px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: #f9fafb; border-radius: 12px; }
         
@@ -67,6 +78,7 @@ const PayHubPage: React.FC<PageProps> = ({ signOut, user }) => {
         .option-badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
         .pay-option.whatsapp .option-badge { background: #dcfce7; color: #166534; }
         .pay-option.link .option-badge { background: #dbeafe; color: #1e40af; }
+        .pay-option.logs .option-badge { background: #ede9fe; color: #5b21b6; }
         
         @media (max-width: 600px) {
           .pay-option { flex-direction: column; text-align: center; padding: 20px; }
