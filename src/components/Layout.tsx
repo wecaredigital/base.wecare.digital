@@ -47,7 +47,10 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       { path: '/pay/link', label: 'Link' },
       { path: '/pay/logs', label: 'Logs' },
     ]},
-    { path: '/link', label: 'Link', icon: '⟁' },
+    { path: '/link', label: 'Link', icon: '⟁', subItems: [
+      { path: '/link/create', label: 'Create' },
+      { path: '/link/logs', label: 'Logs' },
+    ]},
     { path: '/forms', label: 'Forms', icon: '☐' },
     { path: '/docs', label: 'Docs', icon: '⎙' },
     { path: '/invoice', label: 'Invoice', icon: '⧉' },
@@ -57,6 +60,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       { path: '/dm/ses', label: 'Email' },
       { path: '/dm/voice', label: 'Voice' },
       { path: '/dm/rcs', label: 'RCS' },
+      { path: '/dm/logs', label: 'Logs' },
     ]},
     { path: '/contacts', label: 'Contacts', icon: '⊕' },
     { path: '/bulk', label: 'Bulk', icon: '⫶', subItems: [
@@ -65,6 +69,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       { path: '/bulk/ses', label: 'Email' },
       { path: '/bulk/voice', label: 'Voice' },
       { path: '/bulk/rcs', label: 'RCS' },
+      { path: '/bulk/logs', label: 'Logs' },
     ]},
   ];
 
@@ -72,6 +77,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   useEffect(() => {
     if (router.pathname.startsWith('/pay')) {
       setExpandedMenus(prev => prev.includes('/pay') ? prev : [...prev, '/pay']);
+    }
+    if (router.pathname.startsWith('/link')) {
+      setExpandedMenus(prev => prev.includes('/link') ? prev : [...prev, '/link']);
     }
     if (router.pathname.startsWith('/dm')) {
       setExpandedMenus(prev => prev.includes('/dm') ? prev : [...prev, '/dm']);
