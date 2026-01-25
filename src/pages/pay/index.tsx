@@ -1,557 +1,80 @@
 /**
- * WhatsApp Interactive Payment Page
- * 
- * Message Structure:
- * BODY TEXT: Your payment is overdue—please tap below to complete it 💳🤝
- * 
- * CART ITEMS:
- * - Name: (user input)
- * - Amount: ₹(user input)
- * - Quantity: (user input)
- * - Convenience Fee (Collected by Bank): ₹(auto-calculated by backend: 2% + 18% GST)
- * 
- * BREAKDOWN:
- * - Subtotal: ₹(auto from items)
- * - Promo: ₹(user input)
- * - Express: ₹(user input)
- * - Tax: ₹(GST auto-calculated based on rate selected) | "GSTIN: 19AADFW7431N1ZK"
- * 
- * TOTAL: ₹(auto-calculated by WhatsApp)
- * 
- * All fields mandatory (show even if 0)
- * 
- * Status Messages:
- * 1. Payment Request: Your payment is overdue—please tap below to complete it 💳🤝
- * 2. Payment Success (Captured): Payment of ₹{amount} received successfully! Thank you ✅
- * 3. Payment Failed: Payment failed. Please try again ❌
+ * Pay Hub - Payment Options
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Layout from '../../components/Layout';
-import * as api from '../../api/client';
-
-// Payment phone number configuration
-const PAYMENT_PHONE_NUMBER_ID = 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54';
-const PAYMENT_PHONE_DISPLAY = '+91 93309 94400';
-const PAYMENT_PHONE_NAME = 'WECARE.DIGITAL';
-
-// Convenience fee: 2% + 18% GST on that (calculated by backend)
-const CONVENIENCE_FEE_PERCENT = 2.0;
-const CONVENIENCE_FEE_GST_PERCENT = 18.0;
-
-// GST rate options (0 = default/no GST)
-const GST_RATES = [
-  { value: 0, label: 'No GST (0%)' },
-  { value: 3, label: 'GST 3%' },
-  { value: 5, label: 'GST 5%' },
-  { value: 12, label: 'GST 12%' },
-  { value: 18, label: 'GST 18%' },
-  { value: 28, label: 'GST 28%' },
-];
-
-// Default GSTIN
-const DEFAULT_GSTIN = '19AADFW7431N1ZK';
+import Link from 'next/link';
 
 interface PageProps {
   signOut?: () => void;
   user?: any;
 }
 
-interface Contact {
-  id: string;
-  contactId: string;
-  name: string;
-  phone: string;
-}
-
-const PaymentPage: React.FC<PageProps> = ({ signOut, user }) => {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [selectedContact, setSelectedContact] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  // Form state - all mandatory
-  const [referenceId, setReferenceId] = useState('');
-  const [itemName, setItemName] = useState('');
-  const [itemAmount, setItemAmount] = useState<number>(0);
-  const [itemQuantity, setItemQuantity] = useState<number>(1);
-  const [discount, setDiscount] = useState<number>(0);
-  const [shipping, setShipping] = useState<number>(0);
-  const [gstRate, setGstRate] = useState<number>(0); // Default 0 (no GST)
-  const [gstin, setGstin] = useState<string>(DEFAULT_GSTIN);
-
-  // Auto-generate reference ID on load
-  useEffect(() => {
-    loadContacts();
-    // Generate initial reference ID
-    const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
-    setReferenceId(`WDSR_${uuid}`);
-  }, []);
-
-  const loadContacts = async () => {
-    setLoading(true);
-    try {
-      const data = await api.listContacts();
-      const indianContacts = data.filter(c => c.phone?.startsWith('+91'));
-      setContacts(indianContacts);
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Failed to load contacts' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Calculate convenience fee: 2% of item amount + 18% GST on that (auto by backend)
-  const calculateConvenienceFee = () => {
-    const feeBase = itemAmount * (CONVENIENCE_FEE_PERCENT / 100);
-    const feeGst = feeBase * (CONVENIENCE_FEE_GST_PERCENT / 100);
-    return feeBase + feeGst;
-  };
-
-  // Calculate GST on item amount (auto based on selected rate)
-  const calculateTax = () => {
-    return itemAmount * (gstRate / 100);
-  };
-
-  // Subtotal = item amount + convenience fee (auto from items)
-  const calculateSubtotal = () => {
-    return itemAmount + calculateConvenienceFee();
-  };
-
-  // Total = subtotal - discount + shipping + tax (auto-calculated by WhatsApp)
-  const calculateTotal = () => {
-    return calculateSubtotal() - discount + shipping + calculateTax();
-  };
-
-  const generateReferenceId = () => {
-    // Generate 8-character random UUID (not guessable)
-    const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
-    setReferenceId(`WDSR_${uuid}`);
-  };
-
-  const sendPaymentRequest = async () => {
-    // Validation
-    if (!selectedContact) {
-      setMessage({ type: 'error', text: 'Please select a contact' });
-      return;
-    }
-    if (!referenceId) {
-      setMessage({ type: 'error', text: 'Please enter or generate a Reference ID' });
-      return;
-    }
-    if (!itemName) {
-      setMessage({ type: 'error', text: 'Please enter item name' });
-      return;
-    }
-    if (itemAmount <= 0) {
-      setMessage({ type: 'error', text: 'Please enter item amount' });
-      return;
-    }
-
-    setSending(true);
-    setMessage(null);
-
-    try {
-      console.log('Sending payment request with:', {
-        contactId: selectedContact,
-        phoneNumberId: PAYMENT_PHONE_NUMBER_ID,
-        referenceId,
-        itemName,
-        itemAmount,
-        itemQuantity,
-        discount,
-        shipping,
-        gstRate,
-        gstin,
-      });
-
-      const result = await api.sendWhatsAppPaymentMessage({
-        contactId: selectedContact,
-        phoneNumberId: PAYMENT_PHONE_NUMBER_ID,
-        referenceId: referenceId,
-        items: [{
-          name: itemName,
-          amount: Math.round(itemAmount * 100), // Convert to paise
-          quantity: itemQuantity,
-          productId: 'ITEM_MAIN',
-        }],
-        discount: Math.round(discount * 100),
-        delivery: Math.round(shipping * 100),
-        tax: Math.round(calculateTax() * 100),
-        gstRate: gstRate,
-        gstin: gstin,
-        useInteractive: true,
-      });
-
-      console.log('Payment request result:', result);
-
-      if (result) {
-        setMessage({ type: 'success', text: `Payment request sent! Message ID: ${result.messageId}` });
-        // Reset form
-        setReferenceId('');
-        setItemName('');
-        setItemAmount(0);
-        setItemQuantity(1);
-        setDiscount(0);
-        setShipping(0);
-      } else {
-        const connStatus = api.getConnectionStatus();
-        setMessage({ type: 'error', text: `Failed to send payment request: ${connStatus.lastError || 'Unknown error'}` });
-      }
-    } catch (err: any) {
-      console.error('Payment request error:', err);
-      setMessage({ type: 'error', text: err.message || 'Failed to send payment request' });
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const selectedContactInfo = contacts.find(c => c.contactId === selectedContact);
-
+const PayHubPage: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
-      <div className="pay-page">
+      <div className="pay-hub">
         <div className="pay-header">
-          <h1>💳 WhatsApp Payment Request</h1>
-          <p>Send payment requests via WhatsApp UPI (India only)</p>
+          <h1>💳 Payment Options</h1>
+          <p>Choose a payment method to send payment requests</p>
         </div>
 
-        {/* Sender Notice */}
-        <div className="sender-notice">
-          <div className="sender-icon">📱</div>
-          <div className="sender-info">
-            <div className="sender-label">Sending From</div>
-            <div className="sender-number">{PAYMENT_PHONE_DISPLAY}</div>
-            <div className="sender-name">{PAYMENT_PHONE_NAME}</div>
-          </div>
-          <div className="sender-badge">
-            <span className="badge-dot"></span>
-            Razorpay Enabled
-          </div>
-        </div>
-
-        {message && (
-          <div className={`message-bar ${message.type}`}>
-            {message.text}
-            <button onClick={() => setMessage(null)}>×</button>
-          </div>
-        )}
-
-        <div className="pay-layout">
-          {/* Order Form */}
-          <div className="order-form">
-            {/* Recipient */}
-            <div className="form-section">
-              <h3>📱 Recipient *</h3>
-              <select
-                value={selectedContact}
-                onChange={(e) => setSelectedContact(e.target.value)}
-                disabled={loading}
-              >
-                <option value="">Select a contact (+91 only)</option>
-                {contacts.map(contact => (
-                  <option key={contact.contactId} value={contact.contactId}>
-                    {contact.name || contact.phone} - {contact.phone}
-                  </option>
-                ))}
-              </select>
+        <div className="pay-options">
+          <Link href="/pay/wa" className="pay-option whatsapp">
+            <div className="option-icon">💬</div>
+            <div className="option-info">
+              <h3>Pay WA</h3>
+              <p>WhatsApp Interactive Payment</p>
+              <span className="option-desc">Send UPI payment requests via WhatsApp (India only)</span>
             </div>
+            <div className="option-badge">Razorpay</div>
+          </Link>
 
-            {/* Reference ID */}
-            <div className="form-section">
-              <h3>🔖 Reference ID *</h3>
-              <div className="ref-row">
-                <input
-                  type="text"
-                  value={referenceId}
-                  onChange={(e) => setReferenceId(e.target.value)}
-                  placeholder="WDSR_XXXXXXXX"
-                />
-                <button type="button" onClick={generateReferenceId} className="gen-btn">
-                  Generate
-                </button>
-              </div>
+          <Link href="/pay/link" className="pay-option link">
+            <div className="option-icon">🔗</div>
+            <div className="option-info">
+              <h3>Pay Link</h3>
+              <p>Payment Link Generator</p>
+              <span className="option-desc">Generate shareable payment links for any channel</span>
             </div>
-
-            {/* Item Details */}
-            <div className="form-section">
-              <h3>📦 Item Details *</h3>
-              <div className="item-grid">
-                <div className="item-field">
-                  <label>Item Name *</label>
-                  <input
-                    type="text"
-                    value={itemName}
-                    onChange={(e) => setItemName(e.target.value)}
-                    placeholder="Service Fee"
-                  />
-                </div>
-                <div className="item-field">
-                  <label>Amount (₹) *</label>
-                  <input
-                    type="number"
-                    value={itemAmount || ''}
-                    onChange={(e) => setItemAmount(parseFloat(e.target.value) || 0)}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <div className="item-field">
-                  <label>Quantity *</label>
-                  <input
-                    type="number"
-                    value={itemQuantity}
-                    onChange={(e) => setItemQuantity(parseInt(e.target.value) || 1)}
-                    min="1"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Breakdown Fields - All Mandatory */}
-            <div className="form-section">
-              <h3>💰 Breakdown (All Mandatory)</h3>
-              <div className="breakdown-grid">
-                <div className="breakdown-field">
-                  <label>Promo (₹) *</label>
-                  <input
-                    type="number"
-                    value={discount || ''}
-                    onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <div className="breakdown-field">
-                  <label>Express (₹) *</label>
-                  <input
-                    type="number"
-                    value={shipping || ''}
-                    onChange={(e) => setShipping(parseFloat(e.target.value) || 0)}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <div className="breakdown-field">
-                  <label>Tax Rate *</label>
-                  <select
-                    value={gstRate}
-                    onChange={(e) => setGstRate(parseInt(e.target.value))}
-                  >
-                    {GST_RATES.map(rate => (
-                      <option key={rate.value} value={rate.value}>{rate.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="breakdown-field full-width">
-                  <label>GSTIN *</label>
-                  <input
-                    type="text"
-                    value={gstin}
-                    onChange={(e) => setGstin(e.target.value)}
-                    placeholder="19AADFW7431N1ZK"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Order Preview - Exact WhatsApp Message Structure */}
-          <div className="order-preview">
-            <h3>📋 WhatsApp Message Preview</h3>
-            <div className="preview-card">
-              <div className="preview-header">
-                <span className="wa-icon">💬</span>
-                <span>Interactive Payment Message</span>
-              </div>
-
-              {/* Body Text */}
-              <div className="preview-body">
-                <div className="body-label">BODY TEXT:</div>
-                Your payment is overdue—please tap below to complete it 💳🤝
-              </div>
-
-              {/* Cart Items */}
-              <div className="preview-section">
-                <div className="section-title">CART ITEMS:</div>
-                <div className="cart-item">
-                  <span className="item-label">Name:</span>
-                  <span className="item-value">{itemName || '(user input)'}</span>
-                </div>
-                <div className="cart-item">
-                  <span className="item-label">Amount:</span>
-                  <span className="item-value">₹{itemAmount.toFixed(2)}</span>
-                </div>
-                <div className="cart-item">
-                  <span className="item-label">Quantity:</span>
-                  <span className="item-value">{itemQuantity}</span>
-                </div>
-                <div className="cart-item conv-fee">
-                  <span className="item-label">Convenience Fee (Collected by Bank):</span>
-                  <span className="item-value">₹{calculateConvenienceFee().toFixed(2)} <small>(auto by backend)</small></span>
-                </div>
-              </div>
-
-              {/* Breakdown */}
-              <div className="preview-section">
-                <div className="section-title">BREAKDOWN:</div>
-                <div className="breakdown-row">
-                  <span>Subtotal:</span>
-                  <span>₹{calculateSubtotal().toFixed(2)} <small>(auto from items)</small></span>
-                </div>
-                <div className="breakdown-row">
-                  <span>Promo:</span>
-                  <span>₹{discount.toFixed(2)}</span>
-                </div>
-                <div className="breakdown-row">
-                  <span>Express:</span>
-                  <span>₹{shipping.toFixed(2)}</span>
-                </div>
-                <div className="breakdown-row">
-                  <span>Tax {gstRate > 0 ? `(GST ${gstRate}%)` : ''}:</span>
-                  <span>₹{calculateTax().toFixed(2)} | "GSTIN: {gstin}"</span>
-                </div>
-              </div>
-
-              {/* Total */}
-              <div className="preview-total">
-                <span>TOTAL:</span>
-                <span>₹{calculateTotal().toFixed(2)} <small>(auto by WhatsApp)</small></span>
-              </div>
-
-              <div className="preview-config">
-                <small>To: {selectedContactInfo?.name || selectedContactInfo?.phone || '—'}</small>
-                <small>Ref: {referenceId || '—'}</small>
-              </div>
-            </div>
-
-            <button
-              className="send-btn"
-              onClick={sendPaymentRequest}
-              disabled={sending || !selectedContact || !referenceId || !itemName || itemAmount <= 0}
-            >
-              {sending ? 'Sending...' : '💳 Send Payment Request'}
-            </button>
-
-            {/* Status Messages Info */}
-            <div className="status-info">
-              <div className="status-title">Status Messages (Icebreaker 2)</div>
-              <div className="status-item request">
-                <span className="status-num">1.</span>
-                <span className="status-label">Payment Request:</span>
-                <span>Your payment is overdue—please tap below to complete it 💳🤝</span>
-              </div>
-              <div className="status-item success">
-                <span className="status-num">2.</span>
-                <span className="status-label">Payment Success (Captured):</span>
-                <span>Payment of ₹{calculateTotal().toFixed(2)} received successfully! Thank you ✅</span>
-              </div>
-              <div className="status-item failed">
-                <span className="status-num">3.</span>
-                <span className="status-label">Payment Failed:</span>
-                <span>Payment failed. Please try again ❌</span>
-              </div>
-            </div>
-          </div>
+            <div className="option-badge">Coming Soon</div>
+          </Link>
         </div>
       </div>
 
       <style jsx>{`
-        .pay-page { padding: 20px; max-width: 1200px; margin: 0 auto; }
-        .pay-header { margin-bottom: 24px; }
-        .pay-header h1 { font-size: 24px; margin: 0 0 8px 0; }
-        .pay-header p { color: #666; margin: 0; }
+        .pay-hub { padding: 20px; max-width: 800px; margin: 0 auto; }
+        .pay-header { margin-bottom: 32px; text-align: center; }
+        .pay-header h1 { font-size: 28px; margin: 0 0 8px 0; }
+        .pay-header p { color: #666; margin: 0; font-size: 16px; }
         
-        .sender-notice { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%); padding: 16px 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #bbf7d0; }
-        .sender-icon { font-size: 28px; }
-        .sender-info { flex: 1; }
-        .sender-label { font-size: 11px; color: #166534; text-transform: uppercase; }
-        .sender-number { font-size: 18px; font-weight: 600; color: #166534; }
-        .sender-name { font-size: 13px; color: #15803d; }
-        .sender-badge { display: flex; align-items: center; gap: 6px; background: #166534; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; }
-        .badge-dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .pay-options { display: flex; flex-direction: column; gap: 16px; }
         
-        .message-bar { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; }
-        .message-bar.success { background: #dcfce7; color: #166534; }
-        .message-bar.error { background: #fee2e2; color: #991b1b; }
-        .message-bar button { background: none; border: none; font-size: 18px; cursor: pointer; }
+        .pay-option { display: flex; align-items: center; gap: 20px; background: #fff; border: 2px solid #e5e7eb; border-radius: 16px; padding: 24px; text-decoration: none; color: inherit; transition: all 0.2s; }
+        .pay-option:hover { border-color: #25D366; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.15); transform: translateY(-2px); }
         
-        .pay-layout { display: grid; grid-template-columns: 1fr 420px; gap: 24px; }
+        .pay-option.whatsapp { border-left: 4px solid #25D366; }
+        .pay-option.link { border-left: 4px solid #3b82f6; }
         
-        .order-form { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .form-section { margin-bottom: 24px; }
-        .form-section h3 { font-size: 15px; margin: 0 0 12px 0; color: #333; }
-        .form-section select, .form-section input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
-        .form-section select:focus, .form-section input:focus { outline: none; border-color: #25D366; }
+        .option-icon { font-size: 40px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: #f9fafb; border-radius: 12px; }
         
-        .ref-row { display: flex; gap: 8px; }
-        .ref-row input { flex: 1; }
-        .gen-btn { padding: 10px 16px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; white-space: nowrap; }
-        .gen-btn:hover { background: #e5e5e5; }
+        .option-info { flex: 1; }
+        .option-info h3 { margin: 0 0 4px 0; font-size: 20px; color: #111; }
+        .option-info p { margin: 0 0 8px 0; font-size: 14px; color: #666; font-weight: 500; }
+        .option-desc { font-size: 13px; color: #9ca3af; }
         
-        .item-grid { display: grid; grid-template-columns: 2fr 1fr 80px; gap: 12px; }
-        .item-field label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+        .option-badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .pay-option.whatsapp .option-badge { background: #dcfce7; color: #166534; }
+        .pay-option.link .option-badge { background: #dbeafe; color: #1e40af; }
         
-        .breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .breakdown-field label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
-        .breakdown-field.full-width { grid-column: span 2; }
-        
-        .order-preview { }
-        .order-preview h3 { font-size: 15px; margin: 0 0 12px 0; }
-        .preview-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; border: 2px solid #25D366; }
-        .preview-header { display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid #eee; margin-bottom: 12px; font-weight: 600; }
-        .wa-icon { font-size: 20px; }
-        
-        .preview-body { background: #dcfce7; padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
-        .body-label { font-size: 11px; color: #166534; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
-        
-        .preview-section { margin-bottom: 16px; padding: 12px; background: #f9fafb; border-radius: 8px; }
-        .section-title { font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; margin-bottom: 10px; }
-        
-        .cart-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e5e7eb; }
-        .cart-item:last-child { border-bottom: none; }
-        .cart-item.conv-fee { color: #666; font-style: italic; }
-        .item-label { font-weight: 500; color: #374151; }
-        .item-value { color: #111; }
-        .item-value small { color: #9ca3af; font-size: 11px; }
-        
-        .breakdown-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
-        .breakdown-row small { color: #9ca3af; font-size: 11px; }
-        
-        .preview-total { display: flex; justify-content: space-between; padding: 14px; background: #25D366; color: #fff; border-radius: 8px; font-size: 18px; font-weight: 600; margin-top: 8px; }
-        .preview-total small { color: rgba(255,255,255,0.7); font-size: 11px; font-weight: normal; }
-        
-        .preview-config { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
-        .preview-config small { color: #666; font-size: 12px; }
-        
-        .send-btn { width: 100%; padding: 14px; background: #25D366; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
-        .send-btn:hover:not(:disabled) { background: #128C7E; }
-        .send-btn:disabled { background: #ccc; cursor: not-allowed; }
-        
-        .status-info { margin-top: 16px; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }
-        .status-title { font-size: 12px; color: #374151; text-transform: uppercase; font-weight: 600; margin-bottom: 12px; }
-        .status-item { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #e5e7eb; display: flex; flex-wrap: wrap; gap: 4px; }
-        .status-item:last-child { border-bottom: none; }
-        .status-num { font-weight: 600; color: #6b7280; min-width: 20px; }
-        .status-label { font-weight: 500; color: #374151; }
-        .status-item.request { color: #1f2937; }
-        .status-item.success { color: #166534; }
-        .status-item.failed { color: #991b1b; }
-        
-        @media (max-width: 900px) {
-          .pay-layout { grid-template-columns: 1fr; }
-          .item-grid { grid-template-columns: 1fr; }
-          .breakdown-grid { grid-template-columns: 1fr; }
-          .breakdown-field.full-width { grid-column: span 1; }
+        @media (max-width: 600px) {
+          .pay-option { flex-direction: column; text-align: center; padding: 20px; }
+          .option-info { text-align: center; }
         }
       `}</style>
     </Layout>
   );
 };
 
-export default PaymentPage;
+export default PayHubPage;
