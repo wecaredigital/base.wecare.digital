@@ -1,218 +1,270 @@
 ﻿/**
- * Home Page - WECARE.DIGITAL Landing
- * AWS End User Messaging inspired design
+ * WECARE.DIGITAL Landing Page
+ * Modern SaaS design inspired by Twilio, Zendesk, Intercom
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 
 const HomePage: React.FC = () => {
+  const [loaded, setLoaded] = useState(false);
+  const [msgCount, setMsgCount] = useState(0);
+
+  useEffect(() => {
+    setLoaded(true);
+    let c = 0;
+    const i = setInterval(() => {
+      c += 5000;
+      if (c >= 500000) { setMsgCount(500000); clearInterval(i); }
+      else setMsgCount(c);
+    }, 20);
+    return () => clearInterval(i);
+  }, []);
+
   return (
     <>
       <Head>
-        <title>WECARE.DIGITAL - Business Communication Platform</title>
-        <meta name="description" content="Dependable, cost-effective messaging for WhatsApp, SMS, Email and Voice" />
+        <title>WECARE.DIGITAL - Customer Communication Platform</title>
+        <meta name="description" content="WhatsApp, SMS, Email, Voice - All in one platform" />
       </Head>
+
       <div className="page">
-        <header className="hdr">
-          <div className="hdr-in">
+        <nav className="nav">
+          <div className="nav-in">
             <div className="logo">
-              <img src="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" alt="WECARE.DIGITAL" />
+              <img src="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" alt="" />
               <span>WECARE.DIGITAL</span>
             </div>
-            <a href="mailto:hello@wecare.digital" className="hdr-btn">Contact Sales</a>
+            <a href="mailto:hello@wecare.digital" className="nav-cta">Get Started</a>
           </div>
-        </header>
+        </nav>
 
-        <section className="hero">
-          <div className="hero-in">
-            <h1>Dependable, cost-effective messaging without compromising safety, security, or results</h1>
-            <p>WECARE.DIGITAL empowers businesses to integrate scalable and reliable messaging capabilities. Whether it is time-sensitive alerts, one-time passwords, or two-way communications, we help ensure your messages reach their destination across multiple channels.</p>
-            <div className="hero-btns">
-              <a href="mailto:hello@wecare.digital" className="btn-primary">Get Started</a>
-              <a href="mailto:hello@wecare.digital" className="btn-secondary">Contact a Specialist</a>
+        <section className={`hero ${loaded ? 'loaded' : ''}`}>
+          <div className="hero-bg"></div>
+          <div className="hero-content">
+            <div className="hero-badge">Trusted by growing businesses</div>
+            <h1>Where amazing customer<br/>experiences are built</h1>
+            <p>The complete communication platform that combines WhatsApp, SMS, Email, Voice and Payments - all powered by AI.</p>
+            <div className="hero-actions">
+              <a href="mailto:hello@wecare.digital" className="btn-main">Start for free</a>
+              <a href="mailto:hello@wecare.digital" className="btn-ghost">Talk to sales</a>
             </div>
-          </div>
-        </section>
-
-        <section className="what">
-          <div className="what-in">
-            <h2>What is WECARE.DIGITAL?</h2>
-            <p>WECARE.DIGITAL is a unified business communication platform that connects your applications directly to your end-users across the channels they use and trust - WhatsApp, SMS, Email, and Voice. Built on AWS infrastructure with Razorpay payments integration, we help unlock the full potential of your messaging strategy.</p>
-          </div>
-        </section>
-
-        <section className="usecases">
-          <div className="uc-grid">
-            <div className="uc-card">
-              <div className="uc-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-              </div>
-              <h3>Verifications</h3>
-              <p className="uc-sub">Strengthen account security and streamline user onboarding</p>
-              <p>Leverage One-Time Password (OTP) verifications via SMS or WhatsApp during signup and login processes to validate user identities and enable multi-factor authentication.</p>
-            </div>
-            <div className="uc-card">
-              <div className="uc-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              </div>
-              <h3>Notifications</h3>
-              <p className="uc-sub">Communicate urgent information, alerts, and reminders</p>
-              <p>Send messages to a broad audience or a targeted customer list directly to their mobile device via SMS, WhatsApp, Email, or Voice calls.</p>
-            </div>
-            <div className="uc-card">
-              <div className="uc-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              </div>
-              <h3>Conversations</h3>
-              <p className="uc-sub">Send and receive messages with two-way communication</p>
-              <p>Deploy bi-directional communications with your customers via WhatsApp. Send messages and receive customer responses to create an interactive messaging experience.</p>
-            </div>
-            <div className="uc-card">
-              <div className="uc-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
-              </div>
-              <h3>Payments</h3>
-              <p className="uc-sub">Collect payments directly in chat conversations</p>
-              <p>Let customers pay via UPI, cards, and wallets without leaving WhatsApp. Secure transactions powered by Razorpay with instant payment confirmations.</p>
+            <div className="hero-trust">
+              <span>No credit card required</span>
+              <span>Setup in minutes</span>
+              <span>Cancel anytime</span>
             </div>
           </div>
         </section>
 
-        <section className="benefits">
-          <h2>Benefits of WECARE.DIGITAL</h2>
-          <div className="ben-grid">
-            <div className="ben-card">
-              <h3>Send messages at scale</h3>
-              <p>WECARE.DIGITAL provides the scale, resiliency, and flexibility required to deliver SMS, WhatsApp, Email, and Voice messaging capabilities. Trust that your messages are delivered to the geographies that matter most.</p>
+        <section className="stats">
+          <div className="stats-in">
+            <div className="stat">
+              <div className="stat-num">{msgCount.toLocaleString()}+</div>
+              <div className="stat-label">Messages delivered</div>
             </div>
-            <div className="ben-card">
-              <h3>Trustworthy messaging</h3>
-              <p>We help safeguard your business and your messages by supporting regulatory requirements. It is our mission to help you maintain message integrity and build trust with your end users.</p>
+            <div className="stat">
+              <div className="stat-num">99.9%</div>
+              <div className="stat-label">Uptime SLA</div>
             </div>
-            <div className="ben-card">
-              <h3>Optimize your communications</h3>
-              <p>Integrate with AWS services to keep data, app source code, compute, and messaging all in the same place. Flexible workflows, analytics, and insights allow you to build applications faster.</p>
+            <div className="stat">
+              <div className="stat-num">24/7</div>
+              <div className="stat-label">Support available</div>
             </div>
           </div>
         </section>
 
-        <section className="channels">
-          <h2>Get Started with WECARE.DIGITAL</h2>
-          <div className="ch-grid">
-            <div className="ch-card">
-              <div className="ch-badge">SMS</div>
-              <h3>Getting started with SMS</h3>
-              <p>Increase customer engagement and response rates by sending messages directly to your customers device.</p>
-              <a href="mailto:hello@wecare.digital" className="ch-link">Learn more</a>
+        <section className="products">
+          <div className="products-in">
+            <div className="section-head">
+              <h2>The ultimate toolbox for customer engagement</h2>
+              <p>Everything you need to connect with customers across every channel</p>
             </div>
-            <div className="ch-card">
-              <div className="ch-badge wa">WhatsApp</div>
-              <h3>Getting started with WhatsApp</h3>
-              <p>Send rich, interactive messages on the most used messaging app in the world with official Business API.</p>
-              <a href="mailto:hello@wecare.digital" className="ch-link">Learn more</a>
+            <div className="product-grid">
+              <div className="product-card">
+                <div className="product-icon wa">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                </div>
+                <h3>WhatsApp Business API</h3>
+                <p>Send rich, interactive messages on the world's most popular messaging app. Templates, media, buttons and more.</p>
+                <a href="mailto:hello@wecare.digital" className="product-link">Learn more </a>
+              </div>
+              <div className="product-card">
+                <div className="product-icon sms">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <h3>SMS & Voice</h3>
+                <p>Reach customers instantly with SMS notifications and automated voice calls. Global coverage with local numbers.</p>
+                <a href="mailto:hello@wecare.digital" className="product-link">Learn more </a>
+              </div>
+              <div className="product-card">
+                <div className="product-icon pay">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                </div>
+                <h3>In-Chat Payments</h3>
+                <p>Collect payments directly in WhatsApp conversations. UPI, cards, wallets - powered by Razorpay.</p>
+                <a href="mailto:hello@wecare.digital" className="product-link">Learn more </a>
+              </div>
+              <div className="product-card">
+                <div className="product-icon ai">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <h3>AI-Powered Support</h3>
+                <p>Automate responses with intelligent chatbots. Handle queries 24/7 while your team focuses on complex issues.</p>
+                <a href="mailto:hello@wecare.digital" className="product-link">Learn more </a>
+              </div>
             </div>
-            <div className="ch-card">
-              <div className="ch-badge voice">Voice</div>
-              <h3>Getting started with Voice</h3>
-              <p>Reach customers with automated voice calls for alerts, reminders, and important notifications.</p>
-              <a href="mailto:hello@wecare.digital" className="ch-link">Learn more</a>
+          </div>
+        </section>
+
+        <section className="value">
+          <div className="value-in">
+            <div className="value-content">
+              <h2>Built for scale, designed for simplicity</h2>
+              <p>Whether you are sending 100 messages or 100,000, our platform handles it effortlessly. No complex setup, no hidden fees.</p>
+              <ul className="value-list">
+                <li><span className="check"></span> Works out of the box - start in minutes</li>
+                <li><span className="check"></span> Pay only for what you use</li>
+                <li><span className="check"></span> Enterprise-grade security on AWS</li>
+                <li><span className="check"></span> Dedicated support team</li>
+              </ul>
+              <a href="mailto:hello@wecare.digital" className="btn-main">Get started free</a>
+            </div>
+            <div className="value-visual">
+              <div className="mock-chat">
+                <div className="mock-header">
+                  <div className="mock-avatar">W</div>
+                  <div className="mock-info"><strong>WECARE.DIGITAL</strong><span>Online</span></div>
+                </div>
+                <div className="mock-messages">
+                  <div className="mock-msg out">Hi! Your order #1234 has been shipped </div>
+                  <div className="mock-msg in">When will it arrive?</div>
+                  <div className="mock-msg out">Expected delivery: Tomorrow by 6 PM</div>
+                  <div className="mock-msg out typing"><span></span><span></span><span></span></div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
         <section className="cta">
-          <h2>Ready to get started?</h2>
-          <p>Transform how you communicate with customers today</p>
-          <a href="mailto:hello@wecare.digital" className="btn-primary">Contact Sales</a>
+          <div className="cta-in">
+            <h2>Ready to transform your customer communication?</h2>
+            <p>Join businesses that trust WECARE.DIGITAL for their messaging needs</p>
+            <a href="mailto:hello@wecare.digital" className="btn-main lg">Start your free trial</a>
+          </div>
         </section>
 
-        <footer className="ftr">
-          <div className="ftr-in">
-            <div className="ftr-brand">
+        <footer className="footer">
+          <div className="footer-in">
+            <div className="footer-brand">
               <img src="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" alt="" />
               <span>WECARE.DIGITAL</span>
             </div>
-            <span>2026 WECARE.DIGITAL. All rights reserved.</span>
+            <div className="footer-copy"> 2026 WECARE.DIGITAL. All rights reserved.</div>
           </div>
         </footer>
 
         <style jsx>{`
-          .page{min-height:100vh;background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#16191f}
+          .page{background:#fff;color:#1a1a2e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 
-          .hdr{position:fixed;top:0;left:0;right:0;z-index:100;background:#fff;border-bottom:1px solid #d5dbdb}
-          .hdr-in{max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
-          .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:#16191f}
-          .logo img{width:36px;height:36px;border-radius:8px}
-          .hdr-btn{background:#f90;color:#16191f;text-decoration:none;font-size:14px;font-weight:600;padding:8px 16px;border-radius:4px;transition:background .2s}
-          .hdr-btn:hover{background:#ec7211}
+          .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.9);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
+          .nav-in{max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+          .logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:20px;color:#1a1a2e}
+          .logo img{width:40px;height:40px;border-radius:10px}
+          .nav-cta{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;transition:transform .2s,box-shadow .2s}
+          .nav-cta:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(102,126,234,.4)}
 
-          .hero{background:linear-gradient(135deg,#232f3e 0%,#1b2838 100%);padding:120px 24px 80px;text-align:center}
-          .hero-in{max-width:900px;margin:0 auto}
-          .hero h1{font-size:42px;font-weight:700;color:#fff;line-height:1.25;margin:0 0 20px;letter-spacing:-0.5px}
-          .hero p{font-size:18px;color:#d5dbdb;line-height:1.7;margin:0 0 32px}
-          .hero-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
-          .btn-primary{background:#f90;color:#16191f;padding:14px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600;transition:background .2s}
-          .btn-primary:hover{background:#ec7211}
-          .btn-secondary{background:transparent;color:#fff;padding:14px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600;border:1px solid #fff;transition:all .2s}
-          .btn-secondary:hover{background:rgba(255,255,255,.1)}
+          .hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:120px 24px 80px;overflow:hidden}
+          .hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 50%,#f093fb 100%);opacity:0;transition:opacity 1s ease}
+          .hero.loaded .hero-bg{opacity:1}
+          .hero-content{position:relative;z-index:1;text-align:center;max-width:800px}
+          .hero-badge{display:inline-block;background:rgba(255,255,255,.2);color:#fff;padding:8px 20px;border-radius:50px;font-size:14px;font-weight:500;margin-bottom:24px;backdrop-filter:blur(10px)}
+          .hero h1{font-size:56px;font-weight:800;color:#fff;line-height:1.15;margin:0 0 24px;letter-spacing:-2px}
+          .hero p{font-size:20px;color:rgba(255,255,255,.9);line-height:1.6;margin:0 0 36px;max-width:600px;margin-left:auto;margin-right:auto}
+          .hero-actions{display:flex;gap:16px;justify-content:center;margin-bottom:32px}
+          .btn-main{background:#fff;color:#667eea;padding:16px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:16px;transition:all .3s;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+          .btn-main:hover{transform:translateY(-3px);box-shadow:0 10px 40px rgba(0,0,0,.2)}
+          .btn-main.lg{padding:18px 40px;font-size:17px}
+          .btn-ghost{background:transparent;color:#fff;padding:16px 32px;border-radius:10px;text-decoration:none;font-weight:600;font-size:16px;border:2px solid rgba(255,255,255,.4);transition:all .3s}
+          .btn-ghost:hover{background:rgba(255,255,255,.1);border-color:#fff}
+          .hero-trust{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+          .hero-trust span{color:rgba(255,255,255,.8);font-size:14px;display:flex;align-items:center;gap:6px}
+          .hero-trust span::before{content:'';color:#4ade80;font-weight:700}
 
-          .what{padding:80px 24px;background:#f2f3f3}
-          .what-in{max-width:900px;margin:0 auto;text-align:center}
-          .what h2{font-size:32px;font-weight:700;color:#16191f;margin:0 0 20px}
-          .what p{font-size:17px;color:#545b64;line-height:1.8}
+          .stats{background:#f8f9fc;padding:60px 24px}
+          .stats-in{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:40px;text-align:center}
+          .stat-num{font-size:48px;font-weight:800;color:#667eea;line-height:1}
+          .stat-label{font-size:16px;color:#64748b;margin-top:8px}
 
-          .usecases{padding:80px 24px;background:#fff}
-          .uc-grid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(2,1fr);gap:32px}
-          .uc-card{background:#fff;border:1px solid #d5dbdb;border-radius:8px;padding:32px;transition:box-shadow .3s}
-          .uc-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08)}
-          .uc-icon{width:48px;height:48px;background:#232f3e;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
-          .uc-icon svg{width:24px;height:24px;color:#f90}
-          .uc-card h3{font-size:22px;font-weight:700;color:#16191f;margin:0 0 8px}
-          .uc-sub{font-size:15px;color:#f90;font-weight:600;margin:0 0 12px}
-          .uc-card p{font-size:15px;color:#545b64;line-height:1.7;margin:0}
+          .products{padding:100px 24px;background:#fff}
+          .products-in{max-width:1200px;margin:0 auto}
+          .section-head{text-align:center;margin-bottom:60px}
+          .section-head h2{font-size:40px;font-weight:800;color:#1a1a2e;margin:0 0 16px;letter-spacing:-1px}
+          .section-head p{font-size:18px;color:#64748b;margin:0}
+          .product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+          .product-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;transition:all .3s}
+          .product-card:hover{border-color:#667eea;box-shadow:0 20px 60px rgba(102,126,234,.12);transform:translateY(-4px)}
+          .product-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+          .product-icon svg{width:28px;height:28px}
+          .product-icon.wa{background:#dcfce7;color:#16a34a}
+          .product-icon.sms{background:#dbeafe;color:#2563eb}
+          .product-icon.pay{background:#fef3c7;color:#d97706}
+          .product-icon.ai{background:#f3e8ff;color:#9333ea}
+          .product-card h3{font-size:22px;font-weight:700;color:#1a1a2e;margin:0 0 12px}
+          .product-card p{font-size:15px;color:#64748b;line-height:1.7;margin:0 0 20px}
+          .product-link{color:#667eea;text-decoration:none;font-weight:600;font-size:15px;transition:color .2s}
+          .product-link:hover{color:#764ba2}
 
-          .benefits{padding:80px 24px;background:#232f3e}
-          .benefits h2{font-size:32px;font-weight:700;color:#fff;text-align:center;margin:0 0 48px}
-          .ben-grid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
-          .ben-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:32px}
-          .ben-card h3{font-size:20px;font-weight:700;color:#fff;margin:0 0 16px}
-          .ben-card p{font-size:15px;color:#d5dbdb;line-height:1.7;margin:0}
+          .value{padding:100px 24px;background:linear-gradient(180deg,#f8f9fc 0%,#fff 100%)}
+          .value-in{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+          .value-content h2{font-size:36px;font-weight:800;color:#1a1a2e;margin:0 0 20px;letter-spacing:-1px}
+          .value-content p{font-size:17px;color:#64748b;line-height:1.7;margin:0 0 28px}
+          .value-list{list-style:none;padding:0;margin:0 0 32px}
+          .value-list li{display:flex;align-items:center;gap:12px;font-size:16px;color:#1a1a2e;padding:10px 0}
+          .check{color:#16a34a;font-weight:700}
 
-          .channels{padding:80px 24px;background:#f2f3f3}
-          .channels h2{font-size:32px;font-weight:700;color:#16191f;text-align:center;margin:0 0 48px}
-          .ch-grid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-          .ch-card{background:#fff;border:1px solid #d5dbdb;border-radius:8px;padding:28px;transition:box-shadow .3s}
-          .ch-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08)}
-          .ch-badge{display:inline-block;background:#037f0c;color:#fff;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:700;margin-bottom:16px}
-          .ch-badge.wa{background:#25d366}
-          .ch-badge.voice{background:#0073bb}
-          .ch-card h3{font-size:18px;font-weight:700;color:#16191f;margin:0 0 12px}
-          .ch-card p{font-size:14px;color:#545b64;line-height:1.6;margin:0 0 16px}
-          .ch-link{color:#0073bb;text-decoration:none;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
-          .ch-link:hover{text-decoration:underline}
+          .mock-chat{background:#1a1a2e;border-radius:24px;padding:16px;width:320px;box-shadow:0 40px 80px rgba(0,0,0,.2)}
+          .mock-header{display:flex;align-items:center;gap:12px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.1)}
+          .mock-avatar{width:44px;height:44px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px}
+          .mock-info{display:flex;flex-direction:column}
+          .mock-info strong{color:#fff;font-size:15px}
+          .mock-info span{color:rgba(255,255,255,.5);font-size:12px}
+          .mock-messages{padding-top:16px;display:flex;flex-direction:column;gap:10px}
+          .mock-msg{max-width:85%;padding:12px 16px;border-radius:16px;font-size:14px;line-height:1.5}
+          .mock-msg.out{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+          .mock-msg.in{background:#2d2d44;color:#fff;align-self:flex-start;border-bottom-left-radius:4px}
+          .mock-msg.typing{background:#2d2d44;display:flex;gap:4px;padding:16px 20px}
+          .mock-msg.typing span{width:8px;height:8px;background:rgba(255,255,255,.4);border-radius:50%;animation:bounce 1.4s infinite}
+          .mock-msg.typing span:nth-child(2){animation-delay:.2s}
+          .mock-msg.typing span:nth-child(3){animation-delay:.4s}
+          @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
 
-          .cta{padding:80px 24px;background:#fff;text-align:center}
-          .cta h2{font-size:32px;font-weight:700;color:#16191f;margin:0 0 12px}
-          .cta p{font-size:17px;color:#545b64;margin:0 0 28px}
+          .cta{padding:100px 24px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);text-align:center}
+          .cta-in{max-width:700px;margin:0 auto}
+          .cta h2{font-size:36px;font-weight:800;color:#fff;margin:0 0 16px;letter-spacing:-1px}
+          .cta p{font-size:18px;color:rgba(255,255,255,.9);margin:0 0 32px}
 
-          .ftr{background:#232f3e;padding:24px}
-          .ftr-in{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
-          .ftr-brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:600;font-size:14px}
-          .ftr-brand img{width:24px;height:24px;border-radius:4px}
-          .ftr-in>span{font-size:13px;color:#d5dbdb}
+          .footer{background:#1a1a2e;padding:32px 24px}
+          .footer-in{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+          .footer-brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:600}
+          .footer-brand img{width:28px;height:28px;border-radius:6px}
+          .footer-copy{color:rgba(255,255,255,.5);font-size:14px}
 
           @media(max-width:1024px){
-            .uc-grid,.ben-grid,.ch-grid{grid-template-columns:1fr}
-            .hero h1{font-size:32px}
+            .product-grid{grid-template-columns:1fr}
+            .value-in{grid-template-columns:1fr;text-align:center}
+            .value-visual{display:flex;justify-content:center}
           }
           @media(max-width:768px){
-            .hero{padding:100px 16px 60px}
-            .hero h1{font-size:28px}
-            .hero p{font-size:16px}
-            .hero-btns{flex-direction:column;align-items:center}
-            .what h2,.benefits h2,.channels h2,.cta h2{font-size:26px}
-            .ftr-in{flex-direction:column;gap:12px;text-align:center}
+            .hero h1{font-size:36px}
+            .stats-in{grid-template-columns:1fr;gap:24px}
+            .stat-num{font-size:36px}
+            .section-head h2,.value-content h2,.cta h2{font-size:28px}
+            .hero-actions{flex-direction:column;align-items:center}
+            .hero-trust{flex-direction:column;gap:12px}
+            .footer-in{flex-direction:column;gap:16px;text-align:center}
+            .mock-chat{width:100%;max-width:300px}
           }
         `}</style>
       </div>
