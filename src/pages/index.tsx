@@ -65,7 +65,7 @@ const HomePage: React.FC = () => {
           <div className="hdr-in">
             <div className="logo">
               <img src="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" alt="" className="logo-img" />
-              <span>WECARE.DIGITAL</span>
+              <div className="logo-text"><span className="logo-main">Base CRM</span><span className="logo-sub">by WECARE.DIGITAL</span></div>
             </div>
           </div>
         </header>
@@ -74,7 +74,7 @@ const HomePage: React.FC = () => {
           <div className="hero-content">
             <div className="hero-left">
               <h1>Reach more customers wherever they are, whatever they're on</h1>
-              <p>Engage them on every channel, in every scenario – from our platform or your stack.</p>
+              <p>Engage them on every channel, in every scenario – from our platform or your stack</p>
               <div className="hero-stats">
                 <div className="stat"><span>B+</span><small>Users reachable</small></div>
                 <div className="stat"><span>Fast</span><small>Onboarding</small></div>
@@ -239,7 +239,7 @@ const HomePage: React.FC = () => {
           .page{min-height:100vh;background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a}
           .hdr{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
           .hdr-in{max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;align-items:center}
-          .logo{display:flex;align-items:center;gap:14px;font-weight:700;font-size:20px}
+          .logo{display:flex;align-items:center;gap:12px}.logo-text{display:flex;flex-direction:column;line-height:1.2}.logo-main{font-size:20px;font-weight:700;color:#1a1a1a}.logo-sub{font-size:11px;font-weight:500;color:#6b7280}
           .logo-img{width:44px;height:44px;border-radius:10px}
           .anim{opacity:0;transform:translateY(40px);transition:all .8s cubic-bezier(.16,1,.3,1)}
           .anim.show{opacity:1;transform:translateY(0)}
