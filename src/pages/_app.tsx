@@ -1,4 +1,4 @@
-/**
+﻿/**
  * WECARE.DIGITAL Admin Platform
  * Next.js App Component with Amplify Auth + Data API
  * 
@@ -48,7 +48,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <title>WECARE.DIGITAL</title>
         <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
         <link rel="shortcut icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
       </Head>
       
       {isPublicPage ? (
@@ -83,3 +83,4 @@ export default function App({ Component, pageProps }: AppProps) {
     </>
   );
 }
+
