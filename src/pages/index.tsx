@@ -1,6 +1,6 @@
 ﻿/**
  * WECARE.DIGITAL Landing Page
- * Notion + WhatsApp theme
+ * Notion + WhatsApp theme - Clean, minimal
  */
 
 import React from 'react';
@@ -23,7 +23,7 @@ const HomePage: React.FC = () => {
           </div>
         </header>
 
-        {/* Hero */}
+        {/* Section 1: Hero */}
         <section className="hero">
           <div className="hero-content">
             <div className="hero-text">
@@ -45,7 +45,7 @@ const HomePage: React.FC = () => {
                   <div className="bubble out float-1">Hi! Your order #WDSR87A6G has been shipped <span>10:30</span></div>
                   <div className="bubble in float-2">When will it arrive?<span>10:31</span></div>
                   <div className="bubble out float-3">Tomorrow by 6 PM <span>10:31</span></div>
-                  <div className="bubble out float-4">Track: wecare.digital/track<span>10:32</span></div>
+                  <div className="bubble out float-4">Track here <br/><em className="link">base.wecare.digital/track</em><span>10:32</span></div>
                   <div className="typing"><i></i><i></i><i></i></div>
                 </div>
               </div>
@@ -63,8 +63,52 @@ const HomePage: React.FC = () => {
           </div>
         </section>
 
-        {/* Features */}
+        {/* Section 2: Built for AI Era */}
+        <section className="ai-section">
+          <div className="ai-header">
+            <h2>Built for the AI era.</h2>
+            <p>The complete platform for enterprise brands to acquire, convert, and retain customers across every channel—powered by AI that actually understands your business.</p>
+          </div>
+          <div className="ai-grid">
+            <div className="ai-card">
+              <span className="ai-icon"></span>
+              <h3>Customer Data Platform</h3>
+              <p>Every signal, unified and current</p>
+            </div>
+            <div className="ai-card">
+              <span className="ai-icon"></span>
+              <h3>Custom Data Modeling</h3>
+              <p>Objects and segments for your business</p>
+            </div>
+            <div className="ai-card">
+              <span className="ai-icon"></span>
+              <h3>Multichannel Orchestration</h3>
+              <p>Reach customers anywhere</p>
+            </div>
+            <div className="ai-card">
+              <span className="ai-icon"></span>
+              <h3>Smart Personalization</h3>
+              <p>Marketing that runs itself</p>
+            </div>
+            <div className="ai-card">
+              <span className="ai-icon"></span>
+              <h3>Enterprise Infrastructure</h3>
+              <p>APIs and security that scale</p>
+            </div>
+            <div className="ai-card">
+              <span className="ai-icon"></span>
+              <h3>Predictive Analytics</h3>
+              <p>See revenue before it happens</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 3: Features */}
         <section className="features">
+          <div className="features-header">
+            <h2>Turn scattered customer data into revenue growth.</h2>
+            <p>Every interaction feeds into a unified customer view that powers personalized experiences, targeted campaigns, and intelligent automation across every touchpoint.</p>
+          </div>
           <div className="features-grid">
             <div className="card">
               <span className="icon"></span>
@@ -96,8 +140,7 @@ const HomePage: React.FC = () => {
               <span>wecare.digital</span>
             </div>
             <div className="footer-right">
-              <p className="tagline">Tap. Track. Done.</p>
-              <p className="subtitle">Everyday things made easy.</p>
+              <p>Tap. Track. Done. Everyday things made easy.</p>
             </div>
           </div>
         </footer>
@@ -124,11 +167,12 @@ const HomePage: React.FC = () => {
           .contact strong{display:block;color:#fff;font-size:16px}
           .contact span{color:rgba(255,255,255,.7);font-size:12px}
           .verified{width:22px;height:22px;background:#25D366;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
-          .chat{background:#ECE5DD;padding:20px 16px;min-height:320px;display:flex;flex-direction:column;gap:10px}
+          .chat{background:#ECE5DD;padding:20px 16px;min-height:340px;display:flex;flex-direction:column;gap:10px}
           .bubble{max-width:85%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5;position:relative}
           .bubble span{display:block;font-size:11px;color:#667781;text-align:right;margin-top:4px}
           .bubble.out{background:#DCF8C6;align-self:flex-end;border-bottom-right-radius:4px}
           .bubble.in{background:#fff;align-self:flex-start;border-bottom-left-radius:4px}
+          .bubble .link{color:#0066CC;font-style:normal;display:block;margin:4px 0}
           .typing{background:#fff;padding:14px 18px;border-radius:12px;border-bottom-left-radius:4px;display:flex;gap:5px;align-self:flex-start;width:70px}
           .typing i{width:8px;height:8px;background:#90949c;border-radius:50%;animation:bounce 1.4s infinite}
           .typing i:nth-child(2){animation-delay:.2s}
@@ -152,7 +196,21 @@ const HomePage: React.FC = () => {
           @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
           @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
 
+          .ai-section{padding:80px 40px;background:#fff;max-width:1100px;margin:0 auto}
+          .ai-header{margin-bottom:50px}
+          .ai-header h2{font-size:32px;font-weight:700;color:#37352F;margin:0 0 12px}
+          .ai-header p{font-size:17px;color:#787774;line-height:1.6;margin:0;max-width:700px}
+          .ai-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+          .ai-card{padding:24px;border:1px solid #E5E5E5;border-radius:8px;transition:box-shadow .3s}
+          .ai-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.06)}
+          .ai-icon{font-size:24px;display:block;margin-bottom:12px}
+          .ai-card h3{font-size:16px;font-weight:600;color:#37352F;margin:0 0 6px}
+          .ai-card p{font-size:14px;color:#787774;margin:0}
+
           .features{padding:80px 40px;background:#F7F6F3}
+          .features-header{max-width:600px;margin:0 auto 50px;text-align:left}
+          .features-header h2{font-size:36px;font-weight:700;color:#37352F;margin:0 0 16px;line-height:1.2}
+          .features-header p{font-size:17px;color:#787774;line-height:1.6;margin:0}
           .features-grid{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
           .card{background:#fff;border-radius:12px;padding:28px;transition:box-shadow .3s}
           .card:hover{box-shadow:0 8px 30px rgba(0,0,0,.08)}
@@ -163,28 +221,28 @@ const HomePage: React.FC = () => {
           .footer{padding:40px;border-top:1px solid #E5E5E5}
           .footer-content{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
           .footer-left span{font-size:16px;color:#C0C0C0;font-weight:500}
-          .footer-right{text-align:right}
-          .footer-right .tagline{font-size:18px;font-weight:600;color:#37352F;margin:0 0 4px}
-          .footer-right .subtitle{font-size:14px;color:#787774;margin:0}
+          .footer-right p{font-size:15px;color:#37352F;margin:0}
 
-          @media(max-width:900px){
+          @media(max-width:1024px){
             .hero-content{grid-template-columns:1fr;text-align:center}
             .hero-text p{margin:0 auto}
             .hero-visual{margin-top:40px}
             .code{position:relative;right:0;bottom:0;margin-top:-40px}
+            .ai-grid{grid-template-columns:repeat(2,1fr)}
             .features-grid{grid-template-columns:1fr}
-            .footer-content{flex-direction:column;gap:24px;text-align:center}
-            .footer-right{text-align:center}
           }
-          @media(max-width:600px){
+          @media(max-width:768px){
             .header{padding:16px 20px}
             .hero{padding:40px 20px 60px}
             .hero-text h1{font-size:36px}
             .hero-text p{font-size:17px}
             .phone{width:260px}
             .code{width:260px}
-            .features{padding:60px 20px}
+            .ai-section,.features{padding:60px 20px}
+            .ai-grid{grid-template-columns:1fr}
+            .features-header h2{font-size:28px}
             .footer{padding:30px 20px}
+            .footer-content{flex-direction:column;gap:16px;text-align:center}
           }
         `}</style>
       </div>
