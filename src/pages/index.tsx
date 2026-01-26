@@ -48,11 +48,6 @@ const HomePage: React.FC = () => {
     { lang: 'cURL', code: "curl -X POST \\\n    \"https://api.wecare.digital/v1/messages\" \\\n    -H \"Authorization: Bearer API_KEY\" \\\n    -d '{\"to\": \"+919330994400\"}'" },
   ];
 
-  const stories = [
-    { brand: 'Retail Brand', stat: '14x', label: 'higher sales', desc: 'Conversational commerce', extra: '290K messages in 7 days' },
-    { brand: 'Finance Co', stat: '94%', label: 'CSAT rate', desc: 'Automated support', extra: '20% cases via WhatsApp' },
-    { brand: 'Travel App', stat: '90%', label: 'faster response', desc: 'Booking confirmations', extra: '87% positive feedback' },
-  ];
 
   return (
     <>
@@ -162,50 +157,6 @@ const HomePage: React.FC = () => {
           </div>
         </section>
 
-        <section className={`integrations anim ${show('integrations') ? 'show' : ''}`} id="integrations">
-          <div className="section-header">
-            <h2>Expand your tech stack with multiple integrations</h2>
-            <p>Integrate WhatsApp with your existing systems and tools</p>
-          </div>
-          <div className="integrations-grid">
-            {['Salesforce', 'HubSpot', 'Shopify', 'Zendesk', 'Freshdesk', 'Zoho'].map((name, i) => (
-              <div key={i} className="integration-card">{name}</div>
-            ))}
-          </div>
-        </section>
-
-        <section className={`stories anim ${show('stories') ? 'show' : ''}`} id="stories">
-          <div className="section-header">
-            <h2>Success stories that speak for themselves</h2>
-            <p>See how businesses are winning with WhatsApp API</p>
-          </div>
-          <div className="stories-grid">
-            {stories.map((s, i) => (
-              <div key={i} className="story-card">
-                <div className="story-brand">{s.brand}</div>
-                <div className="story-stat"><span className="stat-num">{s.stat}</span><span className="stat-label">{s.label}</span></div>
-                <p className="story-desc">{s.desc}</p>
-                <p className="story-extra">{s.extra}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className={`cta anim ${show('cta') ? 'show' : ''}`} id="cta">
-          <div className="cta-content">
-            <h2>Ready to Transform Your Customer Experience?</h2>
-            <p>Go live on WhatsApp faster with a scalable setup.</p>
-          </div>
-        </section>
-
-        <section className={`channels anim ${show('channels') ? 'show' : ''}`} id="channels">
-          <div className="channels-grid">
-            <div className="channel-card"><div className="channel-icon"></div><h3>WhatsApp Business API</h3><p>Official API with verified profiles</p></div>
-            <div className="channel-card"><div className="channel-icon"></div><h3>SMS Gateway</h3><p>DLT compliant delivery</p></div>
-            <div className="channel-card"><div className="channel-icon"></div><h3>Voice Calls</h3><p>Automated IVR systems</p></div>
-            <div className="channel-card"><div className="channel-icon"></div><h3>Email</h3><p>Transactional & marketing</p></div>
-          </div>
-        </section>
 
         <footer className="ftr">
           <div className="ftr-in">
