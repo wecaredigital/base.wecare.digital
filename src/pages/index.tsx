@@ -305,15 +305,15 @@ const HomePage: React.FC = () => {
           .usecase-content{text-align:center;max-width:600px;margin:0 auto;padding:40px;background:#f8f9fa;border-radius:24px}
           .usecase-icon{font-size:64px;margin-bottom:20px}
           .usecase-content h3{font-size:28px;font-weight:700;margin:0 0 16px;color:#1a1a1a}
-          .usecase-content p{font-size:17px;color:#6b7280;line-height:1.7;margin:0}          .api{padding:100px 24px;background:#1a1a2e}
+          .usecase-content p{font-size:17px;color:#6b7280;line-height:1.7;margin:0}          .api{padding:100px 24px;background:#f8f9fa}
           .api-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;max-width:1200px;margin:0 auto;align-items:center}
-          .api-info h2{font-size:36px;font-weight:700;color:#fff;margin:0 0 20px;line-height:1.2}
-          .api-desc{font-size:17px;color:#9ca3af;line-height:1.7;margin:0 0 30px}
+          .api-info h2{font-size:36px;font-weight:700;color:#1a1a1a;margin:0 0 20px;line-height:1.2}
+          .api-desc{font-size:17px;color:#6b7280;line-height:1.7;margin:0 0 30px}
           .api-features{list-style:none;padding:0;margin:0}
-          .api-features li{display:flex;align-items:center;gap:12px;font-size:16px;color:#d1d5db;padding:10px 0}
+          .api-features li{display:flex;align-items:center;gap:12px;font-size:16px;color:#4b5563;padding:10px 0}
           .check{color:#25d366;font-weight:700}
-          .api-demo{background:#0d0d1a;border-radius:16px;overflow:hidden}
-          .code-tabs{display:flex;gap:4px;padding:16px;background:#16162a;border-bottom:1px solid #2a2a4a}
+          .api-demo{background:#1e293b;border-radius:16px;overflow:hidden}
+          .code-tabs{display:flex;gap:4px;padding:16px;background:#0f172a;border-bottom:1px solid #334155}
           .tab{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;color:#9ca3af;background:transparent;cursor:pointer;transition:all .2s}
           .tab:hover{color:#fff}
           .tab.active{background:#25d366;color:#fff}
