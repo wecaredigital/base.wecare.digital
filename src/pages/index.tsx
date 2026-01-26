@@ -287,9 +287,9 @@ const HomePage: React.FC = () => {
           .usecase-icon{font-size:64px;margin-bottom:20px}
           .usecase-content h3{font-size:28px;font-weight:700;margin:0 0 16px;color:#1a1a1a}
           .usecase-content p{font-size:17px;color:#6b7280;line-height:1.7;margin:0}          .api{padding:100px 24px;background:#f8f9fa}
-          .api-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;max-width:1200px;margin:0 auto;align-items:center}
+          .api-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;max-width:1200px;margin:0 auto;align-items:center}
           .api-info h2{font-size:36px;font-weight:700;color:#1a1a1a;margin:0 0 20px;line-height:1.2}
-          .api-desc{font-size:17px;color:#6b7280;line-height:1.7;margin:0 0 30px}
+          .api-desc{font-size:17px;color:#6b7280;line-height:1.7;margin:0 0 30px;max-width:480px}
           .api-features{list-style:none;padding:0;margin:0}
           .api-features li{display:flex;align-items:center;gap:12px;font-size:16px;color:#4b5563;padding:10px 0}
           .check{color:#25d366;font-weight:700}
