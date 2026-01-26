@@ -46,70 +46,56 @@ const HomePage: React.FC = () => {
               <p>Connect with customers on WhatsApp, SMS, and more. One platform for all your business communication needs.</p>
             </div>
             <div className="hero-right">
-              <div className="phone-mockup">
-                <div className="phone-notch"></div>
-                <div className="wa-header">
-                  <div className="wa-back"></div>
-                  <div className="wa-avatar">W</div>
-                  <div className="wa-info">
-                    <span className="wa-name">WECARE.DIGITAL</span>
-                    <span className="wa-status">online</span>
-                  </div>
-                  <div className="wa-icons">  </div>
-                </div>
-                <div className="wa-chat">
-                  <div className="bubble out b1">
-                    <div className="bubble-content">
-                      <p>Hi! Your order #WDSR87A6G has been shipped </p>
-                      <span className="time">10:30 </span>
+              <div className="mockup-container">
+                <div className="phone-mockup">
+                  <div className="wa-header">
+                    <div className="wa-back"></div>
+                    <div className="wa-avatar">W</div>
+                    <div className="wa-info">
+                      <span className="wa-name">WECARE.DIGITAL</span>
+                      <span className="wa-status">online</span>
                     </div>
+                    <div className="wa-check"></div>
                   </div>
-                  <div className="bubble in b2">
-                    <div className="bubble-content">
-                      <p>Great! How can I track it?</p>
+                  <div className="wa-chat">
+                    <div className="bubble out b1">
+                      <p>Hi! Your order #WDSR87A6G has been shipped </p>
+                      <span className="time">10:30</span>
+                    </div>
+                    <div className="bubble in b2">
+                      <p>When will it arrive?</p>
                       <span className="time">10:31</span>
                     </div>
-                  </div>
-                  <div className="bubble out b3">
-                    <div className="bubble-content">
-                      <p>Track: wecare.digital/track</p>
-                      <span className="time">10:31 </span>
+                    <div className="bubble out b3">
+                      <p>Tomorrow by 6 PM</p>
+                      <span className="time">10:31</span>
+                    </div>
+                    <div className="bubble out b4">
+                      <p>Track here:<br/>wecare.digital/track</p>
+                      <span className="time">10:31</span>
+                    </div>
+                    <div className="typing">
+                      <span></span><span></span><span></span>
                     </div>
                   </div>
-                  <div className="bubble in b4">
-                    <div className="bubble-content">
-                      <p>Thanks! </p>
-                      <span className="time">10:32</span>
-                    </div>
+                </div>
+                <div className="code-snippet">
+                  <div className="code-bar">
+                    <span className="dot red"></span>
+                    <span className="dot yellow"></span>
+                    <span className="dot green"></span>
+                    <span className="filename">send_message.py</span>
                   </div>
-                </div>
-                <div className="wa-input">
-                  <span className="wa-emoji"></span>
-                  <span className="wa-placeholder">Type a message</span>
-                  <span className="wa-mic"></span>
-                </div>
-                <div className="phone-number">+919330994400</div>
-              </div>
-              <div className="code-snippet">
-                <div className="code-bar">
-                  <span className="dot red"></span>
-                  <span className="dot yellow"></span>
-                  <span className="dot green"></span>
-                  <span className="filename">send_message.py</span>
-                </div>
-                <pre className="code-content">{`import requests
-
-response = requests.post(
-  "https://api.wecare.digital/v1/messages",
+                  <pre className="code-content">{`response = requests.post(
+  "api.wecare.digital/v1/send",
   json={
-    "to": "+919330994400",
+    "to": "+919876543210",
     "type": "text",
-    "text": "Your order has shipped!"
+    "message": "Your OTP: 123456"
   },
-  headers={"Authorization": "Bearer API_KEY"}
-)
-
-print(response.json())`}</pre>
+  headers={"Authorization": api_key}
+)`}</pre>
+                </div>
               </div>
             </div>
           </div>
@@ -125,56 +111,65 @@ print(response.json())`}</pre>
             <div className="ai-card">
               <div className="ai-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <path d="M9 9h6M9 13h6M9 17h4"/>
                 </svg>
               </div>
-              <h3>Smart Conversations</h3>
-              <p>AI-powered chatbots that understand context and deliver human-like responses</p>
+              <h3>Customer Data Platform</h3>
+              <p>Every signal, unified and current</p>
             </div>
             <div className="ai-card">
               <div className="ai-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <rect x="2" y="3" width="20" height="14" rx="2"/>
+                  <path d="M8 21h8M12 17v4"/>
                 </svg>
               </div>
-              <h3>Instant Automation</h3>
-              <p>Automate repetitive tasks and respond to customers in milliseconds</p>
+              <h3>Custom Data Modeling</h3>
+              <p>Objects and segments for your business</p>
             </div>
             <div className="ai-card">
               <div className="ai-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
               </div>
-              <h3>Real-time Analytics</h3>
-              <p>Track message delivery, engagement, and conversion in real-time</p>
+              <h3>Multichannel Orchestration</h3>
+              <p>Reach customers anywhere</p>
             </div>
             <div className="ai-card">
               <div className="ai-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
                 </svg>
               </div>
-              <h3>Enterprise Security</h3>
-              <p>End-to-end encryption and compliance with global data regulations</p>
+              <h3>Smart Personalization</h3>
+              <p>Marketing that runs itself</p>
             </div>
             <div className="ai-card">
               <div className="ai-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
                 </svg>
               </div>
-              <h3>Team Collaboration</h3>
-              <p>Multiple agents, shared inbox, and seamless handoffs between AI and humans</p>
+              <h3>Enterprise Infrastructure</h3>
+              <p>APIs and security that scale</p>
             </div>
             <div className="ai-card">
               <div className="ai-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <rect x="3" y="3" width="7" height="7"/>
+                  <rect x="14" y="3" width="7" height="7"/>
+                  <rect x="3" y="14" width="7" height="7"/>
+                  <rect x="14" y="14" width="7" height="7"/>
                 </svg>
               </div>
-              <h3>Flexible Integration</h3>
-              <p>Connect with your CRM, helpdesk, and business tools via APIs and webhooks</p>
+              <h3>Predictive Analytics</h3>
+              <p>See revenue before it happens</p>
             </div>
           </div>
         </section>
@@ -189,7 +184,7 @@ print(response.json())`}</pre>
                 </svg>
               </div>
               <h3>WhatsApp Business API</h3>
-              <p>Official API access with verified business profiles and green tick</p>
+              <p>Official API access with verified business profiles</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon sms">
@@ -198,7 +193,7 @@ print(response.json())`}</pre>
                 </svg>
               </div>
               <h3>SMS Gateway</h3>
-              <p>Reliable SMS delivery across India with DLT compliance</p>
+              <p>Reliable SMS delivery with DLT compliance</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon voice">
@@ -207,7 +202,7 @@ print(response.json())`}</pre>
                 </svg>
               </div>
               <h3>Voice Calls</h3>
-              <p>Automated voice calls and IVR for customer engagement</p>
+              <p>Automated voice calls and IVR</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon email">
@@ -216,7 +211,7 @@ print(response.json())`}</pre>
                 </svg>
               </div>
               <h3>Email Campaigns</h3>
-              <p>Transactional and marketing emails with high deliverability</p>
+              <p>Transactional and marketing emails</p>
             </div>
           </div>
         </section>
@@ -240,85 +235,85 @@ print(response.json())`}</pre>
           .anim.show{opacity:1;transform:translateY(0)}
 
           /* Hero */
-          .hero{padding:140px 24px 80px;max-width:1200px;margin:0 auto}
-          .hero-content{display:grid;grid-template-columns:1fr 1.3fr;gap:60px;align-items:center}
+          .hero{padding:140px 24px 100px;max-width:1200px;margin:0 auto}
+          .hero-content{display:grid;grid-template-columns:1fr 1.4fr;gap:40px;align-items:center}
           .hero-left h1{font-size:52px;font-weight:700;line-height:1.1;color:#1a1a1a;margin:0 0 20px;letter-spacing:-2px}
           .hero-left p{font-size:18px;color:#6b7280;line-height:1.7;margin:0;max-width:420px}
           
-          .hero-right{display:flex;gap:24px;align-items:flex-start}
+          .hero-right{display:flex;justify-content:center}
+          
+          /* Mockup Container - Overlapping */
+          .mockup-container{position:relative;width:580px;height:480px}
           
           /* Phone Mockup */
-          .phone-mockup{width:280px;background:#1a1a1a;border-radius:40px;padding:12px;box-shadow:0 50px 100px rgba(0,0,0,.15);position:relative;animation:float 6s ease-in-out infinite}
-          .phone-notch{width:120px;height:28px;background:#1a1a1a;border-radius:0 0 20px 20px;position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:10}
-          .wa-header{background:#075e54;padding:50px 12px 12px;border-radius:28px 28px 0 0;display:flex;align-items:center;gap:10px}
-          .wa-back{color:#fff;font-size:18px}
-          .wa-avatar{width:36px;height:36px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}
+          .phone-mockup{position:absolute;left:0;top:0;width:320px;background:#e8efe5;border-radius:32px;padding:0;box-shadow:0 25px 80px rgba(0,0,0,.12);z-index:2;overflow:hidden}
+          .wa-header{background:#075e54;padding:16px;display:flex;align-items:center;gap:12px}
+          .wa-back{color:#fff;font-size:20px;opacity:.9}
+          .wa-avatar{width:44px;height:44px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px}
           .wa-info{display:flex;flex-direction:column;flex:1}
-          .wa-name{color:#fff;font-size:14px;font-weight:600}
-          .wa-status{color:rgba(255,255,255,.7);font-size:11px}
-          .wa-icons{color:#fff;font-size:14px;letter-spacing:8px}
+          .wa-name{color:#fff;font-size:17px;font-weight:600}
+          .wa-status{color:rgba(255,255,255,.7);font-size:13px}
+          .wa-check{width:24px;height:24px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px}
           
-          .wa-chat{background:linear-gradient(180deg,#ece5dd 0%,#d9d2c5 100%);padding:16px 12px;min-height:280px;display:flex;flex-direction:column;gap:8px}
-          .bubble{max-width:85%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5}
-          .bubble.in{background:#fff;align-self:flex-start;border-bottom-left-radius:4px}
-          .bubble.out{background:#d9fdd3;align-self:flex-end;border-bottom-right-radius:4px}
-          .bubble-content p{margin:0 0 4px}
-          .time{font-size:10px;color:#667781;display:block;text-align:right}
+          .wa-chat{background:#e8efe5;padding:20px 16px;min-height:340px;display:flex;flex-direction:column;gap:10px}
+          .bubble{max-width:85%;padding:10px 14px;border-radius:10px;font-size:15px;line-height:1.5;position:relative}
+          .bubble.in{background:#fff;align-self:flex-start;border-top-left-radius:2px}
+          .bubble.out{background:#d9fdd3;align-self:flex-end;border-top-right-radius:2px}
+          .bubble p{margin:0}
+          .time{font-size:11px;color:#667781;display:block;text-align:right;margin-top:4px}
           
-          .b1{animation:bubbleIn .5s ease .3s both}
-          .b2{animation:bubbleIn .5s ease .8s both}
-          .b3{animation:bubbleIn .5s ease 1.3s both}
-          .b4{animation:bubbleIn .5s ease 1.8s both}
+          .typing{background:#fff;padding:12px 16px;border-radius:10px;align-self:flex-start;display:flex;gap:4px}
+          .typing span{width:8px;height:8px;background:#90949c;border-radius:50%;animation:typingDot 1.4s infinite}
+          .typing span:nth-child(2){animation-delay:.2s}
+          .typing span:nth-child(3){animation-delay:.4s}
+          @keyframes typingDot{0%,60%,100%{opacity:.3}30%{opacity:1}}
           
+          .b1{animation:bubbleIn .5s ease .2s both}
+          .b2{animation:bubbleIn .5s ease .6s both}
+          .b3{animation:bubbleIn .5s ease 1s both}
+          .b4{animation:bubbleIn .5s ease 1.4s both}
           @keyframes bubbleIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-          @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
           
-          .wa-input{background:#f0f2f5;padding:10px 12px;border-radius:0 0 28px 28px;display:flex;align-items:center;gap:12px}
-          .wa-emoji{font-size:20px}
-          .wa-placeholder{flex:1;color:#667781;font-size:14px}
-          .wa-mic{font-size:18px}
-          .phone-number{text-align:center;color:#fff;font-size:11px;padding:8px 0 4px;opacity:.6}
-          
-          /* Code Snippet */
-          .code-snippet{width:320px;background:#1e1e1e;border-radius:16px;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.12);animation:float 6s ease-in-out infinite;animation-delay:.5s}
-          .code-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#2d2d2d}
+          /* Code Snippet - Overlapping */
+          .code-snippet{position:absolute;right:0;bottom:40px;width:340px;background:#2d3748;border-radius:16px;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.15);z-index:3}
+          .code-bar{display:flex;align-items:center;gap:8px;padding:14px 18px;background:#1a202c}
           .dot{width:12px;height:12px;border-radius:50%}
           .dot.red{background:#ff5f56}
           .dot.yellow{background:#ffbd2e}
           .dot.green{background:#27ca40}
-          .filename{margin-left:auto;font-size:12px;color:#808080}
-          .code-content{margin:0;padding:16px;font-family:'SF Mono',Monaco,'Courier New',monospace;font-size:12px;line-height:1.6;color:#d4d4d4;overflow-x:auto}
+          .filename{margin-left:auto;font-size:13px;color:#a0aec0}
+          .code-content{margin:0;padding:20px;font-family:'SF Mono',Monaco,'Courier New',monospace;font-size:14px;line-height:1.7;color:#e2e8f0;overflow-x:auto}
 
           /* AI Section */
-          .ai-section{padding:100px 24px;max-width:1200px;margin:0 auto}
+          .ai-section{padding:100px 24px;max-width:1100px;margin:0 auto}
           .ai-header{text-align:center;margin-bottom:60px}
           .ai-header h2{font-size:42px;font-weight:700;color:#1a1a1a;margin:0 0 16px;letter-spacing:-1.5px}
           .ai-header p{font-size:18px;color:#6b7280;line-height:1.7;max-width:700px;margin:0 auto}
           
-          .ai-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-          .ai-card{background:#fafafa;border:1px solid #e5e5e5;border-radius:16px;padding:32px 28px;transition:all .3s ease}
-          .ai-card:hover{background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.06);transform:translateY(-4px)}
-          .ai-icon{width:48px;height:48px;background:#fff;border:1px solid #e5e5e5;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
-          .ai-icon svg{width:24px;height:24px;color:#1a1a1a}
-          .ai-card h3{font-size:18px;font-weight:600;color:#1a1a1a;margin:0 0 10px}
-          .ai-card p{font-size:14px;color:#6b7280;line-height:1.6;margin:0}
+          .ai-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+          .ai-card{background:#fafafa;border:1px solid #eaeaea;border-radius:12px;padding:28px 24px;transition:all .2s ease}
+          .ai-card:hover{background:#fff;border-color:#ddd}
+          .ai-icon{width:40px;height:40px;background:#fff;border:1px solid #eaeaea;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+          .ai-icon svg{width:20px;height:20px;color:#666}
+          .ai-card h3{font-size:17px;font-weight:600;color:#1a1a1a;margin:0 0 6px}
+          .ai-card p{font-size:15px;color:#888;line-height:1.5;margin:0}
 
           /* Features Section */
-          .features{padding:80px 24px 100px;max-width:1200px;margin:0 auto}
+          .features{padding:60px 24px 100px;max-width:1100px;margin:0 auto}
           .features-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
-          .feature-card{background:#fafafa;border:1px solid #e5e5e5;border-radius:16px;padding:28px 24px;text-align:center;transition:all .3s ease}
-          .feature-card:hover{background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.06);transform:translateY(-4px)}
-          .feature-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
-          .feature-icon svg{width:28px;height:28px}
+          .feature-card{background:#fafafa;border:1px solid #eaeaea;border-radius:12px;padding:24px 20px;text-align:center;transition:all .2s ease}
+          .feature-card:hover{background:#fff;border-color:#ddd}
+          .feature-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+          .feature-icon svg{width:26px;height:26px}
           .feature-icon.whatsapp{background:#dcfce7;color:#25d366}
           .feature-icon.sms{background:#dbeafe;color:#3b82f6}
           .feature-icon.voice{background:#fef3c7;color:#f59e0b}
           .feature-icon.email{background:#fce7f3;color:#ec4899}
-          .feature-card h3{font-size:16px;font-weight:600;color:#1a1a1a;margin:0 0 8px}
-          .feature-card p{font-size:13px;color:#6b7280;line-height:1.5;margin:0}
+          .feature-card h3{font-size:15px;font-weight:600;color:#1a1a1a;margin:0 0 6px}
+          .feature-card p{font-size:13px;color:#888;line-height:1.4;margin:0}
 
           /* Footer */
-          .ftr{border-top:1px solid #e5e5e5;padding:24px}
+          .ftr{border-top:1px solid #eaeaea;padding:24px}
           .ftr-in{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
           .ftr-contact{font-size:14px;color:#9ca3af;text-decoration:none;transition:color .2s}
           .ftr-contact:hover{color:#6b7280}
@@ -328,7 +323,9 @@ print(response.json())`}</pre>
             .hero-content{grid-template-columns:1fr;text-align:center;gap:50px}
             .hero-left h1{font-size:42px}
             .hero-left p{margin:0 auto}
-            .hero-right{justify-content:center;flex-wrap:wrap}
+            .mockup-container{width:100%;max-width:500px;height:auto;margin:0 auto}
+            .phone-mockup{position:relative;width:100%;max-width:300px;margin:0 auto}
+            .code-snippet{position:relative;width:100%;max-width:320px;margin:20px auto 0;right:auto;bottom:auto}
             .ai-grid{grid-template-columns:repeat(2,1fr)}
             .features-grid{grid-template-columns:repeat(2,1fr)}
           }
@@ -336,15 +333,12 @@ print(response.json())`}</pre>
             .hero-left h1{font-size:34px}
             .ai-header h2{font-size:32px}
             .ai-grid{grid-template-columns:1fr}
-            .features-grid{grid-template-columns:1fr}
-            .phone-mockup{width:260px}
-            .code-snippet{width:280px}
+            .features-grid{grid-template-columns:repeat(2,1fr)}
           }
           @media(max-width:480px){
             .hero{padding:120px 16px 60px}
             .hero-left h1{font-size:28px}
-            .hero-right{flex-direction:column;align-items:center}
-            .phone-mockup,.code-snippet{width:100%;max-width:300px}
+            .features-grid{grid-template-columns:1fr}
             .ftr-in{flex-direction:column;gap:12px;text-align:center}
           }
         `}</style>
