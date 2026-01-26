@@ -46,47 +46,51 @@ const HomePage: React.FC = () => {
               <p>Connect with customers on WhatsApp, SMS, and more. One platform for all your business communication needs.</p>
             </div>
             <div className="hero-right">
-              <div className="mockup-container">
-                <div className="phone-mockup">
-                  <div className="wa-header">
-                    <div className="wa-back"></div>
-                    <div className="wa-avatar">W</div>
-                    <div className="wa-info">
-                      <span className="wa-name">WECARE.DIGITAL</span>
-                      <span className="wa-status">online</span>
+              <div className="mockup-wrapper">
+                {/* Phone Mockup */}
+                <div className="phone">
+                  <div className="phone-header">
+                    <span className="back-arrow"></span>
+                    <div className="avatar">W</div>
+                    <div className="contact-info">
+                      <span className="contact-name">WECARE.DIGITAL</span>
+                      <span className="contact-status">online</span>
                     </div>
-                    <div className="wa-check"></div>
+                    <div className="verified-badge"></div>
                   </div>
-                  <div className="wa-chat">
-                    <div className="bubble out b1">
+                  <div className="chat-area">
+                    <div className="msg sent">
                       <p>Hi! Your order #WDSR87A6G has been shipped </p>
-                      <span className="time">10:30</span>
+                      <span className="msg-time">10:30</span>
                     </div>
-                    <div className="bubble in b2">
+                    <div className="msg received">
                       <p>When will it arrive?</p>
-                      <span className="time">10:31</span>
+                      <span className="msg-time">10:31</span>
                     </div>
-                    <div className="bubble out b3">
+                    <div className="msg sent">
                       <p>Tomorrow by 6 PM</p>
-                      <span className="time">10:31</span>
+                      <span className="msg-time">10:31</span>
                     </div>
-                    <div className="bubble out b4">
+                    <div className="msg sent">
                       <p>Track here:<br/>wecare.digital/track</p>
-                      <span className="time">10:31</span>
+                      <span className="msg-time">10:31</span>
                     </div>
-                    <div className="typing">
+                    <div className="typing-indicator">
                       <span></span><span></span><span></span>
                     </div>
                   </div>
                 </div>
-                <div className="code-snippet">
-                  <div className="code-bar">
-                    <span className="dot red"></span>
-                    <span className="dot yellow"></span>
-                    <span className="dot green"></span>
-                    <span className="filename">send_message.py</span>
+                {/* Code Snippet */}
+                <div className="code-box">
+                  <div className="code-header">
+                    <div className="dots">
+                      <span className="dot-red"></span>
+                      <span className="dot-yellow"></span>
+                      <span className="dot-green"></span>
+                    </div>
+                    <span className="file-name">send_message.py</span>
                   </div>
-                  <pre className="code-content">{`response = requests.post(
+                  <pre className="code-body">{`response = requests.post(
   "api.wecare.digital/v1/send",
   json={
     "to": "+919876543210",
@@ -242,47 +246,42 @@ const HomePage: React.FC = () => {
           
           .hero-right{display:flex;justify-content:center}
           
-          /* Mockup Container - Overlapping */
-          .mockup-container{position:relative;width:580px;height:480px}
+          /* Mockup Wrapper - Mint green background */
+          .mockup-wrapper{position:relative;width:560px;height:520px;background:#e8f5f0;border-radius:32px;padding:40px}
           
-          /* Phone Mockup */
-          .phone-mockup{position:absolute;left:0;top:0;width:320px;background:#e8efe5;border-radius:32px;padding:0;box-shadow:0 25px 80px rgba(0,0,0,.12);z-index:2;overflow:hidden}
-          .wa-header{background:#075e54;padding:16px;display:flex;align-items:center;gap:12px}
-          .wa-back{color:#fff;font-size:20px;opacity:.9}
-          .wa-avatar{width:44px;height:44px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px}
-          .wa-info{display:flex;flex-direction:column;flex:1}
-          .wa-name{color:#fff;font-size:17px;font-weight:600}
-          .wa-status{color:rgba(255,255,255,.7);font-size:13px}
-          .wa-check{width:24px;height:24px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px}
+          /* Phone */
+          .phone{position:absolute;left:40px;top:40px;width:340px;background:#d4ddd4;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.08)}
+          .phone-header{background:#075e54;padding:14px 16px;display:flex;align-items:center;gap:12px}
+          .back-arrow{color:#fff;font-size:22px;font-weight:300}
+          .avatar{width:46px;height:46px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
+          .contact-info{flex:1;display:flex;flex-direction:column}
+          .contact-name{color:#fff;font-size:18px;font-weight:600;letter-spacing:.3px}
+          .contact-status{color:rgba(255,255,255,.75);font-size:13px}
+          .verified-badge{width:26px;height:26px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700}
           
-          .wa-chat{background:#e8efe5;padding:20px 16px;min-height:340px;display:flex;flex-direction:column;gap:10px}
-          .bubble{max-width:85%;padding:10px 14px;border-radius:10px;font-size:15px;line-height:1.5;position:relative}
-          .bubble.in{background:#fff;align-self:flex-start;border-top-left-radius:2px}
-          .bubble.out{background:#d9fdd3;align-self:flex-end;border-top-right-radius:2px}
-          .bubble p{margin:0}
-          .time{font-size:11px;color:#667781;display:block;text-align:right;margin-top:4px}
+          .chat-area{background:#e8efe5;padding:20px 16px;min-height:380px;display:flex;flex-direction:column;gap:12px}
+          .msg{max-width:80%;padding:12px 16px;border-radius:12px;font-size:16px;line-height:1.5;position:relative}
+          .msg.received{background:#fff;align-self:flex-start;border-top-left-radius:4px}
+          .msg.sent{background:#d9fdd3;align-self:flex-end;border-top-right-radius:4px}
+          .msg p{margin:0}
+          .msg-time{font-size:11px;color:#667781;display:block;text-align:right;margin-top:6px}
           
-          .typing{background:#fff;padding:12px 16px;border-radius:10px;align-self:flex-start;display:flex;gap:4px}
-          .typing span{width:8px;height:8px;background:#90949c;border-radius:50%;animation:typingDot 1.4s infinite}
-          .typing span:nth-child(2){animation-delay:.2s}
-          .typing span:nth-child(3){animation-delay:.4s}
-          @keyframes typingDot{0%,60%,100%{opacity:.3}30%{opacity:1}}
+          .typing-indicator{background:#fff;padding:14px 18px;border-radius:12px;align-self:flex-start;display:flex;gap:5px;border-top-left-radius:4px}
+          .typing-indicator span{width:9px;height:9px;background:#90949c;border-radius:50%;animation:bounce 1.4s infinite}
+          .typing-indicator span:nth-child(2){animation-delay:.2s}
+          .typing-indicator span:nth-child(3){animation-delay:.4s}
+          @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
           
-          .b1{animation:bubbleIn .5s ease .2s both}
-          .b2{animation:bubbleIn .5s ease .6s both}
-          .b3{animation:bubbleIn .5s ease 1s both}
-          .b4{animation:bubbleIn .5s ease 1.4s both}
-          @keyframes bubbleIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-          
-          /* Code Snippet - Overlapping */
-          .code-snippet{position:absolute;right:0;bottom:40px;width:340px;background:#2d3748;border-radius:16px;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.15);z-index:3}
-          .code-bar{display:flex;align-items:center;gap:8px;padding:14px 18px;background:#1a202c}
-          .dot{width:12px;height:12px;border-radius:50%}
-          .dot.red{background:#ff5f56}
-          .dot.yellow{background:#ffbd2e}
-          .dot.green{background:#27ca40}
-          .filename{margin-left:auto;font-size:13px;color:#a0aec0}
-          .code-content{margin:0;padding:20px;font-family:'SF Mono',Monaco,'Courier New',monospace;font-size:14px;line-height:1.7;color:#e2e8f0;overflow-x:auto}
+          /* Code Box */
+          .code-box{position:absolute;right:30px;bottom:60px;width:380px;background:#3d4654;border-radius:16px;overflow:hidden;box-shadow:0 25px 70px rgba(0,0,0,.18);z-index:2}
+          .code-header{display:flex;align-items:center;padding:14px 18px;background:#2d3440}
+          .dots{display:flex;gap:8px}
+          .dot-red,.dot-yellow,.dot-green{width:14px;height:14px;border-radius:50%}
+          .dot-red{background:#ff5f57}
+          .dot-yellow{background:#febc2e}
+          .dot-green{background:#28c840}
+          .file-name{margin-left:auto;font-size:14px;color:#9ca3af}
+          .code-body{margin:0;padding:22px;font-family:'SF Mono',Monaco,'Courier New',monospace;font-size:15px;line-height:1.7;color:#e5e7eb;overflow-x:auto}
 
           /* AI Section */
           .ai-section{padding:100px 24px;max-width:1100px;margin:0 auto}
@@ -323,9 +322,9 @@ const HomePage: React.FC = () => {
             .hero-content{grid-template-columns:1fr;text-align:center;gap:50px}
             .hero-left h1{font-size:42px}
             .hero-left p{margin:0 auto}
-            .mockup-container{width:100%;max-width:500px;height:auto;margin:0 auto}
-            .phone-mockup{position:relative;width:100%;max-width:300px;margin:0 auto}
-            .code-snippet{position:relative;width:100%;max-width:320px;margin:20px auto 0;right:auto;bottom:auto}
+            .mockup-wrapper{width:100%;max-width:480px;height:auto;min-height:500px;margin:0 auto}
+            .phone{position:relative;left:auto;top:auto;width:100%;max-width:300px;margin:0 auto 20px}
+            .code-box{position:relative;right:auto;bottom:auto;width:100%;max-width:340px;margin:0 auto}
             .ai-grid{grid-template-columns:repeat(2,1fr)}
             .features-grid{grid-template-columns:repeat(2,1fr)}
           }
