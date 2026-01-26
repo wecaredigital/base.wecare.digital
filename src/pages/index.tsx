@@ -120,27 +120,9 @@ const HomePage: React.FC = () => {
             </div>
           </div>
         </section>
-        <section className={`logos anim ${show('logos') ? 'show' : ''}`} id="logos">
-          <p className="logos-title">Trusted by businesses worldwide</p>
-          <div className="logos-row">
-            {['Retail', 'Finance', 'Travel', 'Healthcare', 'EdTech', 'eCommerce'].map((n, i) => (
-              <div key={i} className="logo-item">{n}</div>
-            ))}
-          </div>
-        </section>
-
-        <section className={`reach anim ${show('reach') ? 'show' : ''}`} id="reach">
-          <div className="section-header">
-            <h2>Reach 2 Billion Users on Their Preferred Channel</h2>
-            <p>Delight your customers with dynamic WhatsApp messaging features</p>
-          </div>
+        {/* FEATURES SECTION */}
+        <section className={`reach anim ${show('reach') ? 'show' : ''}}`} id="reach">
           <div className="features-grid">
-            {features.map((f, i) => (
-              <div key={i} className={`feature-card ${activeTab === i ? 'active' : ''}`} onClick={() => setActiveTab(i)}>
-                <div className="feature-icon">{f.icon}</div>
-                <h3>{f.title}</h3>
-                <p>{f.desc}</p>
-              </div>
             ))}
           </div>
         </section>
