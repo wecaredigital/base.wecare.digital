@@ -118,8 +118,23 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
             </div>
-        {/* FEATURES SECTION */}
-        <section className={`reach anim ${show('reach') ? 'show' : ''}}`} id="reach">
+          </div>
+        </section>
+        <section className={`logos anim ${show('logos') ? 'show' : ''}`} id="logos">
+          <p className="logos-title">Trusted by businesses worldwide</p>
+          <div className="logos-row">
+            {['Retail', 'Finance', 'Travel', 'Healthcare', 'EdTech', 'eCommerce'].map((n, i) => (
+              <div key={i} className="logo-item">{n}</div>
+            ))}
+          </div>
+        </section>
+
+        <section className={`reach anim ${show('reach') ? 'show' : ''}`} id="reach">
+          <div className="section-header">
+            <h2>Reach 2 Billion Users on Their Preferred Channel</h2>
+            <p>Delight your customers with dynamic WhatsApp messaging features</p>
+          </div>
+          <div className="features-grid">
             {features.map((f, i) => (
               <div key={i} className={`feature-card ${activeTab === i ? 'active' : ''}`} onClick={() => setActiveTab(i)}>
                 <div className="feature-icon">{f.icon}</div>
@@ -287,7 +302,7 @@ const HomePage: React.FC = () => {
           .usecase-icon{font-size:64px;margin-bottom:20px}
           .usecase-content h3{font-size:28px;font-weight:700;margin:0 0 16px;color:#1a1a1a}
           .usecase-content p{font-size:17px;color:#6b7280;line-height:1.7;margin:0}          .api{padding:100px 24px;background:#f8f9fa}
-          .api-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;max-width:1200px;margin:0 auto;align-items:center}
+          .api-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;max-width:1200px;margin:0 auto;align-items:center}
           .api-info h2{font-size:36px;font-weight:700;color:#1a1a1a;margin:0 0 20px;line-height:1.2}
           .api-desc{font-size:17px;color:#6b7280;line-height:1.7;margin:0 0 30px;max-width:480px}
           .api-features{list-style:none;padding:0;margin:0}
