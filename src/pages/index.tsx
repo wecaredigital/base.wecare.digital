@@ -26,33 +26,32 @@ const HomePage: React.FC = () => {
   const show = (id: string) => visible.has(id);
 
   const features = [
-    { icon: '', title: 'Rich Media', desc: 'Images, videos, documents & interactive buttons' },
-    { icon: '', title: 'Templates', desc: 'Pre-approved message templates' },
-    { icon: '', title: 'Catalogs', desc: 'Product showcases in chat' },
-    { icon: '', title: 'Payments', desc: 'In-chat payment collection' },
-    { icon: '', title: 'Chatbots', desc: 'AI-powered automation' },
+    { icon: '', title: 'Rich Media', desc: 'Send images, videos, documents, and interactive buttons.' },
+    { icon: '', title: 'Templates', desc: 'Pre-approved message templates for notifications.' },
+    { icon: '', title: 'Catalogs', desc: 'Showcase products directly in chat.' },
+    { icon: '', title: 'Payments', desc: 'Collect payments within conversations.' },
+    { icon: '', title: 'Chatbots', desc: 'AI-powered 24/7 customer support.' },
   ];
 
   const useCases = [
     { title: 'Promotional', desc: 'Drive sales with targeted campaigns and personalized offers.', icon: '' },
-    { title: 'Transactional', desc: 'Order confirmations, shipping updates, and delivery notifications.', icon: '' },
-    { title: 'Appointments', desc: 'Booking confirmations, reminders, and rescheduling.', icon: '' },
-    { title: 'OTPs', desc: 'Secure one-time passwords for login and verification.', icon: '' },
+    { title: 'Transactional', desc: 'Order confirmations, shipping updates, delivery notifications.', icon: '' },
+    { title: 'Appointments', desc: 'Booking confirmations, reminders, rescheduling.', icon: '' },
+    { title: 'OTPs', desc: 'Secure one-time passwords for verification.', icon: '' },
     { title: 'Orders', desc: 'Complete order management from cart to delivery.', icon: '' },
     { title: 'Surveys', desc: 'Collect feedback directly in chat.', icon: '' },
   ];
 
   const codeExamples = [
-    { lang: 'Python', code: "import requests\nrequests.post(\n  \"api.wecare.digital/v1/send\",\n  headers={\"Authorization\": \"Bearer KEY\"},\n  json={\"to\": \"+919330994400\", \"template\": \"otp\"}\n)" },
-    { lang: 'JavaScript', code: "await fetch(\"api.wecare.digital/v1/send\", {\n  method: \"POST\",\n  headers: { Authorization: \"Bearer KEY\" },\n  body: JSON.stringify({ to: \"+919330994400\" })\n});" },
-    { lang: 'Java', code: "OkHttpClient client = new OkHttpClient();\nRequest request = new Request.Builder()\n  .url(\"api.wecare.digital/v1/send\")\n  .addHeader(\"Authorization\", \"Bearer KEY\")\n  .post(body).build();" },
-    { lang: 'Go', code: "req, _ := http.NewRequest(\"POST\",\n  \"api.wecare.digital/v1/send\", body)\nreq.Header.Set(\"Authorization\", \"Bearer KEY\")" },
+    { lang: 'Python', code: "import requests\n\nresponse = requests.post(\n    \"https://api.wecare.digital/v1/messages\",\n    headers={\"Authorization\": \"Bearer API_KEY\"},\n    json={\"to\": \"+919330994400\", \"type\": \"template\"}\n)" },
+    { lang: 'JavaScript', code: "const response = await fetch(\n    \"https://api.wecare.digital/v1/messages\",\n    {\n        method: \"POST\",\n        headers: {\"Authorization\": \"Bearer API_KEY\"},\n        body: JSON.stringify({to: \"+919330994400\"})\n    }\n);" },
+    { lang: 'cURL', code: "curl -X POST \\\n    \"https://api.wecare.digital/v1/messages\" \\\n    -H \"Authorization: Bearer API_KEY\" \\\n    -d '{\"to\": \"+919330994400\"}'" },
   ];
 
   const stories = [
-    { brand: 'Retail Brand', title: 'Conversational commerce', metrics: ['14x higher sales', '290K messages in 7 days'] },
-    { brand: 'Finance Co', title: 'Automated support', metrics: ['20% cases via WhatsApp', '94% CSAT rate'] },
-    { brand: 'Travel App', title: 'Booking confirmations', metrics: ['90% faster response', '87% positive feedback'] },
+    { brand: 'Retail Brand', stat: '14x', label: 'higher sales', desc: 'Conversational commerce', extra: '290K messages in 7 days' },
+    { brand: 'Finance Co', stat: '94%', label: 'CSAT rate', desc: 'Automated support', extra: '20% cases via WhatsApp' },
+    { brand: 'Travel App', stat: '90%', label: 'faster response', desc: 'Booking confirmations', extra: '87% positive feedback' },
   ];
 
   return (
@@ -121,100 +120,112 @@ const HomePage: React.FC = () => {
             </div>
           </div>
         </section>
-
-        <section className="logos-section">
-          <div className="logos-content">
-            <h3>Trusted by businesses worldwide</h3>
-            <div className="logos-grid">
-              {['Retail', 'Finance', 'Travel', 'Healthcare', 'EdTech', 'eCommerce'].map((n, i) => (
-                <div key={i} className="logo-card">{n}</div>
-              ))}
-            </div>
+        <section className={`logos anim ${show('logos') ? 'show' : ''}`} id="logos">
+          <p className="logos-title">Trusted by businesses worldwide</p>
+          <div className="logos-row">
+            {['Retail', 'Finance', 'Travel', 'Healthcare', 'EdTech', 'eCommerce'].map((n, i) => (
+              <div key={i} className="logo-item">{n}</div>
+            ))}
           </div>
         </section>
 
         <section className={`reach anim ${show('reach') ? 'show' : ''}`} id="reach">
-          <h2>Reach 2 Billion Users on Their Preferred Channel</h2>
-          <p className="section-sub">Delight your customers with dynamic WhatsApp messaging features</p>
-          <div className="feature-tabs">
-            <div className="ftabs-nav">
-              {features.map((f, i) => (
-                <button key={i} className={`ftab ${activeTab === i ? 'active' : ''}`} onClick={() => setActiveTab(i)}>
-                  <span className="ftab-icon">{f.icon}</span>
-                  <span className="ftab-title">{f.title}</span>
-                </button>
-              ))}
-            </div>
-            <div className="ftab-panel">
-              <span className="big-icon">{features[activeTab].icon}</span>
-              <h3>{features[activeTab].title}</h3>
-              <p>{features[activeTab].desc}</p>
-            </div>
+          <div className="section-header">
+            <h2>Reach 2 Billion Users on Their Preferred Channel</h2>
+            <p>Delight your customers with dynamic WhatsApp messaging features</p>
+          </div>
+          <div className="features-grid">
+            {features.map((f, i) => (
+              <div key={i} className={`feature-card ${activeTab === i ? 'active' : ''}`} onClick={() => setActiveTab(i)}>
+                <div className="feature-icon">{f.icon}</div>
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
+              </div>
+            ))}
           </div>
         </section>
 
         <section className={`touchpoint anim ${show('touchpoint') ? 'show' : ''}`} id="touchpoint">
-          <h2>WhatsApp for every touchpoint</h2>
-          <p className="section-sub">Powering engagement, support, and conversions across the customer journey</p>
-          <div className="usecase-tabs">
-            <div className="uc-nav">
-              {useCases.map((u, i) => (
-                <button key={i} className={`uc-btn ${activeUseCase === i ? 'active' : ''}`} onClick={() => setActiveUseCase(i)}>{u.title}</button>
-              ))}
+          <div className="section-header">
+            <h2>WhatsApp for every touchpoint</h2>
+            <p>Powering engagement, support, and conversions across the customer journey</p>
+          </div>
+          <div className="usecase-pills">
+            {useCases.map((u, i) => (
+              <button key={i} className={`pill ${activeUseCase === i ? 'active' : ''}`} onClick={() => setActiveUseCase(i)}>{u.title}</button>
+            ))}
+          </div>
+          <div className="usecase-content">
+            <div className="usecase-icon">{useCases[activeUseCase].icon}</div>
+            <h3>{useCases[activeUseCase].title} Messages</h3>
+            <p>{useCases[activeUseCase].desc}</p>
+          </div>
+        </section>
+
+        <section className={`api anim ${show('api') ? 'show' : ''}`} id="api">
+          <div className="api-grid">
+            <div className="api-info">
+              <h2>Integrate WhatsApp messaging through API in an instant</h2>
+              <p className="api-desc">Scale communications with a flexible API supported by developers.</p>
+              <ul className="api-features">
+                <li><span className="check"></span> Access detailed API documentation</li>
+                <li><span className="check"></span> Get 24/7 integration support</li>
+                <li><span className="check"></span> Create custom message templates</li>
+              </ul>
             </div>
-            <div className="uc-panel">
-              <div className="uc-icon">{useCases[activeUseCase].icon}</div>
-              <h3>{useCases[activeUseCase].title} Messages</h3>
-              <p>{useCases[activeUseCase].desc}</p>
+            <div className="api-demo">
+              <div className="code-tabs">
+                {codeExamples.map((c, i) => (
+                  <button key={i} className={`tab ${activeCode === i ? 'active' : ''}`} onClick={() => setActiveCode(i)}>{c.lang}</button>
+                ))}
+              </div>
+              <pre className="code-block">{codeExamples[activeCode].code}</pre>
             </div>
           </div>
         </section>
 
-        <section className={`api-section anim ${show('api') ? 'show' : ''}`} id="api">
-          <div className="api-content">
-            <div className="api-text">
-              <h2>Integrate WhatsApp messaging through API in an instant</h2>
-              <p>Scale communications with a flexible, developer-ready API.</p>
-              <ul className="api-list">
-                <li>Access detailed API documentation</li>
-                <li>24/7 integration support</li>
-                <li>Create custom message templates</li>
-              </ul>
-            </div>
-            <div className="api-code">
-              <div className="code-tabs">
-                {codeExamples.map((c, i) => (
-                  <button key={i} className={`code-tab ${activeCode === i ? 'active' : ''}`} onClick={() => setActiveCode(i)}>{c.lang}</button>
-                ))}
-              </div>
-              <pre className="api-snippet">{codeExamples[activeCode].code}</pre>
-            </div>
+        <section className={`integrations anim ${show('integrations') ? 'show' : ''}`} id="integrations">
+          <div className="section-header">
+            <h2>Expand your tech stack with multiple integrations</h2>
+            <p>Integrate WhatsApp with your existing systems and tools</p>
+          </div>
+          <div className="integrations-grid">
+            {['Salesforce', 'HubSpot', 'Shopify', 'Zendesk', 'Freshdesk', 'Zoho'].map((name, i) => (
+              <div key={i} className="integration-card">{name}</div>
+            ))}
           </div>
         </section>
 
         <section className={`stories anim ${show('stories') ? 'show' : ''}`} id="stories">
-          <h2>Success stories that speak for themselves</h2>
-          <p className="section-sub">See how businesses are winning with WhatsApp API</p>
+          <div className="section-header">
+            <h2>Success stories that speak for themselves</h2>
+            <p>See how businesses are winning with WhatsApp API</p>
+          </div>
           <div className="stories-grid">
             {stories.map((s, i) => (
               <div key={i} className="story-card">
                 <div className="story-brand">{s.brand}</div>
-                <h3>{s.title}</h3>
-                <ul>{s.metrics.map((m, j) => <li key={j}>{m}</li>)}</ul>
+                <div className="story-stat"><span className="stat-num">{s.stat}</span><span className="stat-label">{s.label}</span></div>
+                <p className="story-desc">{s.desc}</p>
+                <p className="story-extra">{s.extra}</p>
               </div>
             ))}
           </div>
-          <div className="cta-banner">
-            <div><h3>Ready to transform your customer experience?</h3><p>Go live on WhatsApp faster with a scalable setup.</p></div>
+        </section>
+
+        <section className={`cta anim ${show('cta') ? 'show' : ''}`} id="cta">
+          <div className="cta-content">
+            <h2>Ready to Transform Your Customer Experience?</h2>
+            <p>Go live on WhatsApp faster with a scalable setup.</p>
           </div>
         </section>
 
         <section className={`channels anim ${show('channels') ? 'show' : ''}`} id="channels">
-          <div className="ch-grid">
-            <div className="ch-card wa"><div className="ch-icon"></div><h3>WhatsApp Business API</h3><p>Official API with verified profiles</p></div>
-            <div className="ch-card sms"><div className="ch-icon"></div><h3>SMS Gateway</h3><p>DLT compliant delivery</p></div>
-            <div className="ch-card voice"><div className="ch-icon"></div><h3>Voice Calls</h3><p>Automated IVR systems</p></div>
-            <div className="ch-card email"><div className="ch-icon"></div><h3>Email</h3><p>Transactional & marketing</p></div>
+          <div className="channels-grid">
+            <div className="channel-card"><div className="channel-icon"></div><h3>WhatsApp Business API</h3><p>Official API with verified profiles</p></div>
+            <div className="channel-card"><div className="channel-icon"></div><h3>SMS Gateway</h3><p>DLT compliant delivery</p></div>
+            <div className="channel-card"><div className="channel-icon"></div><h3>Voice Calls</h3><p>Automated IVR systems</p></div>
+            <div className="channel-card"><div className="channel-icon"></div><h3>Email</h3><p>Transactional & marketing</p></div>
           </div>
         </section>
 
@@ -224,7 +235,6 @@ const HomePage: React.FC = () => {
             <span className="ftr-tagline">Tap. Track. Done. Everyday things made easy.</span>
           </div>
         </footer>
-
         <style jsx>{`
           .page{min-height:100vh;background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a}
           .hdr{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
@@ -272,70 +282,74 @@ const HomePage: React.FC = () => {
           .dot-green{background:#28c840}
           .file-name{margin-left:auto;font-size:13px;color:#9ca3af}
           .code-body{margin:0;padding:18px;font-family:'SF Mono',Monaco,monospace;font-size:13px;line-height:1.6;color:#e5e7eb}
-          .logos-section{padding:60px 24px;background:#f8faf9;border-top:1px solid #eaeaea;border-bottom:1px solid #eaeaea}
-          .logos-content{max-width:1100px;margin:0 auto}
-          .logos-content h3{font-size:18px;font-weight:600;margin:0 0 24px}
-          .logos-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
-          .logo-card{background:#fff;border:1px solid #eaeaea;border-radius:12px;padding:16px;text-align:center;font-size:14px;color:#6b7280}
-          .reach,.touchpoint{padding:100px 24px;text-align:center;max-width:1000px;margin:0 auto}
-          .reach{background:#f8faf9}
-          h2{font-size:36px;font-weight:700;margin:0 0 12px;letter-spacing:-1px}
-          .section-sub{font-size:17px;color:#6b7280;margin:0 0 50px}
-          .feature-tabs{background:#fff;border-radius:20px;padding:8px;box-shadow:0 4px 30px rgba(0,0,0,.06)}
-          .ftabs-nav{display:flex;gap:4px;padding:8px;background:#f5f5f5;border-radius:14px;margin-bottom:20px}
-          .ftab{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px;border:none;background:transparent;border-radius:10px;cursor:pointer;transition:all .2s}
-          .ftab:hover{background:rgba(255,255,255,.5)}
-          .ftab.active{background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-          .ftab-icon{font-size:22px}
-          .ftab-title{font-size:12px;font-weight:600}
-          .ftab-panel{padding:40px;text-align:center}
-          .big-icon{font-size:44px;display:block;margin-bottom:14px}
-          .ftab-panel h3{font-size:22px;font-weight:700;margin:0 0 10px}
-          .ftab-panel p{font-size:15px;color:#6b7280;max-width:450px;margin:0 auto}
-          .usecase-tabs{background:#f8faf9;border-radius:20px;overflow:hidden}
-          .uc-nav{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:20px;border-bottom:1px solid #eaeaea}
-          .uc-btn{padding:10px 20px;border:1px solid #e5e5e5;background:#fff;border-radius:30px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
-          .uc-btn:hover{border-color:#25d366;color:#25d366}
-          .uc-btn.active{background:#25d366;border-color:#25d366;color:#fff}
-          .uc-panel{padding:40px;text-align:center}
-          .uc-icon{font-size:50px;margin-bottom:16px}
-          .uc-panel h3{font-size:26px;font-weight:700;margin:0 0 12px}
-          .uc-panel p{font-size:16px;color:#6b7280;max-width:550px;margin:0 auto}
-          .api-section{padding:100px 24px;background:#1a1a1a}
-          .api-content{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center}
-          .api-text h2{font-size:34px;color:#fff;margin:0 0 16px}
-          .api-text p{font-size:16px;color:#9ca3af;margin:0 0 24px}
-          .api-list{list-style:none;padding:0;margin:0}
-          .api-list li{color:#d1d5db;font-size:14px;padding:8px 0 8px 24px;position:relative}
-          .api-list li:before{content:'';position:absolute;left:0;color:#25d366}
-          .api-code{background:#2d3440;border-radius:16px;overflow:hidden}
-          .code-tabs{display:flex;gap:4px;padding:12px;background:#1f2937}
-          .code-tab{padding:8px 14px;border:none;border-radius:8px;font-size:12px;font-weight:600;color:#9ca3af;background:transparent;cursor:pointer}
-          .code-tab.active{background:#374151;color:#fff}
-          .api-snippet{margin:0;padding:18px;font-family:'SF Mono',Monaco,monospace;font-size:12px;line-height:1.6;color:#e5e7eb;white-space:pre-wrap}
-          .stories{padding:100px 24px;max-width:1100px;margin:0 auto;text-align:center}
-          .stories-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:40px}
-          .story-card{background:#f8faf9;border:1px solid #eaeaea;border-radius:20px;padding:28px;text-align:left}
-          .story-brand{font-size:13px;font-weight:600;color:#6b7280;margin-bottom:8px}
-          .story-card h3{font-size:18px;font-weight:700;margin:0 0 16px}
-          .story-card ul{list-style:disc;padding-left:20px;margin:0;font-size:14px;color:#6b7280}
-          .story-card li{margin-bottom:6px}
-          .cta-banner{background:#1a1a1a;border-radius:20px;padding:40px;display:flex;align-items:center;justify-content:space-between;text-align:left}
-          .cta-banner h3{font-size:22px;color:#fff;margin:0 0 8px}
-          .cta-banner p{font-size:14px;color:#9ca3af;margin:0}
-          .channels{padding:60px 24px 100px;max-width:1000px;margin:0 auto}
-          .ch-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-          .ch-card{background:#f8faf9;border:1px solid #eaeaea;border-radius:16px;padding:24px;text-align:center}
-          .ch-icon{font-size:32px;margin-bottom:12px}
-          .ch-card h3{font-size:15px;font-weight:600;margin:0 0 6px}
-          .ch-card p{font-size:13px;color:#6b7280;margin:0}
+          .logos{padding:50px 24px;background:#fff;text-align:center}
+          .logos-title{font-size:15px;color:#6b7280;margin:0 0 30px;font-weight:500}
+          .logos-row{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;max-width:900px;margin:0 auto}
+          .logo-item{font-size:16px;font-weight:600;color:#9ca3af;padding:12px 20px}
+          .section-header{text-align:center;max-width:700px;margin:0 auto 60px}
+          .section-header h2{font-size:40px;font-weight:700;line-height:1.2;margin:0 0 16px;color:#1a1a1a}
+          .section-header p{font-size:18px;color:#6b7280;line-height:1.6;margin:0}
+          .reach{padding:100px 24px;background:#f8f9fa}
+          .features-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:20px;max-width:1200px;margin:0 auto}
+          .feature-card{background:#fff;border-radius:16px;padding:32px 24px;text-align:center;cursor:pointer;transition:all .3s;border:2px solid transparent}
+          .feature-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.1)}
+          .feature-card.active{border-color:#25d366;box-shadow:0 12px 40px rgba(37,211,102,.15)}
+          .feature-icon{font-size:40px;margin-bottom:16px}
+          .feature-card h3{font-size:18px;font-weight:700;margin:0 0 12px;color:#1a1a1a}
+          .feature-card p{font-size:14px;color:#6b7280;line-height:1.5;margin:0}
+          .touchpoint{padding:100px 24px;background:#fff}
+          .usecase-pills{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:50px}
+          .pill{padding:14px 28px;border:2px solid #e5e7eb;background:#fff;border-radius:50px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;color:#4b5563}
+          .pill:hover{border-color:#25d366;color:#25d366}
+          .pill.active{background:#25d366;border-color:#25d366;color:#fff}
+          .usecase-content{text-align:center;max-width:600px;margin:0 auto;padding:40px;background:#f8f9fa;border-radius:24px}
+          .usecase-icon{font-size:64px;margin-bottom:20px}
+          .usecase-content h3{font-size:28px;font-weight:700;margin:0 0 16px;color:#1a1a1a}
+          .usecase-content p{font-size:17px;color:#6b7280;line-height:1.7;margin:0}          .api{padding:100px 24px;background:#1a1a2e}
+          .api-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;max-width:1200px;margin:0 auto;align-items:center}
+          .api-info h2{font-size:36px;font-weight:700;color:#fff;margin:0 0 20px;line-height:1.2}
+          .api-desc{font-size:17px;color:#9ca3af;line-height:1.7;margin:0 0 30px}
+          .api-features{list-style:none;padding:0;margin:0}
+          .api-features li{display:flex;align-items:center;gap:12px;font-size:16px;color:#d1d5db;padding:10px 0}
+          .check{color:#25d366;font-weight:700}
+          .api-demo{background:#0d0d1a;border-radius:16px;overflow:hidden}
+          .code-tabs{display:flex;gap:4px;padding:16px;background:#16162a;border-bottom:1px solid #2a2a4a}
+          .tab{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;color:#9ca3af;background:transparent;cursor:pointer;transition:all .2s}
+          .tab:hover{color:#fff}
+          .tab.active{background:#25d366;color:#fff}
+          .code-block{margin:0;padding:24px;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:13px;line-height:1.7;color:#e5e7eb;overflow-x:auto;white-space:pre}
+          .integrations{padding:100px 24px;background:#f8f9fa}
+          .integrations-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;max-width:900px;margin:0 auto}
+          .integration-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;font-size:15px;font-weight:600;color:#4b5563;transition:all .2s}
+          .integration-card:hover{border-color:#25d366;transform:translateY(-2px)}
+          .stories{padding:100px 24px;background:#fff}
+          .stories-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1100px;margin:0 auto}
+          .story-card{background:#f8f9fa;border-radius:20px;padding:36px;transition:all .3s}
+          .story-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.08)}
+          .story-brand{font-size:13px;font-weight:600;color:#25d366;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px}
+          .story-stat{margin-bottom:20px}
+          .stat-num{display:block;font-size:48px;font-weight:800;color:#1a1a1a;line-height:1}
+          .stat-label{font-size:16px;color:#6b7280}
+          .story-desc{font-size:16px;font-weight:600;color:#1a1a1a;margin:0 0 8px}
+          .story-extra{font-size:14px;color:#9ca3af;margin:0}
+          .cta{padding:80px 24px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}
+          .cta-content{text-align:center;max-width:700px;margin:0 auto}
+          .cta-content h2{font-size:36px;font-weight:700;color:#fff;margin:0 0 16px}
+          .cta-content p{font-size:18px;color:#9ca3af;margin:0}
+          .channels{padding:80px 24px;background:#fff}
+          .channels-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1000px;margin:0 auto}
+          .channel-card{background:#f8f9fa;border-radius:16px;padding:32px 24px;text-align:center;transition:all .3s}
+          .channel-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.08)}
+          .channel-icon{font-size:40px;margin-bottom:16px}
+          .channel-card h3{font-size:17px;font-weight:700;margin:0 0 8px;color:#1a1a1a}
+          .channel-card p{font-size:14px;color:#6b7280;margin:0}
           .ftr{border-top:1px solid #eaeaea;padding:24px}
           .ftr-in{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
           .ftr-contact{font-size:14px;color:#9ca3af;text-decoration:none}
           .ftr-tagline{font-size:14px;color:#9ca3af}
-          @media(max-width:1024px){.hero-content,.api-content{grid-template-columns:1fr;text-align:center}.hero-left p{margin:0 auto 30px}.hero-stats{justify-content:center}.mockup-wrapper{width:100%;max-width:500px;height:auto;min-height:520px;margin:0 auto}.phone{position:relative;left:auto;top:auto;width:100%;max-width:300px;margin:0 auto 20px}.code-box{position:relative;right:auto;bottom:auto;width:100%;max-width:340px;margin:0 auto}.logos-grid{grid-template-columns:repeat(3,1fr)}.stories-grid,.ch-grid{grid-template-columns:repeat(2,1fr)}}
-          @media(max-width:768px){.hero-left h1{font-size:34px}h2{font-size:28px}.ftabs-nav{flex-wrap:wrap}.logos-grid{grid-template-columns:repeat(2,1fr)}.stories-grid,.ch-grid{grid-template-columns:1fr}}
-          @media(max-width:480px){.hero{padding:120px 16px 60px}.hero-stats{flex-direction:column}.ftr-in{flex-direction:column;gap:12px;text-align:center}}
+          @media(max-width:1024px){.hero-content,.api-grid{grid-template-columns:1fr;text-align:center}.hero-left p{margin:0 auto 30px}.hero-stats{justify-content:center}.mockup-wrapper{width:100%;max-width:500px;height:auto;min-height:520px;margin:0 auto}.phone{position:relative;left:auto;top:auto;width:100%;max-width:300px;margin:0 auto 20px}.code-box{position:relative;right:auto;bottom:auto;width:100%;max-width:340px;margin:0 auto}.features-grid{grid-template-columns:repeat(3,1fr)}.stories-grid,.channels-grid{grid-template-columns:repeat(2,1fr)}.integrations-grid{grid-template-columns:repeat(3,1fr)}}
+          @media(max-width:768px){.hero-left h1{font-size:34px}.section-header h2{font-size:30px}.features-grid{grid-template-columns:repeat(2,1fr)}.integrations-grid{grid-template-columns:repeat(2,1fr)}.stories-grid,.channels-grid{grid-template-columns:1fr}.usecase-pills{gap:8px}.pill{padding:10px 18px;font-size:13px}}
+          @media(max-width:480px){.hero{padding:120px 16px 60px}.hero-stats{flex-direction:column}.features-grid{grid-template-columns:1fr}.logos-row{gap:20px}.ftr-in{flex-direction:column;gap:12px;text-align:center}}
         `}</style>
       </div>
     </>
