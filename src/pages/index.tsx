@@ -239,8 +239,8 @@ const HomePage: React.FC = () => {
           .page{min-height:100vh;background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a}
           .hdr{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
           .hdr-in{max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;align-items:center}
-          .logo{display:flex;align-items:center;gap:12px;font-weight:600;font-size:17px}
-          .logo-img{width:36px;height:36px;border-radius:10px}
+          .logo{display:flex;align-items:center;gap:14px;font-weight:700;font-size:20px}
+          .logo-img{width:44px;height:44px;border-radius:10px}
           .anim{opacity:0;transform:translateY(40px);transition:all .8s cubic-bezier(.16,1,.3,1)}
           .anim.show{opacity:1;transform:translateY(0)}
           .hero{padding:140px 24px 80px;max-width:1300px;margin:0 auto}
