@@ -239,18 +239,18 @@ const HomePage: React.FC = () => {
           .anim.show{opacity:1;transform:translateY(0)}
 
           /* Hero */
-          .hero{padding:140px 24px 100px;max-width:1200px;margin:0 auto}
-          .hero-content{display:grid;grid-template-columns:1fr 1.4fr;gap:40px;align-items:center}
+          .hero{padding:140px 24px 100px;max-width:1300px;margin:0 auto}
+          .hero-content{display:grid;grid-template-columns:1fr 1.5fr;gap:40px;align-items:center}
           .hero-left h1{font-size:52px;font-weight:700;line-height:1.1;color:#1a1a1a;margin:0 0 20px;letter-spacing:-2px}
           .hero-left p{font-size:18px;color:#6b7280;line-height:1.7;margin:0;max-width:420px}
           
           .hero-right{display:flex;justify-content:center}
           
-          /* Mockup Wrapper - Mint green background */
-          .mockup-wrapper{position:relative;width:560px;height:520px;background:#e8f5f0;border-radius:32px;padding:40px}
+          /* Mockup Wrapper - Mint green background - ENLARGED */
+          .mockup-wrapper{position:relative;width:640px;height:580px;background:#e8f5f0;border-radius:32px;padding:40px;overflow:visible}
           
-          /* Phone */
-          .phone{position:absolute;left:40px;top:40px;width:340px;background:#d4ddd4;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.08)}
+          /* Phone - positioned to show all content */
+          .phone{position:absolute;left:40px;top:30px;width:360px;background:#d4ddd4;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.08);z-index:1}
           .phone-header{background:#075e54;padding:14px 16px;display:flex;align-items:center;gap:12px}
           .back-arrow{color:#fff;font-size:22px;font-weight:300}
           .avatar{width:46px;height:46px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
@@ -259,11 +259,11 @@ const HomePage: React.FC = () => {
           .contact-status{color:rgba(255,255,255,.75);font-size:13px}
           .verified-badge{width:26px;height:26px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700}
           
-          .chat-area{background:#e8efe5;padding:20px 16px;min-height:380px;display:flex;flex-direction:column;gap:12px}
-          .msg{max-width:80%;padding:12px 16px;border-radius:12px;font-size:16px;line-height:1.5;position:relative}
+          .chat-area{background:#e8efe5;padding:20px 16px;min-height:420px;display:flex;flex-direction:column;gap:12px}
+          .msg{max-width:75%;padding:12px 16px;border-radius:12px;font-size:16px;line-height:1.5;position:relative;color:#000}
           .msg.received{background:#fff;align-self:flex-start;border-top-left-radius:4px}
           .msg.sent{background:#d9fdd3;align-self:flex-end;border-top-right-radius:4px}
-          .msg p{margin:0}
+          .msg p{margin:0;color:#000}
           .msg-time{font-size:11px;color:#667781;display:block;text-align:right;margin-top:6px}
           
           .typing-indicator{background:#fff;padding:14px 18px;border-radius:12px;align-self:flex-start;display:flex;gap:5px;border-top-left-radius:4px}
@@ -272,8 +272,8 @@ const HomePage: React.FC = () => {
           .typing-indicator span:nth-child(3){animation-delay:.4s}
           @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
           
-          /* Code Box */
-          .code-box{position:absolute;right:30px;bottom:60px;width:380px;background:#3d4654;border-radius:16px;overflow:hidden;box-shadow:0 25px 70px rgba(0,0,0,.18);z-index:2}
+          /* Code Box - positioned lower right, not overlapping phone text */
+          .code-box{position:absolute;right:20px;bottom:30px;width:400px;background:#3d4654;border-radius:16px;overflow:hidden;box-shadow:0 25px 70px rgba(0,0,0,.18);z-index:2}
           .code-header{display:flex;align-items:center;padding:14px 18px;background:#2d3440}
           .dots{display:flex;gap:8px}
           .dot-red,.dot-yellow,.dot-green{width:14px;height:14px;border-radius:50%}
@@ -318,13 +318,19 @@ const HomePage: React.FC = () => {
           .ftr-contact:hover{color:#6b7280}
           .ftr-tagline{font-size:14px;color:#9ca3af}
 
+          @media(max-width:1200px){
+            .mockup-wrapper{width:560px;height:520px}
+            .phone{width:320px}
+            .chat-area{min-height:380px}
+            .code-box{width:360px}
+          }
           @media(max-width:1024px){
             .hero-content{grid-template-columns:1fr;text-align:center;gap:50px}
             .hero-left h1{font-size:42px}
             .hero-left p{margin:0 auto}
-            .mockup-wrapper{width:100%;max-width:480px;height:auto;min-height:500px;margin:0 auto}
-            .phone{position:relative;left:auto;top:auto;width:100%;max-width:300px;margin:0 auto 20px}
-            .code-box{position:relative;right:auto;bottom:auto;width:100%;max-width:340px;margin:0 auto}
+            .mockup-wrapper{width:100%;max-width:520px;height:auto;min-height:540px;margin:0 auto}
+            .phone{position:relative;left:auto;top:auto;width:100%;max-width:320px;margin:0 auto 20px}
+            .code-box{position:relative;right:auto;bottom:auto;width:100%;max-width:360px;margin:0 auto}
             .ai-grid{grid-template-columns:repeat(2,1fr)}
             .features-grid{grid-template-columns:repeat(2,1fr)}
           }
