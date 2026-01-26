@@ -33,19 +33,19 @@ const HomePage: React.FC = () => {
             <div className="hero-visual">
               <div className="phone float">
                 <div className="phone-header">
-                  <span className="back">←</span>
+                  <span className="back"></span>
                   <div className="avatar">W</div>
                   <div className="contact">
                     <strong>WECARE.DIGITAL</strong>
                     <span>+919330994400</span>
                   </div>
-                  <div className="verified">✓</div>
+                  <div className="verified"></div>
                 </div>
                 <div className="chat">
-                  <div className="bubble out float-1">Hi! Your order #1234 has been shipped <span>10:30</span></div>
+                  <div className="bubble out float-1">Hi! Your order #WDSR87A6G has been shipped <span>10:30</span></div>
                   <div className="bubble in float-2">When will it arrive?<span>10:31</span></div>
                   <div className="bubble out float-3">Tomorrow by 6 PM <span>10:31</span></div>
-                  <div className="bubble out float-4">Track: wecare.digital/track/1234<span>10:32</span></div>
+                  <div className="bubble out float-4">Track: wecare.digital/track<span>10:32</span></div>
                   <div className="typing"><i></i><i></i><i></i></div>
                 </div>
               </div>
@@ -91,11 +91,14 @@ const HomePage: React.FC = () => {
 
         {/* Footer */}
         <footer className="footer">
-          <div className="divider"></div>
           <div className="footer-content">
-            <img src="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" alt="" />
-            <strong>WECARE.DIGITAL</strong>
-            <p>Building digital railroads for Bharat.</p>
+            <div className="footer-left">
+              <span>wecare.digital</span>
+            </div>
+            <div className="footer-right">
+              <p className="tagline">Tap. Track. Done.</p>
+              <p className="subtitle">Everyday things made easy.</p>
+            </div>
           </div>
         </footer>
 
@@ -157,12 +160,12 @@ const HomePage: React.FC = () => {
           .card h3{font-size:18px;font-weight:600;color:#37352F;margin:0 0 8px}
           .card p{font-size:15px;color:#787774;line-height:1.6;margin:0}
 
-          .footer{padding:60px 40px;text-align:center}
-          .divider{width:60px;height:3px;background:#25D366;margin:0 auto 40px;border-radius:2px}
-          .footer-content{display:flex;flex-direction:column;align-items:center;gap:8px}
-          .footer-content img{width:40px;height:40px;border-radius:10px}
-          .footer-content strong{font-size:18px;color:#37352F}
-          .footer-content p{font-size:15px;color:#787774;margin:0}
+          .footer{padding:40px;border-top:1px solid #E5E5E5}
+          .footer-content{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+          .footer-left span{font-size:16px;color:#C0C0C0;font-weight:500}
+          .footer-right{text-align:right}
+          .footer-right .tagline{font-size:18px;font-weight:600;color:#37352F;margin:0 0 4px}
+          .footer-right .subtitle{font-size:14px;color:#787774;margin:0}
 
           @media(max-width:900px){
             .hero-content{grid-template-columns:1fr;text-align:center}
@@ -170,6 +173,8 @@ const HomePage: React.FC = () => {
             .hero-visual{margin-top:40px}
             .code{position:relative;right:0;bottom:0;margin-top:-40px}
             .features-grid{grid-template-columns:1fr}
+            .footer-content{flex-direction:column;gap:24px;text-align:center}
+            .footer-right{text-align:center}
           }
           @media(max-width:600px){
             .header{padding:16px 20px}
@@ -179,7 +184,7 @@ const HomePage: React.FC = () => {
             .phone{width:260px}
             .code{width:260px}
             .features{padding:60px 20px}
-            .footer{padding:40px 20px}
+            .footer{padding:30px 20px}
           }
         `}</style>
       </div>
