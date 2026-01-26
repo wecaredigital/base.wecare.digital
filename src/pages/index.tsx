@@ -165,13 +165,9 @@ const HomePage: React.FC = () => {
         <section className={`api anim ${show('api') ? 'show' : ''}`} id="api">
           <div className="api-grid">
             <div className="api-info">
-              <h2>Integrate WhatsApp messaging through API in an instant</h2>
-              <p className="api-desc">Scale communications with a flexible API supported by developers.</p>
-              <ul className="api-features">
-                <li><span className="check"></span> Access detailed API documentation</li>
-                <li><span className="check"></span> Get 24/7 integration support</li>
-                <li><span className="check"></span> Create custom message templates</li>
-              </ul>
+              <h2>Built for the AI era.</h2>
+              <p className="api-desc">The all-in-one platform for enterprise brands to acquire, convert, and retain customers across every channel—powered by AI that truly understands your business.</p>
+              
             </div>
             <div className="api-demo">
               <div className="code-tabs">
