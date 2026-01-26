@@ -1,6 +1,7 @@
 ﻿/**
  * Home Page - WECARE.DIGITAL Landing
  * WhatsApp Business API Platform
+ * Fully responsive for mobile, touch, PWA
  */
 
 import React, { useEffect, useState } from 'react';
@@ -8,7 +9,6 @@ import Head from 'next/head';
 
 const HomePage: React.FC = () => {
   const [visible, setVisible] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState(0);
   const [activeUseCase, setActiveUseCase] = useState(0);
   const [activeCode, setActiveCode] = useState(0);
   
@@ -26,11 +26,11 @@ const HomePage: React.FC = () => {
   const show = (id: string) => visible.has(id);
 
   const features = [
-    { icon: '', title: 'Rich Media', desc: 'Send images, videos, documents, and interactive buttons.' },
-    { icon: '', title: 'Templates', desc: 'Pre-approved message templates for notifications.' },
-    { icon: '', title: 'Catalogs', desc: 'Showcase products directly in chat.' },
-    { icon: '', title: 'Payments', desc: 'Collect payments within conversations.' },
-    { icon: '', title: 'Chatbots', desc: 'AI-powered 24/7 customer support.' },
+    { icon: '', title: 'Rich Media', desc: 'Images, videos, documents & buttons' },
+    { icon: '', title: 'Templates', desc: 'Pre-approved message templates' },
+    { icon: '', title: 'Catalogs', desc: 'Products directly in chat' },
+    { icon: '', title: 'Payments', desc: 'Collect payments in chat' },
+    { icon: '', title: 'Chatbots', desc: 'AI-powered 24/7 support' },
   ];
 
   const useCases = [
@@ -43,24 +43,30 @@ const HomePage: React.FC = () => {
   ];
 
   const codeExamples = [
-    { lang: 'Python', code: "import requests\n\nresponse = requests.post(\n    \"https://api.wecare.digital/v1/messages\",\n    headers={\"Authorization\": \"Bearer API_KEY\"},\n    json={\"to\": \"+919330994400\", \"type\": \"template\"}\n)" },
-    { lang: 'JavaScript', code: "const response = await fetch(\n    \"https://api.wecare.digital/v1/messages\",\n    {\n        method: \"POST\",\n        headers: {\"Authorization\": \"Bearer API_KEY\"},\n        body: JSON.stringify({to: \"+919330994400\"})\n    }\n);" },
-    { lang: 'cURL', code: "curl -X POST \\\n    \"https://api.wecare.digital/v1/messages\" \\\n    -H \"Authorization: Bearer API_KEY\" \\\n    -d '{\"to\": \"+919330994400\"}'" },
+    { lang: 'Python', code: "import requests\n\nresponse = requests.post(\n  \"https://api.wecare.digital/v1/messages\",\n  headers={\"Authorization\": \"Bearer API_KEY\"},\n  json={\"to\": \"+91xxx\", \"type\": \"template\"}\n)" },
+    { lang: 'JavaScript', code: "const response = await fetch(\n  \"https://api.wecare.digital/v1/messages\",\n  {\n    method: \"POST\",\n    headers: {\"Authorization\": \"Bearer API_KEY\"},\n    body: JSON.stringify({to: \"+91xxx\"})\n  }\n);" },
+    { lang: 'cURL', code: "curl -X POST \\\n  \"https://api.wecare.digital/v1/messages\" \\\n  -H \"Authorization: Bearer API_KEY\" \\\n  -d '{\"to\": \"+91xxx\"}'" },
   ];
-
 
   return (
     <>
       <Head>
-        <title>WECARE.DIGITAL - WhatsApp Business API Platform</title>
-        <meta name="description" content="Connect with 2B+ users on WhatsApp" />
+        <title>Base CRM by WECARE.DIGITAL</title>
+        <meta name="description" content="Reach more customers on WhatsApp" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+        <meta name="theme-color" content="#25d366" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </Head>
       <div className="page">
         <header className="hdr">
           <div className="hdr-in">
             <div className="logo">
-              <img src="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" alt="" className="logo-img" />
-              <div className="logo-text"><span className="logo-main">Base CRM</span><span className="logo-sub">by WECARE.DIGITAL</span></div>
+              <img src="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" alt="Logo" className="logo-img" />
+              <div className="logo-text">
+                <span className="logo-main">Base CRM</span>
+                <span className="logo-sub">by WECARE.DIGITAL</span>
+              </div>
             </div>
           </div>
         </header>
@@ -68,8 +74,8 @@ const HomePage: React.FC = () => {
         <section className={`hero anim ${show('hero') ? 'show' : ''}`} id="hero">
           <div className="hero-content">
             <div className="hero-left">
-              <h1>Reach more customers wherever they are, whatever they're on</h1>
-              <p>Engage them on every channel, in every scenario – from our platform or your stack.</p>
+              <h1>Reach more customers wherever they are</h1>
+              <p>Engage on every channel, in every scenario - from our platform or your stack.</p>
               <div className="hero-stats">
                 <div className="stat"><span>B+</span><small>Users reachable</small></div>
                 <div className="stat"><span>Fast</span><small>Onboarding</small></div>
@@ -77,47 +83,33 @@ const HomePage: React.FC = () => {
               </div>
             </div>
             <div className="hero-right">
-              <div className="mockup-wrapper">
-                <div className="phone">
-                  <div className="phone-header">
-                    <span className="back-arrow"></span>
-                    <div className="avatar">W</div>
-                    <div className="contact-info">
-                      <span className="contact-name">WECARE.DIGITAL</span>
-                      <span className="contact-status">online</span>
-                    </div>
-                    <div className="verified-badge"></div>
+              <div className="phone-mockup">
+                <div className="phone-header">
+                  <div className="avatar">W</div>
+                  <div className="contact-info">
+                    <span className="contact-name">WECARE.DIGITAL</span>
+                    <span className="contact-status">online</span>
                   </div>
-                  <div className="chat-area">
-                    <div className="msg sent"><p>Hi! Your order #WDSR87A6G has been shipped </p><span className="msg-time">10:30</span></div>
-                    <div className="msg received"><p>When will it arrive?</p><span className="msg-time">10:31</span></div>
-                    <div className="msg sent left-msg"><p>Tomorrow by 6 PM</p><span className="msg-time">10:31</span></div>
-                    <div className="msg sent left-msg"><p>Track here: wecare.digital/track</p><span className="msg-time">10:32</span></div>
-                    <div className="typing-indicator"><span></span><span></span><span></span></div>
-                  </div>
+                  <div className="verified"></div>
                 </div>
-                <div className="code-box">
-                  <div className="code-header">
-                    <div className="dots"><span className="dot-red"></span><span className="dot-yellow"></span><span className="dot-green"></span></div>
-                    <span className="file-name">send_message.py</span>
-                  </div>
-                  <pre className="code-body">{`response = requests.post(
-  "api.wecare.digital/v1/send",
-  json={
-    "to": "+919330994400",
-    "type": "text",
-    "message": "Your OTP: 847291"
-  },
-  headers={"Authorization": api_key}
-)`}</pre>
+                <div className="chat-area">
+                  <div className="msg sent">Your order #WD87A6G shipped <span className="time">10:30</span></div>
+                  <div className="msg received">When will it arrive?<span className="time">10:31</span></div>
+                  <div className="msg sent">Tomorrow by 6 PM<span className="time">10:31</span></div>
                 </div>
               </div>
             </div>
           </div>
         </section>
-        {/* FEATURES SECTION */}
-        <section className={`reach anim ${show('reach') ? 'show' : ''}}`} id="reach">
+
+        <section className={`features anim ${show('features') ? 'show' : ''}`} id="features">
           <div className="features-grid">
+            {features.map((f, i) => (
+              <div key={i} className="feature-card">
+                <div className="feature-icon">{f.icon}</div>
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
+              </div>
             ))}
           </div>
         </section>
@@ -125,7 +117,7 @@ const HomePage: React.FC = () => {
         <section className={`touchpoint anim ${show('touchpoint') ? 'show' : ''}`} id="touchpoint">
           <div className="section-header">
             <h2>WhatsApp for every touchpoint</h2>
-            <p>Powering engagement, support, and conversions across the customer journey</p>
+            <p>Powering engagement across the customer journey</p>
           </div>
           <div className="usecase-pills">
             {useCases.map((u, i) => (
@@ -143,8 +135,7 @@ const HomePage: React.FC = () => {
           <div className="api-grid">
             <div className="api-info">
               <h2>Built for the AI era.</h2>
-              <p className="api-desc">The all-in-one platform for enterprise brands to acquire, convert, and retain customers across every channel—powered by AI that truly understands your business.</p>
-              
+              <p className="api-desc">The all-in-one platform for enterprise brands-powered by AI that truly understands your business.</p>
             </div>
             <div className="api-demo">
               <div className="code-tabs">
@@ -157,128 +148,112 @@ const HomePage: React.FC = () => {
           </div>
         </section>
 
-
         <footer className="ftr">
           <div className="ftr-in">
             <a href="https://www.wecare.digital/contact" className="ftr-contact">Contact</a>
-            <span className="ftr-tagline">Tap. Track. Done. Everyday things made easy.</span>
+            <span className="ftr-tagline">Tap. Track. Done.</span>
           </div>
         </footer>
+
         <style jsx>{`
-          .page{min-height:100vh;background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a}
-          .hdr{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
-          .hdr-in{max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;align-items:center}
-          .logo{display:flex;align-items:center;gap:12px}.logo-text{display:flex;flex-direction:column;line-height:1.2}.logo-main{font-size:20px;font-weight:700;color:#1a1a1a}.logo-sub{font-size:11px;font-weight:500;color:#6b7280}
-          .logo-img{width:44px;height:44px;border-radius:10px}
-          .anim{opacity:0;transform:translateY(40px);transition:all .8s cubic-bezier(.16,1,.3,1)}
-          .anim.show{opacity:1;transform:translateY(0)}
-          .hero{padding:140px 24px 80px;max-width:1300px;margin:0 auto}
-          .hero-content{display:grid;grid-template-columns:1fr 1.5fr;gap:40px;align-items:center}
-          .hero-left h1{font-size:46px;font-weight:700;line-height:1.1;margin:0 0 20px;letter-spacing:-2px}
-          .hero-left p{font-size:18px;color:#6b7280;line-height:1.7;margin:0 0 30px;max-width:420px}
-          .hero-stats{display:flex;gap:16px}
-          .stat{background:#f8faf9;border:1px solid #eaeaea;border-radius:16px;padding:16px 20px}
-          .stat span{display:block;font-size:22px;font-weight:700}
-          .stat small{font-size:13px;color:#6b7280}
-          .hero-right{display:flex;justify-content:center}
-          .mockup-wrapper{position:relative;width:620px;height:560px;background:#e8f5f0;border-radius:32px;padding:40px}
-          .phone{position:absolute;left:40px;top:30px;width:340px;background:#d4ddd4;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.08);z-index:1}
-          .phone-header{background:#075e54;padding:14px 16px;display:flex;align-items:center;gap:12px}
-          .back-arrow{color:#fff;font-size:22px}
-          .avatar{width:44px;height:44px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px}
-          .contact-info{flex:1;display:flex;flex-direction:column}
-          .contact-name{color:#fff;font-size:17px;font-weight:600}
-          .contact-status{color:rgba(255,255,255,.75);font-size:12px}
-          .verified-badge{width:24px;height:24px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px}
-          .chat-area{background:#e8efe5;padding:18px 14px;min-height:400px;display:flex;flex-direction:column;gap:10px}
-          .msg{max-width:75%;padding:10px 14px;border-radius:10px;font-size:15px;line-height:1.5;color:#000}
-          .msg.received{background:#fff;align-self:flex-start;border-top-left-radius:4px}
-          .msg.sent{background:#d9fdd3;align-self:flex-end;border-top-right-radius:4px}
-          .msg.sent.left-msg{max-width:55%;align-self:flex-start !important;border-top-left-radius:4px;border-top-right-radius:10px}
-          .msg p{margin:0;color:#000}
-          .msg-time{font-size:10px;color:#667781;display:block;text-align:right;margin-top:4px}
-          .typing-indicator{background:#fff;padding:12px 16px;border-radius:10px;align-self:flex-start;display:flex;gap:4px}
-          .typing-indicator span{width:8px;height:8px;background:#90949c;border-radius:50%;animation:bounce 1.4s infinite}
-          .typing-indicator span:nth-child(2){animation-delay:.2s}
-          .typing-indicator span:nth-child(3){animation-delay:.4s}
-          @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-3px)}}
-          .code-box{position:absolute;right:20px;bottom:40px;width:380px;background:#3d4654;border-radius:16px;overflow:hidden;box-shadow:0 25px 70px rgba(0,0,0,.18);z-index:2}
-          .code-header{display:flex;align-items:center;padding:12px 16px;background:#2d3440}
-          .dots{display:flex;gap:6px}
-          .dot-red,.dot-yellow,.dot-green{width:12px;height:12px;border-radius:50%}
-          .dot-red{background:#ff5f57}
-          .dot-yellow{background:#febc2e}
-          .dot-green{background:#28c840}
-          .file-name{margin-left:auto;font-size:13px;color:#9ca3af}
-          .code-body{margin:0;padding:18px;font-family:'SF Mono',Monaco,monospace;font-size:13px;line-height:1.6;color:#e5e7eb}
-          .logos{padding:50px 24px;background:#fff;text-align:center}
-          .logos-title{font-size:15px;color:#6b7280;margin:0 0 30px;font-weight:500}
-          .logos-row{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;max-width:900px;margin:0 auto}
-          .logo-item{font-size:16px;font-weight:600;color:#9ca3af;padding:12px 20px}
-          .section-header{text-align:center;max-width:700px;margin:0 auto 60px}
-          .section-header h2{font-size:40px;font-weight:700;line-height:1.2;margin:0 0 16px;color:#1a1a1a}
-          .section-header p{font-size:18px;color:#6b7280;line-height:1.6;margin:0}
-          .reach{padding:100px 24px;background:#f8f9fa}
-          .features-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:20px;max-width:1200px;margin:0 auto}
-          .feature-card{background:#fff;border-radius:16px;padding:32px 24px;text-align:center;cursor:pointer;transition:all .3s;border:2px solid transparent}
-          .feature-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.1)}
-          .feature-card.active{border-color:#25d366;box-shadow:0 12px 40px rgba(37,211,102,.15)}
-          .feature-icon{font-size:40px;margin-bottom:16px}
-          .feature-card h3{font-size:18px;font-weight:700;margin:0 0 12px;color:#1a1a1a}
-          .feature-card p{font-size:14px;color:#6b7280;line-height:1.5;margin:0}
-          .touchpoint{padding:100px 24px;background:#fff}
-          .usecase-pills{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:50px}
-          .pill{padding:14px 28px;border:2px solid #e5e7eb;background:#fff;border-radius:50px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;color:#4b5563}
-          .pill:hover{border-color:#25d366;color:#25d366}
-          .pill.active{background:#25d366;border-color:#25d366;color:#fff}
-          .usecase-content{text-align:center;max-width:600px;margin:0 auto;padding:40px;background:#f8f9fa;border-radius:24px}
-          .usecase-icon{font-size:64px;margin-bottom:20px}
-          .usecase-content h3{font-size:28px;font-weight:700;margin:0 0 16px;color:#1a1a1a}
-          .usecase-content p{font-size:17px;color:#6b7280;line-height:1.7;margin:0}          .api{padding:100px 24px;background:#f8f9fa}
-          .api-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;max-width:1200px;margin:0 auto;align-items:center}
-          .api-info h2{font-size:36px;font-weight:700;color:#1a1a1a;margin:0 0 20px;line-height:1.2}
-          .api-desc{font-size:17px;color:#6b7280;line-height:1.7;margin:0 0 30px;max-width:480px}
-          .api-features{list-style:none;padding:0;margin:0}
-          .api-features li{display:flex;align-items:center;gap:12px;font-size:16px;color:#4b5563;padding:10px 0}
-          .check{color:#25d366;font-weight:700}
-          .api-demo{background:#1e293b;border-radius:16px;overflow:hidden}
-          .code-tabs{display:flex;gap:4px;padding:16px;background:#0f172a;border-bottom:1px solid #334155}
-          .tab{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;color:#9ca3af;background:transparent;cursor:pointer;transition:all .2s}
-          .tab:hover{color:#fff}
-          .tab.active{background:#25d366;color:#fff}
-          .code-block{margin:0;padding:24px;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:13px;line-height:1.7;color:#e5e7eb;overflow-x:auto;white-space:pre}
-          .integrations{padding:100px 24px;background:#f8f9fa}
-          .integrations-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;max-width:900px;margin:0 auto}
-          .integration-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;font-size:15px;font-weight:600;color:#4b5563;transition:all .2s}
-          .integration-card:hover{border-color:#25d366;transform:translateY(-2px)}
-          .stories{padding:100px 24px;background:#fff}
-          .stories-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1100px;margin:0 auto}
-          .story-card{background:#f8f9fa;border-radius:20px;padding:36px;transition:all .3s}
-          .story-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.08)}
-          .story-brand{font-size:13px;font-weight:600;color:#25d366;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px}
-          .story-stat{margin-bottom:20px}
-          .stat-num{display:block;font-size:48px;font-weight:800;color:#1a1a1a;line-height:1}
-          .stat-label{font-size:16px;color:#6b7280}
-          .story-desc{font-size:16px;font-weight:600;color:#1a1a1a;margin:0 0 8px}
-          .story-extra{font-size:14px;color:#9ca3af;margin:0}
-          .cta{padding:80px 24px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}
-          .cta-content{text-align:center;max-width:700px;margin:0 auto}
-          .cta-content h2{font-size:36px;font-weight:700;color:#fff;margin:0 0 16px}
-          .cta-content p{font-size:18px;color:#9ca3af;margin:0}
-          .channels{padding:80px 24px;background:#fff}
-          .channels-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1000px;margin:0 auto}
-          .channel-card{background:#f8f9fa;border-radius:16px;padding:32px 24px;text-align:center;transition:all .3s}
-          .channel-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.08)}
-          .channel-icon{font-size:40px;margin-bottom:16px}
-          .channel-card h3{font-size:17px;font-weight:700;margin:0 0 8px;color:#1a1a1a}
-          .channel-card p{font-size:14px;color:#6b7280;margin:0}
-          .ftr{border-top:1px solid #eaeaea;padding:24px}
-          .ftr-in{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
-          .ftr-contact{font-size:16px;color:#9ca3af;text-decoration:none}
-          .ftr-tagline{font-size:16px;color:#9ca3af}
-          @media(max-width:1024px){.hero-content,.api-grid{grid-template-columns:1fr;text-align:center}.hero-left p{margin:0 auto 30px}.hero-stats{justify-content:center}.mockup-wrapper{width:100%;max-width:500px;height:auto;min-height:520px;margin:0 auto}.phone{position:relative;left:auto;top:auto;width:100%;max-width:300px;margin:0 auto 20px}.code-box{position:relative;right:auto;bottom:auto;width:100%;max-width:340px;margin:0 auto}.features-grid{grid-template-columns:repeat(3,1fr)}.stories-grid,.channels-grid{grid-template-columns:repeat(2,1fr)}.integrations-grid{grid-template-columns:repeat(3,1fr)}}
-          @media(max-width:768px){.hero-left h1{font-size:34px}.section-header h2{font-size:30px}.features-grid{grid-template-columns:repeat(2,1fr)}.integrations-grid{grid-template-columns:repeat(2,1fr)}.stories-grid,.channels-grid{grid-template-columns:1fr}.usecase-pills{gap:8px}.pill{padding:10px 18px;font-size:13px}}
-          @media(max-width:480px){.hero{padding:120px 16px 60px}.hero-stats{flex-direction:column}.features-grid{grid-template-columns:1fr}.logos-row{gap:20px}.ftr-in{flex-direction:column;gap:12px;text-align:center}}
+          * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+          .page { min-height: 100vh; min-height: 100dvh; background: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; overflow-x: hidden; }
+          .hdr { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,.97); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,.06); padding-top: env(safe-area-inset-top); }
+          .hdr-in { max-width: 1200px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; }
+          .logo { display: flex; align-items: center; gap: 10px; }
+          .logo-img { width: 40px; height: 40px; border-radius: 10px; }
+          .logo-text { display: flex; flex-direction: column; line-height: 1.2; }
+          .logo-main { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+          .logo-sub { font-size: 10px; font-weight: 500; color: #6b7280; }
+          .anim { opacity: 0; transform: translateY(30px); transition: all .6s cubic-bezier(.16,1,.3,1); }
+          .anim.show { opacity: 1; transform: translateY(0); }
+          .hero { padding: calc(80px + env(safe-area-inset-top)) 16px 60px; max-width: 1200px; margin: 0 auto; }
+          .hero-content { display: flex; flex-direction: column; gap: 40px; }
+          .hero-left h1 { font-size: clamp(28px, 6vw, 42px); font-weight: 700; line-height: 1.15; margin: 0 0 16px; letter-spacing: -1px; }
+          .hero-left p { font-size: clamp(15px, 3.5vw, 18px); color: #6b7280; line-height: 1.6; margin: 0 0 24px; }
+          .hero-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+          .stat { background: #f8faf9; border: 1px solid #eaeaea; border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 90px; text-align: center; }
+          .stat span { display: block; font-size: 20px; font-weight: 700; }
+          .stat small { font-size: 11px; color: #6b7280; }
+          .hero-right { display: flex; justify-content: center; }
+          .phone-mockup { width: 100%; max-width: 320px; background: #e8f5f0; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.1); }
+          .phone-header { background: #075e54; padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+          .avatar { width: 36px; height: 36px; background: #25d366; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+          .contact-info { flex: 1; display: flex; flex-direction: column; }
+          .contact-name { color: #fff; font-size: 15px; font-weight: 600; }
+          .contact-status { color: rgba(255,255,255,.75); font-size: 11px; }
+          .verified { width: 20px; height: 20px; background: #25d366; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; }
+          .chat-area { background: #e8efe5; padding: 16px 12px; min-height: 200px; display: flex; flex-direction: column; gap: 8px; }
+          .msg { max-width: 80%; padding: 10px 12px; border-radius: 10px; font-size: 14px; line-height: 1.4; position: relative; }
+          .msg.received { background: #fff; align-self: flex-start; border-top-left-radius: 4px; }
+          .msg.sent { background: #d9fdd3; align-self: flex-end; border-top-right-radius: 4px; }
+          .msg .time { font-size: 9px; color: #667781; display: block; text-align: right; margin-top: 4px; }
+          .features { padding: 60px 16px; background: #f8f9fa; }
+          .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; max-width: 1200px; margin: 0 auto; }
+          .feature-card { background: #fff; border-radius: 16px; padding: 20px 16px; text-align: center; transition: transform .2s; touch-action: manipulation; }
+          .feature-card:active { transform: scale(0.98); }
+          .feature-icon { font-size: 32px; margin-bottom: 12px; }
+          .feature-card h3 { font-size: 15px; font-weight: 700; margin: 0 0 8px; color: #1a1a1a; }
+          .feature-card p { font-size: 12px; color: #6b7280; line-height: 1.4; margin: 0; }
+          .section-header { text-align: center; max-width: 600px; margin: 0 auto 40px; padding: 0 16px; }
+          .section-header h2 { font-size: clamp(24px, 5vw, 36px); font-weight: 700; line-height: 1.2; margin: 0 0 12px; color: #1a1a1a; }
+          .section-header p { font-size: clamp(14px, 3vw, 16px); color: #6b7280; line-height: 1.5; margin: 0; }
+          .touchpoint { padding: 60px 16px; background: #fff; }
+          .usecase-pills { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; padding: 0 8px; }
+          .pill { padding: 10px 18px; border: 2px solid #e5e7eb; background: #fff; border-radius: 50px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; color: #4b5563; touch-action: manipulation; white-space: nowrap; }
+          .pill:active { transform: scale(0.96); }
+          .pill.active { background: #25d366; border-color: #25d366; color: #fff; }
+          .usecase-content { text-align: center; max-width: 500px; margin: 0 auto; padding: 32px 20px; background: #f8f9fa; border-radius: 20px; }
+          .usecase-icon { font-size: 48px; margin-bottom: 16px; }
+          .usecase-content h3 { font-size: 22px; font-weight: 700; margin: 0 0 12px; color: #1a1a1a; }
+          .usecase-content p { font-size: 15px; color: #6b7280; line-height: 1.6; margin: 0; }
+          .api { padding: 60px 16px; background: #f8f9fa; }
+          .api-grid { display: flex; flex-direction: column; gap: 32px; max-width: 1000px; margin: 0 auto; }
+          .api-info { text-align: center; }
+          .api-info h2 { font-size: clamp(24px, 5vw, 32px); font-weight: 700; color: #1a1a1a; margin: 0 0 16px; line-height: 1.2; }
+          .api-desc { font-size: clamp(14px, 3vw, 16px); color: #6b7280; line-height: 1.6; margin: 0 auto; max-width: 500px; }
+          .api-demo { background: #1e293b; border-radius: 16px; overflow: hidden; }
+          .code-tabs { display: flex; gap: 4px; padding: 12px; background: #0f172a; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          .tab { padding: 8px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; color: #9ca3af; background: transparent; cursor: pointer; transition: all .2s; touch-action: manipulation; white-space: nowrap; flex-shrink: 0; }
+          .tab:active { transform: scale(0.96); }
+          .tab.active { background: #25d366; color: #fff; }
+          .code-block { margin: 0; padding: 16px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.6; color: #e5e7eb; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: pre; }
+          .ftr { border-top: 1px solid #eaeaea; padding: 20px 16px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+          .ftr-in { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+          .ftr-contact { font-size: 14px; color: #6b7280; text-decoration: none; }
+          .ftr-tagline { font-size: 14px; color: #9ca3af; }
+          @media (min-width: 768px) {
+            .hdr-in { padding: 16px 24px; }
+            .logo-img { width: 44px; height: 44px; }
+            .logo-main { font-size: 20px; }
+            .hero { padding: calc(100px + env(safe-area-inset-top)) 24px 80px; }
+            .hero-content { flex-direction: row; align-items: center; gap: 60px; }
+            .hero-left { flex: 1; }
+            .hero-right { flex: 1; }
+            .phone-mockup { max-width: 360px; }
+            .features { padding: 80px 24px; }
+            .features-grid { gap: 20px; }
+            .feature-card { padding: 28px 20px; }
+            .feature-icon { font-size: 40px; }
+            .feature-card h3 { font-size: 17px; }
+            .feature-card p { font-size: 14px; }
+            .touchpoint { padding: 80px 24px; }
+            .pill { padding: 12px 24px; font-size: 14px; }
+            .usecase-content { padding: 40px 32px; }
+            .usecase-icon { font-size: 56px; }
+            .usecase-content h3 { font-size: 26px; }
+            .api { padding: 80px 24px; }
+            .api-grid { flex-direction: row; align-items: center; gap: 60px; }
+            .api-info { text-align: left; flex: 1; }
+            .api-desc { margin: 0; }
+            .api-demo { flex: 1; }
+            .code-block { font-size: 13px; padding: 20px; }
+            .ftr { padding: 24px; }
+          }
+          @media (min-width: 1024px) {
+            .hero-content { gap: 80px; }
+            .features-grid { grid-template-columns: repeat(5, 1fr); }
+          }
         `}</style>
       </div>
     </>
