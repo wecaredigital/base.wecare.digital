@@ -279,7 +279,7 @@ const HomePage: React.FC = () => {
           @media(max-width:1024px){.hero-content,.api-grid{grid-template-columns:1fr;text-align:center}.hero-left p{margin:0 auto 30px}.hero-stats{justify-content:center}.mockup-wrapper{width:100%;max-width:500px;height:auto;min-height:520px;margin:0 auto}.phone{position:relative;left:auto;top:auto;width:100%;max-width:300px;margin:0 auto 20px}.code-box{position:relative;right:auto;bottom:auto;width:100%;max-width:340px;margin:0 auto}.features-grid{grid-template-columns:repeat(3,1fr)}.stories-grid,.channels-grid{grid-template-columns:repeat(2,1fr)}.integrations-grid{grid-template-columns:repeat(3,1fr)}}
           @media(max-width:768px){.hero-left h1{font-size:34px}.section-header h2{font-size:30px}.features-grid{grid-template-columns:repeat(2,1fr)}.integrations-grid{grid-template-columns:repeat(2,1fr)}.stories-grid,.channels-grid{grid-template-columns:1fr}.usecase-pills{gap:8px}.pill{padding:10px 18px;font-size:13px}}
           @media(max-width:480px){.hero{padding:120px 16px 60px}.hero-stats{flex-direction:column}.features-grid{grid-template-columns:1fr}.logos-row{gap:20px}.ftr-in{flex-direction:column;gap:12px;text-align:center}}
-        `}</style>
+        @media(max-width:767px){.hero-grid{display:flex;flex-direction:column}.hero-right{order:-1;margin-bottom:24px}}`}</style>
       </div>
     </>
   );
