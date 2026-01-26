@@ -175,11 +175,11 @@ const HomePage: React.FC = () => {
           .hero{padding:140px 24px 80px;max-width:1300px;margin:0 auto}
           .hero-content{display:grid;grid-template-columns:1fr 1.5fr;gap:40px;align-items:center}
           .hero-left h1{font-size:46px;font-weight:700;line-height:1.1;margin:0 0 20px;letter-spacing:-2px}
-          .hero-left p{font-size:18px;color:#6b7280;line-height:1.7;margin:0 0 30px;max-width:420px}
+          .hero-left p{font-size:20px;color:#6b7280;line-height:1.7;margin:0 0 30px;max-width:420px}
           .hero-stats{display:flex;gap:16px}
           .stat{background:#f8faf9;border:1px solid #eaeaea;border-radius:16px;padding:16px 20px}
-          .stat span{display:block;font-size:22px;font-weight:700}
-          .stat small{font-size:13px;color:#6b7280}
+          .stat span{display:block;font-size:24px;font-weight:700}
+          .stat small{font-size:14px;color:#6b7280}
           .hero-right{display:flex;justify-content:center}
           .mockup-wrapper{position:relative;width:620px;height:560px;background:#e8f5f0;border-radius:32px;padding:40px}
           .phone{position:absolute;left:40px;top:30px;width:340px;background:#d4ddd4;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.08);z-index:1}
@@ -275,7 +275,7 @@ const HomePage: React.FC = () => {
           .ftr{border-top:1px solid #eaeaea;padding:24px}
           .ftr-in{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
           .ftr-contact{font-size:16px;color:#9ca3af;text-decoration:none}
-          .ftr-tagline{font-size:16px;color:#9ca3af}
+          .ftr-tagline{font-size:17px;color:#9ca3af}
           @media(max-width:1024px){.hero-content,.api-grid{grid-template-columns:1fr;text-align:center}.hero-left p{margin:0 auto 30px}.hero-stats{justify-content:center}.mockup-wrapper{width:100%;max-width:500px;height:auto;min-height:520px;margin:0 auto}.phone{position:relative;left:auto;top:auto;width:100%;max-width:300px;margin:0 auto 20px}.code-box{position:relative;right:auto;bottom:auto;width:100%;max-width:340px;margin:0 auto}.features-grid{grid-template-columns:repeat(3,1fr)}.stories-grid,.channels-grid{grid-template-columns:repeat(2,1fr)}.integrations-grid{grid-template-columns:repeat(3,1fr)}}
           @media(max-width:768px){.hero-left h1{font-size:34px}.section-header h2{font-size:30px}.features-grid{grid-template-columns:repeat(2,1fr)}.integrations-grid{grid-template-columns:repeat(2,1fr)}.stories-grid,.channels-grid{grid-template-columns:1fr}.usecase-pills{gap:8px}.pill{padding:10px 18px;font-size:13px}}
           @media(max-width:480px){.hero{padding:120px 16px 60px}.hero-stats{flex-direction:column}.features-grid{grid-template-columns:1fr}.logos-row{gap:20px}.ftr-in{flex-direction:column;gap:12px;text-align:center}}
