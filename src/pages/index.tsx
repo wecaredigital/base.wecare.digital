@@ -48,12 +48,6 @@ const HomePage: React.FC = () => {
     { lang: 'cURL', code: "curl -X POST \\\n    \"https://api.wecare.digital/v1/messages\" \\\n    -H \"Authorization: Bearer API_KEY\" \\\n    -d '{\"to\": \"+919330994400\"}'" },
   ];
 
-  const stories = [
-    { brand: 'Retail Brand', stat: '14x', label: 'higher sales', desc: 'Conversational commerce', extra: '290K messages in 7 days' },
-    { brand: 'Finance Co', stat: '94%', label: 'CSAT rate', desc: 'Automated support', extra: '20% cases via WhatsApp' },
-    { brand: 'Travel App', stat: '90%', label: 'faster response', desc: 'Booking confirmations', extra: '87% positive feedback' },
-  ];
-
   return (
     <>
       <Head>
@@ -70,11 +64,11 @@ const HomePage: React.FC = () => {
           </div>
         </header>
 
-        <section className={`hero anim ${show('hero') ? 'show' : ''}`} id="hero">
+        <section className={hero anim ${show('hero') ? 'show' : ''}} id="hero">
           <div className="hero-content">
             <div className="hero-left">
               <h1>Reach more customers wherever they are, whatever they're on</h1>
-              <p>Engage them on every channel, in every scenario – from our platform or your stack.</p>
+              <p>Engage them on every channel, in every scenario - from our platform or your stack.</p>
               <div className="hero-stats">
                 <div className="stat"><span>B+</span><small>Users reachable</small></div>
                 <div className="stat"><span>Fast</span><small>Onboarding</small></div>
@@ -94,7 +88,7 @@ const HomePage: React.FC = () => {
                     <div className="verified-badge"></div>
                   </div>
                   <div className="chat-area">
-                    <div className="msg sent"><p>Hi! Your order #WDSR87A6G has been shipped </p><span className="msg-time">10:30</span></div>
+                    <div className="msg sent"><p>Hi! Your order #WDSR87A6G has been shipped</p><span className="msg-time">10:30</span></div>
                     <div className="msg received"><p>When will it arrive?</p><span className="msg-time">10:31</span></div>
                     <div className="msg sent left-msg"><p>Tomorrow by 6 PM</p><span className="msg-time">10:31</span></div>
                     <div className="msg sent left-msg"><p>Track here: wecare.digital/track</p><span className="msg-time">10:32</span></div>
@@ -106,7 +100,7 @@ const HomePage: React.FC = () => {
                     <div className="dots"><span className="dot-red"></span><span className="dot-yellow"></span><span className="dot-green"></span></div>
                     <span className="file-name">send_message.py</span>
                   </div>
-                  <pre className="code-body">{`response = requests.post(
+                  <pre className="code-body">{esponse = requests.post(
   "api.wecare.digital/v1/send",
   json={
     "to": "+919330994400",
@@ -114,27 +108,33 @@ const HomePage: React.FC = () => {
     "message": "Your OTP: 847291"
   },
   headers={"Authorization": api_key}
-)`}</pre>
+)}</pre>
                 </div>
               </div>
             </div>
           </div>
         </section>
-        {/* FEATURES SECTION */}
-        <section className={`reach anim ${show('reach') ? 'show' : ''}}`} id="reach">
+
+        <section className={each anim ${show('reach') ? 'show' : ''}} id="reach">
           <div className="features-grid">
+            {features.map((f, i) => (
+              <div key={i} className={eature-card ${activeTab === i ? 'active' : ''}} onClick={() => setActiveTab(i)}>
+                <div className="feature-icon">{f.icon}</div>
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
+              </div>
             ))}
           </div>
         </section>
 
-        <section className={`touchpoint anim ${show('touchpoint') ? 'show' : ''}`} id="touchpoint">
+        <section className={	ouchpoint anim ${show('touchpoint') ? 'show' : ''}} id="touchpoint">
           <div className="section-header">
             <h2>WhatsApp for every touchpoint</h2>
             <p>Powering engagement, support, and conversions across the customer journey</p>
           </div>
           <div className="usecase-pills">
             {useCases.map((u, i) => (
-              <button key={i} className={`pill ${activeUseCase === i ? 'active' : ''}`} onClick={() => setActiveUseCase(i)}>{u.title}</button>
+              <button key={i} className={pill ${activeUseCase === i ? 'active' : ''}} onClick={() => setActiveUseCase(i)}>{u.title}</button>
             ))}
           </div>
           <div className="usecase-content">
@@ -144,66 +144,20 @@ const HomePage: React.FC = () => {
           </div>
         </section>
 
-        <section className={`api anim ${show('api') ? 'show' : ''}`} id="api">
+        <section className={pi anim ${show('api') ? 'show' : ''}} id="api">
           <div className="api-grid">
             <div className="api-info">
               <h2>Built for the AI era.</h2>
-              <p className="api-desc">The all-in-one platform for enterprise brands to acquire, convert, and retain customers across every channel—powered by AI that truly understands your business.</p>
-              
+              <p className="api-desc">The all-in-one platform for enterprise brands to acquire, convert, and retain customers across every channel-powered by AI that truly understands your business.</p>
             </div>
             <div className="api-demo">
               <div className="code-tabs">
                 {codeExamples.map((c, i) => (
-                  <button key={i} className={`tab ${activeCode === i ? 'active' : ''}`} onClick={() => setActiveCode(i)}>{c.lang}</button>
+                  <button key={i} className={	ab ${activeCode === i ? 'active' : ''}} onClick={() => setActiveCode(i)}>{c.lang}</button>
                 ))}
               </div>
               <pre className="code-block">{codeExamples[activeCode].code}</pre>
             </div>
-          </div>
-        </section>
-
-        <section className={`integrations anim ${show('integrations') ? 'show' : ''}`} id="integrations">
-          <div className="section-header">
-            <h2>Expand your tech stack with multiple integrations</h2>
-            <p>Integrate WhatsApp with your existing systems and tools</p>
-          </div>
-          <div className="integrations-grid">
-            {['Salesforce', 'HubSpot', 'Shopify', 'Zendesk', 'Freshdesk', 'Zoho'].map((name, i) => (
-              <div key={i} className="integration-card">{name}</div>
-            ))}
-          </div>
-        </section>
-
-        <section className={`stories anim ${show('stories') ? 'show' : ''}`} id="stories">
-          <div className="section-header">
-            <h2>Success stories that speak for themselves</h2>
-            <p>See how businesses are winning with WhatsApp API</p>
-          </div>
-          <div className="stories-grid">
-            {stories.map((s, i) => (
-              <div key={i} className="story-card">
-                <div className="story-brand">{s.brand}</div>
-                <div className="story-stat"><span className="stat-num">{s.stat}</span><span className="stat-label">{s.label}</span></div>
-                <p className="story-desc">{s.desc}</p>
-                <p className="story-extra">{s.extra}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className={`cta anim ${show('cta') ? 'show' : ''}`} id="cta">
-          <div className="cta-content">
-            <h2>Ready to Transform Your Customer Experience?</h2>
-            <p>Go live on WhatsApp faster with a scalable setup.</p>
-          </div>
-        </section>
-
-        <section className={`channels anim ${show('channels') ? 'show' : ''}`} id="channels">
-          <div className="channels-grid">
-            <div className="channel-card"><div className="channel-icon"></div><h3>WhatsApp Business API</h3><p>Official API with verified profiles</p></div>
-            <div className="channel-card"><div className="channel-icon"></div><h3>SMS Gateway</h3><p>DLT compliant delivery</p></div>
-            <div className="channel-card"><div className="channel-icon"></div><h3>Voice Calls</h3><p>Automated IVR systems</p></div>
-            <div className="channel-card"><div className="channel-icon"></div><h3>Email</h3><p>Transactional & marketing</p></div>
           </div>
         </section>
 
@@ -213,7 +167,7 @@ const HomePage: React.FC = () => {
             <span className="ftr-tagline">Tap. Track. Done. Everyday things made easy.</span>
           </div>
         </footer>
-        <style jsx>{`
+        <style jsx>{\
           .page{min-height:100vh;background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a}
           .hdr{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
           .hdr-in{max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;align-items:center}
@@ -260,10 +214,6 @@ const HomePage: React.FC = () => {
           .dot-green{background:#28c840}
           .file-name{margin-left:auto;font-size:13px;color:#9ca3af}
           .code-body{margin:0;padding:18px;font-family:'SF Mono',Monaco,monospace;font-size:13px;line-height:1.6;color:#e5e7eb}
-          .logos{padding:50px 24px;background:#fff;text-align:center}
-          .logos-title{font-size:15px;color:#6b7280;margin:0 0 30px;font-weight:500}
-          .logos-row{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;max-width:900px;margin:0 auto}
-          .logo-item{font-size:16px;font-weight:600;color:#9ca3af;padding:12px 20px}
           .section-header{text-align:center;max-width:700px;margin:0 auto 60px}
           .section-header h2{font-size:40px;font-weight:700;line-height:1.2;margin:0 0 16px;color:#1a1a1a}
           .section-header p{font-size:18px;color:#6b7280;line-height:1.6;margin:0}
@@ -283,52 +233,25 @@ const HomePage: React.FC = () => {
           .usecase-content{text-align:center;max-width:600px;margin:0 auto;padding:40px;background:#f8f9fa;border-radius:24px}
           .usecase-icon{font-size:64px;margin-bottom:20px}
           .usecase-content h3{font-size:28px;font-weight:700;margin:0 0 16px;color:#1a1a1a}
-          .usecase-content p{font-size:17px;color:#6b7280;line-height:1.7;margin:0}          .api{padding:100px 24px;background:#f8f9fa}
+          .usecase-content p{font-size:17px;color:#6b7280;line-height:1.7;margin:0}
+          .api{padding:100px 24px;background:#f8f9fa}
           .api-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;max-width:1200px;margin:0 auto;align-items:center}
           .api-info h2{font-size:36px;font-weight:700;color:#1a1a1a;margin:0 0 20px;line-height:1.2}
           .api-desc{font-size:17px;color:#6b7280;line-height:1.7;margin:0 0 30px;max-width:480px}
-          .api-features{list-style:none;padding:0;margin:0}
-          .api-features li{display:flex;align-items:center;gap:12px;font-size:16px;color:#4b5563;padding:10px 0}
-          .check{color:#25d366;font-weight:700}
           .api-demo{background:#1e293b;border-radius:16px;overflow:hidden}
           .code-tabs{display:flex;gap:4px;padding:16px;background:#0f172a;border-bottom:1px solid #334155}
           .tab{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;color:#9ca3af;background:transparent;cursor:pointer;transition:all .2s}
           .tab:hover{color:#fff}
           .tab.active{background:#25d366;color:#fff}
           .code-block{margin:0;padding:24px;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:13px;line-height:1.7;color:#e5e7eb;overflow-x:auto;white-space:pre}
-          .integrations{padding:100px 24px;background:#f8f9fa}
-          .integrations-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;max-width:900px;margin:0 auto}
-          .integration-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;font-size:15px;font-weight:600;color:#4b5563;transition:all .2s}
-          .integration-card:hover{border-color:#25d366;transform:translateY(-2px)}
-          .stories{padding:100px 24px;background:#fff}
-          .stories-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1100px;margin:0 auto}
-          .story-card{background:#f8f9fa;border-radius:20px;padding:36px;transition:all .3s}
-          .story-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.08)}
-          .story-brand{font-size:13px;font-weight:600;color:#25d366;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px}
-          .story-stat{margin-bottom:20px}
-          .stat-num{display:block;font-size:48px;font-weight:800;color:#1a1a1a;line-height:1}
-          .stat-label{font-size:16px;color:#6b7280}
-          .story-desc{font-size:16px;font-weight:600;color:#1a1a1a;margin:0 0 8px}
-          .story-extra{font-size:14px;color:#9ca3af;margin:0}
-          .cta{padding:80px 24px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}
-          .cta-content{text-align:center;max-width:700px;margin:0 auto}
-          .cta-content h2{font-size:36px;font-weight:700;color:#fff;margin:0 0 16px}
-          .cta-content p{font-size:18px;color:#9ca3af;margin:0}
-          .channels{padding:80px 24px;background:#fff}
-          .channels-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1000px;margin:0 auto}
-          .channel-card{background:#f8f9fa;border-radius:16px;padding:32px 24px;text-align:center;transition:all .3s}
-          .channel-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.08)}
-          .channel-icon{font-size:40px;margin-bottom:16px}
-          .channel-card h3{font-size:17px;font-weight:700;margin:0 0 8px;color:#1a1a1a}
-          .channel-card p{font-size:14px;color:#6b7280;margin:0}
           .ftr{border-top:1px solid #eaeaea;padding:24px}
           .ftr-in{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
           .ftr-contact{font-size:16px;color:#9ca3af;text-decoration:none}
           .ftr-tagline{font-size:16px;color:#9ca3af}
-          @media(max-width:1024px){.hero-content,.api-grid{grid-template-columns:1fr;text-align:center}.hero-left p{margin:0 auto 30px}.hero-stats{justify-content:center}.mockup-wrapper{width:100%;max-width:500px;height:auto;min-height:520px;margin:0 auto}.phone{position:relative;left:auto;top:auto;width:100%;max-width:300px;margin:0 auto 20px}.code-box{position:relative;right:auto;bottom:auto;width:100%;max-width:340px;margin:0 auto}.features-grid{grid-template-columns:repeat(3,1fr)}.stories-grid,.channels-grid{grid-template-columns:repeat(2,1fr)}.integrations-grid{grid-template-columns:repeat(3,1fr)}}
-          @media(max-width:768px){.hero-left h1{font-size:34px}.section-header h2{font-size:30px}.features-grid{grid-template-columns:repeat(2,1fr)}.integrations-grid{grid-template-columns:repeat(2,1fr)}.stories-grid,.channels-grid{grid-template-columns:1fr}.usecase-pills{gap:8px}.pill{padding:10px 18px;font-size:13px}}
-          @media(max-width:480px){.hero{padding:120px 16px 60px}.hero-stats{flex-direction:column}.features-grid{grid-template-columns:1fr}.logos-row{gap:20px}.ftr-in{flex-direction:column;gap:12px;text-align:center}}
-        `}</style>
+          @media(max-width:1024px){.hero-content,.api-grid{grid-template-columns:1fr;text-align:center}.hero-left p{margin:0 auto 30px}.hero-stats{justify-content:center}.mockup-wrapper{width:100%;max-width:500px;height:auto;min-height:520px;margin:0 auto}.phone{position:relative;left:auto;top:auto;width:100%;max-width:300px;margin:0 auto 20px}.code-box{position:relative;right:auto;bottom:auto;width:100%;max-width:340px;margin:0 auto}.features-grid{grid-template-columns:repeat(3,1fr)}}
+          @media(max-width:768px){.hero-left h1{font-size:34px}.section-header h2{font-size:30px}.features-grid{grid-template-columns:repeat(2,1fr)}.usecase-pills{gap:8px}.pill{padding:10px 18px;font-size:13px}}
+          @media(max-width:480px){.hero{padding:120px 16px 60px}.hero-stats{flex-direction:column}.features-grid{grid-template-columns:1fr}.ftr-in{flex-direction:column;gap:12px;text-align:center}}
+        \}</style>
       </div>
     </>
   );
