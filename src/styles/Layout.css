@@ -29,8 +29,9 @@ body {
   font-weight: 400;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   color: #0f172a;
-  /* WebView Safe: Prevent overscroll bounce */
-  overscroll-behavior: none;
+  /* Allow pull-to-refresh on mobile */
+  overscroll-behavior-y: auto;
+  overscroll-behavior-x: none;
   /* Safe area insets for notched devices */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
@@ -38,9 +39,11 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* WebView Safe: Prevent horizontal scroll */
+/* WebView Safe: Prevent horizontal scroll, allow vertical */
 body, html {
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   max-width: 100vw;
 }
 
