@@ -1,10 +1,14 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿/**
+ * Home Page - WECARE.DIGITAL Landing
+ * Phone mockup with code overlay design
+ */
+
+import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 
 const HomePage: React.FC = () => {
   const [visible, setVisible] = useState<Set<string>>(new Set());
   const [activeUseCase, setActiveUseCase] = useState(0);
-  const [activeCode, setActiveCode] = useState(0);
   
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -36,20 +40,6 @@ const HomePage: React.FC = () => {
     { title: 'Surveys', desc: 'Collect feedback in chat.', icon: '' },
   ];
 
-  const heroCode = "response = requests.post(\n    \"api.wecare.digital/v1/send\",\n    json={\n        \"to\": \"+919330994400\",\n        \"type\": \"text\",\n        \"message\": \"Your OTP: 847291\"\n    },\n    headers={\"Authorization\": api_key}\n)";
-
-  const pythonCode = "import requests\n\nresponse = requests.post(\n    \"https://api.wecare.digital/v1/messages\",\n    headers={\"Authorization\": \"Bearer API_KEY\"},\n    json={\"to\": \"+919330994400\", \"type\": \"template\"}\n)";
-
-  const jsCode = "const response = await fetch(\n    \"https://api.wecare.digital/v1/messages\",\n    {\n        method: \"POST\",\n        headers: {\"Authorization\": \"Bearer API_KEY\"},\n        body: JSON.stringify({to: \"+919330994400\", type: \"template\"})\n    }\n);";
-
-  const curlCode = "curl -X POST \\\n    \"https://api.wecare.digital/v1/messages\" \\\n    -H \"Authorization: Bearer API_KEY\" \\\n    -d '{\"to\": \"+919330994400\", \"type\": \"template\"}'";
-
-  const codeExamples = [
-    { lang: 'Python', code: pythonCode },
-    { lang: 'JavaScript', code: jsCode },
-    { lang: 'cURL', code: curlCode },
-  ];
-
   return (
     <>
       <Head>
@@ -64,7 +54,10 @@ const HomePage: React.FC = () => {
           <div className="hdr-in">
             <div className="logo">
               <img src="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" alt="Logo" className="logo-img" />
-              <span className="logo-main">WECARE.DIGITAL</span>
+              <div className="logo-txt">
+                <span className="logo-main">Base CRM</span>
+                <span className="logo-sub">by WECARE.DIGITAL</span>
+              </div>
             </div>
           </div>
         </header>
@@ -104,7 +97,15 @@ const HomePage: React.FC = () => {
                     <div className="dots"><i className="d r"></i><i className="d y"></i><i className="d g"></i></div>
                     <span className="fname">send_message.py</span>
                   </div>
-                  <pre className="code">{heroCode}</pre>
+                  <pre className="code">{`response = requests.post(
+  "api.wecare.digital/v1/send",
+  json={
+    "to": "+919876543210",
+    "type": "text",
+    "message": "Your OTP: 123456"
+  },
+  headers={"Authorization": api_key}
+)`}</pre>
                 </div>
               </div>
             </div>
@@ -141,19 +142,9 @@ const HomePage: React.FC = () => {
         </section>
 
         <section className={`api anim ${show('api') ? 'show' : ''}`} id="api">
-          <div className="api-grid">
-            <div className="api-info">
-              <h2>Built for the AI era.</h2>
-              <p>The all-in-one platform for enterprise brands—powered by AI that truly understands your business.</p>
-            </div>
-            <div className="api-demo">
-              <div className="code-tabs">
-                {codeExamples.map((c, i) => (
-                  <button key={i} className={`tab ${activeCode === i ? 'active' : ''}`} onClick={() => setActiveCode(i)}>{c.lang}</button>
-                ))}
-              </div>
-              <pre className="api-code">{codeExamples[activeCode].code}</pre>
-            </div>
+          <div className="api-content">
+            <h2>Built for the AI era.</h2>
+            <p>The all-in-one platform for enterprise brands—powered by AI that truly understands your business.</p>
           </div>
         </section>
 
@@ -165,121 +156,111 @@ const HomePage: React.FC = () => {
         </footer>
         <style jsx>{`
           *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-          .page{min-height:100vh;min-height:100dvh;background:#fff;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
+          .page{min-height:100vh;min-height:100dvh;background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
           .hdr{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.06);padding-top:env(safe-area-inset-top)}
-          .hdr-in{max-width:1200px;margin:0 auto;padding:14px 20px;display:flex;align-items:center}
-          .logo{display:flex;align-items:center;gap:12px}
-          .logo-img{width:36px;height:36px;border-radius:8px}
-          .logo-main{font-size:16px;font-weight:700;letter-spacing:0.5px}
+          .hdr-in{max-width:1200px;margin:0 auto;padding:12px 16px;display:flex;align-items:center}
+          .logo{display:flex;align-items:center;gap:10px}
+          .logo-img{width:40px;height:40px;border-radius:10px}
+          .logo-txt{display:flex;flex-direction:column;line-height:1.2}
+          .logo-main{font-size:18px;font-weight:700}
+          .logo-sub{font-size:10px;color:#6b7280}
           .anim{opacity:0;transform:translateY(30px);transition:all .6s cubic-bezier(.16,1,.3,1)}
           .anim.show{opacity:1;transform:translateY(0)}
-          .hero{padding:calc(90px + env(safe-area-inset-top)) 20px 50px;max-width:1200px;margin:0 auto}
-          .hero-grid{display:flex;flex-direction:column;gap:40px}
-          .hero-left h1{font-size:clamp(28px,6vw,44px);font-weight:800;line-height:1.1;margin:0 0 20px;letter-spacing:-1px;color:#0f172a}
-          .hero-left p{font-size:clamp(15px,3.5vw,18px);color:#64748b;line-height:1.7;margin:0 0 28px;max-width:480px}
-          .hero-stats{display:flex;gap:12px;flex-wrap:wrap}
-          .stat{background:#f8faf9;border:1px solid #e2e8f0;border-radius:14px;padding:16px 20px;flex:1;min-width:100px;text-align:center}
-          .stat span{display:block;font-size:22px;font-weight:800;color:#0f172a}
-          .stat small{font-size:12px;color:#64748b;margin-top:4px;display:block}
+          .hero{padding:calc(80px + env(safe-area-inset-top)) 16px 40px;max-width:1200px;margin:0 auto}
+          .hero-grid{display:flex;flex-direction:column;gap:32px}
+          .hero-left h1{font-size:clamp(26px,5.5vw,40px);font-weight:700;line-height:1.15;margin:0 0 16px;letter-spacing:-0.5px}
+          .hero-left p{font-size:clamp(14px,3vw,17px);color:#6b7280;line-height:1.6;margin:0 0 20px}
+          .hero-stats{display:flex;gap:10px;flex-wrap:wrap}
+          .stat{background:#f8faf9;border:1px solid #eaeaea;border-radius:12px;padding:12px 14px;flex:1;min-width:85px;text-align:center}
+          .stat span{display:block;font-size:18px;font-weight:700}
+          .stat small{font-size:11px;color:#6b7280}
           .hero-right{display:flex;justify-content:center}
-          .mockup-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;max-width:360px}
-          .phone{width:100%;background:#e5f5ed;border-radius:24px;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.12)}
-          .phone-hdr{background:#075e54;padding:14px 16px;display:flex;align-items:center;gap:12px}
-          .wa-avatar{width:44px;height:44px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
+          .mockup-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;max-width:320px}
+          .phone{width:100%;background:#e5f5ed;border-radius:20px;overflow:hidden;box-shadow:0 16px 50px rgba(0,0,0,.1)}
+          .phone-hdr{background:#075e54;padding:10px 12px;display:flex;align-items:center;gap:8px}
+          .wa-avatar{width:36px;height:36px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px}
           .wa-info{flex:1;display:flex;flex-direction:column}
-          .wa-name{color:#fff;font-size:16px;font-weight:600}
-          .wa-status{color:rgba(255,255,255,.7);font-size:12px}
-          .wa-dot{width:12px;height:12px;background:#25d366;border-radius:50%}
-          .chat{background:#e8efe5;padding:16px 14px;min-height:280px;display:flex;flex-direction:column;gap:8px}
-          .bubble{max-width:85%;padding:12px 14px;border-radius:12px;font-size:14px;line-height:1.5}
-          .bubble.in{background:#fff;align-self:flex-start;border-top-left-radius:4px}
-          .bubble.out{background:#d9fdd3;align-self:flex-end;border-top-right-radius:4px}
-          .bubble .ts{font-size:10px;color:#667781;display:block;text-align:right;margin-top:4px}
-          .typing{background:#fff;padding:14px 18px;border-radius:12px;border-top-left-radius:4px;align-self:flex-start;display:flex;gap:5px}
-          .typing span{width:8px;height:8px;background:#90a4ae;border-radius:50%;animation:typ 1.4s infinite}
+          .wa-name{color:#fff;font-size:14px;font-weight:600}
+          .wa-status{color:rgba(255,255,255,.7);font-size:10px}
+          .wa-dot{width:10px;height:10px;background:#25d366;border-radius:50%}
+          .chat{background:#e8efe5;padding:12px 10px;min-height:200px;display:flex;flex-direction:column;gap:6px}
+          .bubble{max-width:82%;padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.4}
+          .bubble.in{background:#fff;align-self:flex-start;border-top-left-radius:2px}
+          .bubble.out{background:#d9fdd3;align-self:flex-end;border-top-right-radius:2px}
+          .bubble .ts{font-size:8px;color:#667781;display:block;text-align:right;margin-top:3px}
+          .typing{background:#fff;padding:10px 14px;border-radius:8px;border-top-left-radius:2px;align-self:flex-start;display:flex;gap:4px}
+          .typing span{width:6px;height:6px;background:#90a4ae;border-radius:50%;animation:typ 1.4s infinite}
           .typing span:nth-child(2){animation-delay:.2s}
           .typing span:nth-child(3){animation-delay:.4s}
-          @keyframes typ{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
-          .code-box{width:100%;background:#3d4f5f;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.2)}
-          .code-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#4a5d6e}
-          .dots{display:flex;gap:6px}
-          .d{width:12px;height:12px;border-radius:50%;display:block}
+          @keyframes typ{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-3px)}}
+          .code-box{width:100%;background:#3d4f5f;border-radius:10px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.18)}
+          .code-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#4a5d6e}
+          .dots{display:flex;gap:5px}
+          .d{width:9px;height:9px;border-radius:50%;display:block}
           .d.r{background:#ff5f57}
           .d.y{background:#ffbd2e}
           .d.g{background:#28c840}
-          .fname{font-size:12px;color:rgba(255,255,255,.7);font-family:monospace}
-          .code{margin:0;padding:16px;font-family:monospace;font-size:12px;line-height:1.6;color:#e5e7eb;white-space:pre;overflow-x:auto;-webkit-overflow-scrolling:touch}
-          .features{padding:60px 20px;background:#f8fafc}
-          .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;max-width:1200px;margin:0 auto}
-          .fcard{background:#fff;border-radius:16px;padding:24px 18px;text-align:center;touch-action:manipulation;border:1px solid #e2e8f0}
+          .fname{font-size:10px;color:rgba(255,255,255,.65);font-family:monospace}
+          .code{margin:0;padding:12px;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:10px;line-height:1.5;color:#e5e7eb;white-space:pre;overflow-x:auto;-webkit-overflow-scrolling:touch}
+          .features{padding:50px 16px;background:#f8f9fa}
+          .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;max-width:1200px;margin:0 auto}
+          .fcard{background:#fff;border-radius:14px;padding:16px 12px;text-align:center;touch-action:manipulation}
           .fcard:active{transform:scale(.98)}
-          .ficon{font-size:36px;margin-bottom:14px}
-          .fcard h3{font-size:16px;font-weight:700;margin:0 0 8px;color:#0f172a}
-          .fcard p{font-size:13px;color:#64748b;line-height:1.5;margin:0}
-          .sec-hdr{text-align:center;max-width:600px;margin:0 auto 40px;padding:0 20px}
-          .sec-hdr h2{font-size:clamp(24px,5vw,36px);font-weight:800;line-height:1.2;margin:0 0 12px;color:#0f172a}
-          .sec-hdr p{font-size:clamp(14px,3vw,17px);color:#64748b;margin:0}
-          .touchpoint{padding:60px 20px;background:#fff}
-          .pills{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:32px}
-          .pill{padding:12px 20px;border:2px solid #e2e8f0;background:#fff;border-radius:50px;font-size:14px;font-weight:600;cursor:pointer;color:#475569;touch-action:manipulation;white-space:nowrap}
+          .ficon{font-size:28px;margin-bottom:10px}
+          .fcard h3{font-size:14px;font-weight:700;margin:0 0 6px}
+          .fcard p{font-size:11px;color:#6b7280;line-height:1.4;margin:0}
+          .sec-hdr{text-align:center;max-width:600px;margin:0 auto 32px;padding:0 16px}
+          .sec-hdr h2{font-size:clamp(22px,5vw,32px);font-weight:700;line-height:1.2;margin:0 0 10px}
+          .sec-hdr p{font-size:clamp(13px,3vw,15px);color:#6b7280;margin:0}
+          .touchpoint{padding:50px 16px;background:#fff}
+          .pills{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:24px}
+          .pill{padding:8px 14px;border:2px solid #e5e7eb;background:#fff;border-radius:50px;font-size:12px;font-weight:600;cursor:pointer;color:#4b5563;touch-action:manipulation;white-space:nowrap}
           .pill:active{transform:scale(.96)}
           .pill.active{background:#25d366;border-color:#25d366;color:#fff}
-          .uc-box{text-align:center;max-width:500px;margin:0 auto;padding:32px 24px;background:#f8fafc;border-radius:20px;border:1px solid #e2e8f0}
-          .uc-icon{font-size:52px;margin-bottom:16px}
-          .uc-box h3{font-size:24px;font-weight:700;margin:0 0 12px;color:#0f172a}
-          .uc-box p{font-size:16px;color:#64748b;line-height:1.6;margin:0}
-          .api{padding:60px 20px;background:#f8fafc}
-          .api-grid{display:flex;flex-direction:column;gap:40px;max-width:1000px;margin:0 auto}
-          .api-info{text-align:center}
-          .api-info h2{font-size:clamp(24px,5vw,36px);font-weight:800;margin:0 0 16px;color:#0f172a}
-          .api-info p{font-size:clamp(14px,3vw,17px);color:#64748b;line-height:1.6;margin:0 auto;max-width:600px}
-          .api-demo{background:#1e293b;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.15)}
-          .code-tabs{display:flex;gap:8px;padding:16px 20px;background:#0f172a;overflow-x:auto;-webkit-overflow-scrolling:touch}
-          .tab{padding:12px 24px;border:none;border-radius:10px;font-size:15px;font-weight:600;color:#94a3b8;background:transparent;cursor:pointer;touch-action:manipulation;white-space:nowrap;flex-shrink:0}
-          .tab:active{transform:scale(.96)}
-          .tab.active{background:#25d366;color:#fff}
-          .api-code{margin:0;padding:24px;font-family:monospace;font-size:14px;line-height:1.7;color:#e2e8f0;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:pre}
-          .ftr{border-top:1px solid #e2e8f0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
-          .ftr-in{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
-          .ftr-link{font-size:14px;color:#64748b;text-decoration:none}
-          .ftr-tag{font-size:14px;color:#94a3b8}
+          .uc-box{text-align:center;max-width:450px;margin:0 auto;padding:24px 16px;background:#f8f9fa;border-radius:16px}
+          .uc-icon{font-size:40px;margin-bottom:12px}
+          .uc-box h3{font-size:20px;font-weight:700;margin:0 0 10px}
+          .uc-box p{font-size:14px;color:#6b7280;line-height:1.5;margin:0}
+          .api{padding:50px 16px;background:#f8f9fa}
+          .api-content{text-align:center;max-width:600px;margin:0 auto}
+          .api-content h2{font-size:clamp(22px,5vw,30px);font-weight:700;margin:0 0 12px}
+          .api-content p{font-size:clamp(13px,3vw,16px);color:#6b7280;line-height:1.6;margin:0}
+          .ftr{border-top:1px solid #eaeaea;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+          .ftr-in{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+          .ftr-link{font-size:13px;color:#6b7280;text-decoration:none}
+          .ftr-tag{font-size:13px;color:#9ca3af}
           @media(min-width:768px){
-            .hdr-in{padding:16px 32px}
-            .logo-img{width:40px;height:40px}
-            .logo-main{font-size:18px}
-            .hero{padding:calc(100px + env(safe-area-inset-top)) 32px 70px}
-            .hero-grid{flex-direction:row;align-items:center;gap:60px}
+            .hdr-in{padding:14px 24px}
+            .logo-img{width:44px;height:44px}
+            .logo-main{font-size:20px}
+            .hero{padding:calc(90px + env(safe-area-inset-top)) 24px 60px}
+            .hero-grid{flex-direction:row;align-items:center;gap:50px}
             .hero-left{flex:1}
             .hero-right{flex:1}
-            .mockup-wrap{position:relative;max-width:560px;min-height:500px;flex-direction:row}
-            .phone{position:absolute;left:0;top:0;width:340px}
-            .code-box{position:absolute;right:0;bottom:20px;width:320px}
-            .features{padding:80px 32px}
-            .features-grid{gap:20px}
-            .fcard{padding:28px 20px}
-            .ficon{font-size:40px}
-            .fcard h3{font-size:17px}
-            .fcard p{font-size:14px}
-            .touchpoint{padding:80px 32px}
-            .pill{padding:14px 28px;font-size:15px}
-            .uc-box{padding:40px 32px}
-            .uc-icon{font-size:60px}
-            .uc-box h3{font-size:28px}
-            .api{padding:80px 32px}
-            .api-grid{flex-direction:row;align-items:center;gap:60px}
-            .api-info{text-align:left;flex:1}
-            .api-info p{margin:0}
-            .api-demo{flex:1}
-            .api-code{font-size:15px;padding:28px}
-            .ftr{padding:24px 32px}
+            .mockup-wrap{position:relative;max-width:480px;min-height:380px;flex-direction:row}
+            .phone{position:absolute;left:0;top:0;width:260px}
+            .code-box{position:absolute;right:0;bottom:0;width:240px}
+            .code{font-size:11px}
+            .features{padding:70px 24px}
+            .features-grid{gap:16px}
+            .fcard{padding:22px 16px}
+            .ficon{font-size:34px}
+            .fcard h3{font-size:16px}
+            .fcard p{font-size:13px}
+            .touchpoint{padding:70px 24px}
+            .pill{padding:10px 20px;font-size:13px}
+            .uc-box{padding:32px 24px}
+            .uc-icon{font-size:48px}
+            .uc-box h3{font-size:24px}
+            .api{padding:70px 24px}
+            .ftr{padding:20px 24px}
           }
           @media(min-width:1024px){
-            .hero-grid{gap:80px}
+            .hero-grid{gap:70px}
             .features-grid{grid-template-columns:repeat(5,1fr)}
-            .mockup-wrap{max-width:640px;min-height:560px}
-            .phone{width:380px}
-            .code-box{width:360px;bottom:30px}
-            .code{font-size:13px}
+            .mockup-wrap{max-width:520px;min-height:400px}
+            .phone{width:280px}
+            .code-box{width:260px}
           }
         `}</style>
       </div>
