@@ -74,7 +74,7 @@ const HomePage: React.FC = () => {
           <div className="hero-content">
             <div className="hero-left">
               <h1>Reach more customers wherever they are, whatever they're on</h1>
-              <p>Engage them on every channel, in every scenario – from our platform or your stack</p>
+              <p>Engage them on every channel, in every scenario – from our platform or your stack.</p>
               <div className="hero-stats">
                 <div className="stat"><span>B+</span><small>Users reachable</small></div>
                 <div className="stat"><span>Fast</span><small>Onboarding</small></div>
