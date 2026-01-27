@@ -172,7 +172,9 @@ const AWS_RESOURCES: Record<string, { arn: string; accountId: string; details?: 
     details: [
       '+91 93309 94400 (WECARE.DIGITAL) - Razorpay enabled',
       '+91 99033 00044 (Manish Agarwal)',
-      'WABA ID: 1347766229904230'
+      'WABA ID: 1347766229904230',
+      'Service-Linked Role: AWSServiceRoleForSocialMessaging',
+      'Policy: AWSSocialMessagingServiceRolePolicy (cloudwatch:PutMetricData)'
     ]
   },
   
