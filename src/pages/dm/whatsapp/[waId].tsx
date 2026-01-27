@@ -284,6 +284,277 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Render message content based on type
+  const renderMessageContent = (msg: Message) => {
+    const { messageType, content, mediaUrl, s3Key } = msg;
+    
+    // Text messages
+    if (messageType === 'text' || (!messageType && !mediaUrl && !s3Key)) {
+      return <div className="message-text">{content}</div>;
+    }
+    
+    // Reaction messages
+    if (messageType === 'reaction') {
+      return (
+        <div className="reaction-message">
+          <span className="reaction-emoji">{content || '👍'}</span>
+          <span className="reaction-label">Reacted to a message</span>
+        </div>
+      );
+    }
+    
+    // Image messages
+    if (messageType === 'image' || s3Key?.match(/\.(jpg|jpeg|png)$/i)) {
+      return (
+        <div className="media-message">
+          <div className="media-container">
+            <img src={mediaUrl} alt="Image" className="message-media image" loading="lazy" />
+            {renderDownloadButton(mediaUrl)}
+          </div>
+          {content && content !== '[Image]' && <div className="media-caption">{content}</div>}
+        </div>
+      );
+    }
+    
+    // Sticker messages
+    if (messageType === 'sticker' || s3Key?.match(/\.webp$/i)) {
+      return (
+        <div className="sticker-message">
+          <img src={mediaUrl} alt="Sticker" className="message-sticker" loading="lazy" />
+        </div>
+      );
+    }
+    
+    // Video messages
+    if (messageType === 'video' || s3Key?.match(/\.(mp4|3gp|3gpp)$/i)) {
+      return (
+        <div className="media-message">
+          <div className="media-container">
+            <video src={mediaUrl} controls className="message-media video" preload="metadata" />
+            {renderDownloadButton(mediaUrl)}
+          </div>
+          {content && content !== '[Video]' && <div className="media-caption">{content}</div>}
+        </div>
+      );
+    }
+    
+    // Audio/Voice note messages
+    if (messageType === 'audio' || s3Key?.match(/\.(aac|amr|mp3|m4a|ogg|opus)$/i)) {
+      const isVoiceNote = s3Key?.match(/\.(ogg|opus)$/i) || content === '[Audio]';
+      return (
+        <div className={`audio-message ${isVoiceNote ? 'voice-note' : ''}`}>
+          <div className="audio-icon">{isVoiceNote ? '🎤' : '🎵'}</div>
+          <audio src={mediaUrl} controls className="message-audio" preload="metadata" />
+          {renderDownloadButton(mediaUrl)}
+        </div>
+      );
+    }
+    
+    // Document messages
+    if (messageType === 'document' || s3Key?.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt)$/i)) {
+      const fileName = s3Key?.split('/').pop() || content || 'Document';
+      const docIcon = getDocumentIcon(s3Key || '');
+      return (
+        <div className="document-message">
+          <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="document-link">
+            <span className="doc-icon">{docIcon}</span>
+            <div className="doc-info">
+              <span className="doc-name">{fileName}</span>
+              <span className="doc-type">{getDocumentType(s3Key || '')}</span>
+            </div>
+            <span className="doc-download">⬇️</span>
+          </a>
+        </div>
+      );
+    }
+    
+    // Location messages
+    if (messageType === 'location' || content?.startsWith('[Location:')) {
+      const match = content?.match(/\[Location: ([\d.-]+), ([\d.-]+)\]/);
+      if (match) {
+        const [, lat, lng] = match;
+        return (
+          <div className="location-message">
+            <a 
+              href={`https://maps.google.com/?q=${lat},${lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="location-link"
+            >
+              <div className="location-preview">
+                <img 
+                  src={`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=200x120&markers=${lat},${lng}&key=`}
+                  alt="Location"
+                  className="location-map"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+                <div className="location-overlay">
+                  <span className="location-icon">📍</span>
+                  <span>View on Maps</span>
+                </div>
+              </div>
+              <div className="location-coords">{lat}, {lng}</div>
+            </a>
+          </div>
+        );
+      }
+    }
+    
+    // Contact card messages
+    if (messageType === 'contacts' || content === '[Contact Card]') {
+      return (
+        <div className="contact-card-message">
+          <div className="contact-card-icon">👤</div>
+          <div className="contact-card-info">
+            <span className="contact-card-label">Contact Card</span>
+            <span className="contact-card-hint">Tap to view contact details</span>
+          </div>
+        </div>
+      );
+    }
+    
+    // Interactive messages (button_reply, list_reply, nfm_reply)
+    if (messageType === 'interactive' || content?.startsWith('[Interactive:') || 
+        content?.startsWith('[Button Reply]') || content?.startsWith('[List Reply]') || 
+        content?.startsWith('[Flow Response:')) {
+      const interactiveType = content?.match(/\[Interactive: (\w+)\]/)?.[1] || 
+                              content?.match(/\[(Button Reply|List Reply|Flow Response)/)?.[1] || 'reply';
+      return (
+        <div className="interactive-message">
+          <div className="interactive-icon">
+            {interactiveType.includes('Button') ? '🔘' : 
+             interactiveType.includes('List') ? '📋' : 
+             interactiveType.includes('Flow') ? '📝' : '💬'}
+          </div>
+          <div className="interactive-content">
+            <span className="interactive-label">{interactiveType}</span>
+            <span className="interactive-value">{content?.replace(/\[.*?\]\s*/, '') || 'User selection'}</span>
+          </div>
+        </div>
+      );
+    }
+    
+    // Order messages
+    if (messageType === 'order' || content === '[Order]') {
+      return (
+        <div className="order-message">
+          <div className="order-icon">🛒</div>
+          <div className="order-info">
+            <span className="order-label">Order Received</span>
+            <span className="order-hint">View order details in dashboard</span>
+          </div>
+        </div>
+      );
+    }
+    
+    // Payment messages
+    if (messageType === 'payment') {
+      return (
+        <div className="payment-message">
+          <div className="payment-icon">💳</div>
+          <div className="payment-info">
+            <span className="payment-label">Payment</span>
+            <span className="payment-content">{content}</span>
+          </div>
+        </div>
+      );
+    }
+    
+    // System messages
+    if (messageType === 'system' || content === '[System Message]') {
+      return (
+        <div className="system-message">
+          <span className="system-icon">ℹ️</span>
+          <span className="system-text">{content?.replace('[System Message]', '') || 'System notification'}</span>
+        </div>
+      );
+    }
+    
+    // Request welcome (user clicked Message button)
+    if (messageType === 'request_welcome' || content?.includes('requested to start conversation')) {
+      return (
+        <div className="welcome-message">
+          <span className="welcome-icon">👋</span>
+          <span className="welcome-text">User started the conversation</span>
+        </div>
+      );
+    }
+    
+    // Unsupported messages
+    if (messageType === 'unsupported' || content?.includes('[Unsupported') || content?.includes('[Message type not supported')) {
+      return (
+        <div className="unsupported-message">
+          {mediaUrl ? (
+            <>
+              <span className="unsupported-icon">📎</span>
+              <span className="unsupported-text">Media attachment</span>
+              <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="unsupported-download">
+                Download ⬇️
+              </a>
+            </>
+          ) : (
+            <>
+              <span className="unsupported-icon">⚠️</span>
+              <span className="unsupported-text">
+                {content?.match(/\[Unsupported: (.+?)\]/)?.[1] || 'Message type not viewable'}
+              </span>
+            </>
+          )}
+        </div>
+      );
+    }
+    
+    // Fallback: show media if available, otherwise show content
+    if (mediaUrl || s3Key) {
+      return (
+        <div className="media-message">
+          <div className="media-container">
+            <div className="generic-media">
+              <span className="generic-icon">📎</span>
+              <span>Attachment</span>
+            </div>
+            {renderDownloadButton(mediaUrl)}
+          </div>
+          {content && <div className="media-caption">{content}</div>}
+        </div>
+      );
+    }
+    
+    // Default: plain text
+    return <div className="message-text">{content}</div>;
+  };
+
+  // Helper: Download button for media
+  const renderDownloadButton = (url?: string) => {
+    if (!url) return null;
+    return (
+      <a href={url} download target="_blank" rel="noopener noreferrer" className="download-btn" title="Download">
+        ⬇️
+      </a>
+    );
+  };
+
+  // Helper: Get document icon based on file extension
+  const getDocumentIcon = (filename: string): string => {
+    if (filename.match(/\.pdf$/i)) return '📕';
+    if (filename.match(/\.(doc|docx)$/i)) return '📘';
+    if (filename.match(/\.(xls|xlsx)$/i)) return '📗';
+    if (filename.match(/\.(ppt|pptx)$/i)) return '📙';
+    if (filename.match(/\.txt$/i)) return '📄';
+    return '📎';
+  };
+
+  // Helper: Get document type label
+  const getDocumentType = (filename: string): string => {
+    if (filename.match(/\.pdf$/i)) return 'PDF Document';
+    if (filename.match(/\.(doc|docx)$/i)) return 'Word Document';
+    if (filename.match(/\.(xls|xlsx)$/i)) return 'Excel Spreadsheet';
+    if (filename.match(/\.(ppt|pptx)$/i)) return 'PowerPoint';
+    if (filename.match(/\.txt$/i)) return 'Text File';
+    return 'Document';
+  };
+
   if (!waId || !wabaInfo) {
     return (
       <Layout user={user} onSignOut={signOut}>
@@ -368,88 +639,8 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                   {filteredMessages.map(msg => (
                     <div key={msg.id} className={`message ${msg.direction}`}>
                       <div className="message-bubble">
-                        {/* Show media if available - check s3Key even for unsupported types */}
-                        {(msg.mediaUrl || msg.s3Key) && (
-                          <div className="media-container">
-                            {/* Images: JPEG, PNG (max 5MB) */}
-                            {msg.messageType === 'image' || msg.s3Key?.match(/\.(jpg|jpeg|png)$/i) ? (
-                              <img src={msg.mediaUrl} alt="Media" className="message-media" />
-                            ) : /* Stickers: WebP (max 500KB animated, 100KB static) */
-                            msg.messageType === 'sticker' || msg.s3Key?.match(/\.webp$/i) ? (
-                              <img src={msg.mediaUrl} alt="Sticker" className="message-sticker" />
-                            ) : /* Videos: MP4, 3GPP (max 16MB) */
-                            msg.messageType === 'video' || msg.s3Key?.match(/\.(mp4|3gp|3gpp)$/i) ? (
-                              <video src={msg.mediaUrl} controls className="message-media" />
-                            ) : /* Audio: AAC, AMR, MP3, M4A, OGG (max 16MB) */
-                            msg.messageType === 'audio' || msg.s3Key?.match(/\.(aac|amr|mp3|m4a|ogg|opus)$/i) ? (
-                              <audio src={msg.mediaUrl} controls className="message-audio" />
-                            ) : /* Documents: PDF, Word, Excel, PowerPoint, Text (max 100MB) */
-                            msg.messageType === 'document' || msg.s3Key?.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt)$/i) ? (
-                              <div className="document-preview">
-                                <span className="doc-icon">
-                                  {msg.s3Key?.match(/\.pdf$/i) ? '📕' : 
-                                   msg.s3Key?.match(/\.(doc|docx)$/i) ? '📘' :
-                                   msg.s3Key?.match(/\.(xls|xlsx)$/i) ? '📗' :
-                                   msg.s3Key?.match(/\.(ppt|pptx)$/i) ? '📙' : '📄'}
-                                </span>
-                                <span className="doc-name">{msg.s3Key?.split('/').pop() || 'Document'}</span>
-                              </div>
-                            ) : (
-                              <div className="document-preview">📎 Attachment</div>
-                            )}
-                            {msg.mediaUrl && (
-                              <a 
-                                href={msg.mediaUrl} 
-                                download 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="download-btn"
-                                title="Download"
-                              >
-                                ⬇️
-                              </a>
-                            )}
-                          </div>
-                        )}
-                        <div className="message-text">
-                          {msg.content === '[unsupported]' || msg.messageType === 'unsupported' || 
-                           msg.content?.includes('[Unsupported') || msg.content?.includes('[Message type not supported') ? (
-                            msg.mediaUrl ? (
-                              <span className="unsupported-with-media">
-                                <span className="unsupported-label">📎 Media attachment</span>
-                                <a 
-                                  href={msg.mediaUrl} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="media-download-link"
-                                >
-                                  ↓ Download
-                                </a>
-                              </span>
-                            ) : (
-                              <span className="unsupported-msg">⚠️ {msg.content?.match(/\[Unsupported: (.+?)\]/)?.[1] || 'Message type not viewable'}</span>
-                            )
-                          ) : msg.content?.startsWith('[Location:') ? (
-                            (() => {
-                              const match = msg.content.match(/\[Location: ([\d.-]+), ([\d.-]+)\]/);
-                              if (match) {
-                                return (
-                                  <a 
-                                    href={`https://maps.google.com/?q=${match[1]},${match[2]}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="location-link"
-                                  >
-                                    📍 View Location
-                                  </a>
-                                );
-                              }
-                              return msg.content;
-                            })()
-                          ) : (
-                            msg.content
-                          )}
-                        </div>
+                        {/* Render message based on type */}
+                        {renderMessageContent(msg)}
                         <div className="message-footer">
                           <span className="message-time">
                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -579,23 +770,114 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .message.outbound { align-self: flex-end; flex-direction: row-reverse; }
         .message-bubble { background: #fff; padding: 8px 12px; border-radius: 8px; max-width: 100%; }
         .message.outbound .message-bubble { background: #dcf8c6; }
-        .message-media { max-width: 200px; border-radius: 8px; margin-bottom: 8px; }
-        .message-sticker { max-width: 150px; margin-bottom: 8px; }
+        
+        /* Text messages */
+        .message-text { font-size: 14px; line-height: 1.4; word-wrap: break-word; white-space: pre-wrap; }
+        
+        /* Media messages */
+        .media-message { display: flex; flex-direction: column; gap: 6px; }
         .media-container { position: relative; display: inline-block; }
-        .message-audio { max-width: 200px; }
-        .document-preview { background: #f0f0f0; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-        .doc-icon { font-size: 24px; }
-        .doc-name { font-size: 13px; color: #333; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .download-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.5); color: #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; opacity: 0.8; transition: opacity 0.2s; }
-        .download-btn:hover { opacity: 1; background: rgba(0,0,0,0.7); }
-        .message-text { font-size: 14px; line-height: 1.4; word-wrap: break-word; }
-        .unsupported-msg { color: #999; font-style: italic; }
+        .message-media { max-width: 240px; max-height: 300px; border-radius: 8px; object-fit: cover; cursor: pointer; }
+        .message-media.image:hover { opacity: 0.95; }
+        .message-media.video { background: #000; }
+        .media-caption { font-size: 14px; line-height: 1.4; margin-top: 4px; }
+        .download-btn { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.6); color: #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; opacity: 0; transition: opacity 0.2s; }
+        .media-container:hover .download-btn { opacity: 1; }
+        .download-btn:hover { background: rgba(0,0,0,0.8); }
+        
+        /* Sticker messages */
+        .sticker-message { padding: 4px; }
+        .message-sticker { max-width: 150px; max-height: 150px; }
+        
+        /* Audio/Voice note messages */
+        .audio-message { display: flex; align-items: center; gap: 10px; min-width: 200px; }
+        .audio-message.voice-note { background: #e7f5e7; padding: 8px 12px; border-radius: 20px; margin: -8px -12px; }
+        .audio-icon { font-size: 20px; }
+        .message-audio { flex: 1; height: 36px; max-width: 180px; }
+        
+        /* Document messages */
+        .document-message { min-width: 200px; }
+        .document-link { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f5f5f5; border-radius: 8px; text-decoration: none; color: inherit; transition: background 0.2s; }
+        .document-link:hover { background: #eee; }
+        .doc-icon { font-size: 28px; }
+        .doc-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .doc-name { font-size: 13px; font-weight: 500; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .doc-type { font-size: 11px; color: #666; }
+        .doc-download { font-size: 16px; opacity: 0.6; }
+        .document-link:hover .doc-download { opacity: 1; }
+        
+        /* Location messages */
+        .location-message { min-width: 200px; }
+        .location-link { display: block; text-decoration: none; color: inherit; }
+        .location-preview { position: relative; border-radius: 8px; overflow: hidden; background: #e5e5e5; min-height: 100px; }
+        .location-map { width: 100%; height: 100px; object-fit: cover; }
+        .location-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; gap: 4px; }
+        .location-icon { font-size: 24px; }
+        .location-coords { font-size: 11px; color: #666; margin-top: 4px; text-align: center; }
+        
+        /* Contact card messages */
+        .contact-card-message { display: flex; align-items: center; gap: 12px; padding: 8px; background: #f5f5f5; border-radius: 8px; min-width: 180px; }
+        .contact-card-icon { font-size: 28px; background: #e5e5e5; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .contact-card-info { display: flex; flex-direction: column; }
+        .contact-card-label { font-size: 13px; font-weight: 500; }
+        .contact-card-hint { font-size: 11px; color: #666; }
+        
+        /* Interactive messages (button/list/flow replies) */
+        .interactive-message { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #e7f0fd; border-radius: 8px; border-left: 3px solid #3b82f6; }
+        .interactive-icon { font-size: 18px; }
+        .interactive-content { display: flex; flex-direction: column; }
+        .interactive-label { font-size: 11px; color: #3b82f6; font-weight: 500; text-transform: uppercase; }
+        .interactive-value { font-size: 14px; color: #333; }
+        
+        /* Order messages */
+        .order-message { display: flex; align-items: center; gap: 12px; padding: 12px; background: #fef3c7; border-radius: 8px; border-left: 3px solid #f59e0b; }
+        .order-icon { font-size: 24px; }
+        .order-info { display: flex; flex-direction: column; }
+        .order-label { font-size: 13px; font-weight: 500; color: #92400e; }
+        .order-hint { font-size: 11px; color: #a16207; }
+        
+        /* Payment messages */
+        .payment-message { display: flex; align-items: center; gap: 12px; padding: 12px; background: #dcfce7; border-radius: 8px; border-left: 3px solid #22c55e; }
+        .payment-icon { font-size: 24px; }
+        .payment-info { display: flex; flex-direction: column; }
+        .payment-label { font-size: 11px; color: #166534; font-weight: 500; text-transform: uppercase; }
+        .payment-content { font-size: 14px; color: #166534; }
+        
+        /* Reaction messages */
+        .reaction-message { display: flex; align-items: center; gap: 8px; padding: 4px 8px; }
+        .reaction-emoji { font-size: 24px; }
+        .reaction-label { font-size: 12px; color: #666; font-style: italic; }
+        
+        /* System messages */
+        .system-message { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f5f5f5; border-radius: 12px; font-size: 12px; color: #666; }
+        .system-icon { font-size: 14px; }
+        .system-text { font-style: italic; }
+        
+        /* Welcome messages */
+        .welcome-message { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #e0f2fe; border-radius: 8px; }
+        .welcome-icon { font-size: 20px; }
+        .welcome-text { font-size: 13px; color: #0369a1; }
+        
+        /* Unsupported messages */
+        .unsupported-message { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fef2f2; border-radius: 8px; }
+        .unsupported-icon { font-size: 16px; }
+        .unsupported-text { font-size: 13px; color: #991b1b; font-style: italic; }
+        .unsupported-download { font-size: 12px; color: #3b82f6; text-decoration: none; margin-left: auto; }
+        .unsupported-download:hover { text-decoration: underline; }
+        
+        /* Generic media fallback */
+        .generic-media { display: flex; align-items: center; gap: 8px; padding: 12px; background: #f5f5f5; border-radius: 8px; }
+        .generic-icon { font-size: 24px; }
+        
+        /* Message footer */
         .message-footer { display: flex; justify-content: flex-end; gap: 4px; margin-top: 4px; }
         .message-time { font-size: 11px; color: #999; }
         .message-status { font-size: 12px; }
         .message-status.read, .message-status.delivered { color: #53bdeb; }
         .reaction-btn { background: none; border: none; cursor: pointer; font-size: 14px; opacity: 0.5; }
         .reaction-btn:hover { opacity: 1; }
+        
+        /* Compose area */
         .compose-area { padding: 12px 16px; background: #f0f0f0; }
         .compose-row { display: flex; align-items: flex-end; gap: 8px; }
         .compose-input { flex: 1; }
