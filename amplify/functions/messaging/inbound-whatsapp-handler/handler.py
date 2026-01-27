@@ -778,12 +778,24 @@ def _process_status(status: Dict, request_id: str) -> None:
     timestamp = int(status.get('timestamp', time.time()))
     recipient_id = status.get('recipient_id', '')
     
-    if not whatsapp_message_id or not status_value:
+    # Log all status updates for debugging
+    logger.info(json.dumps({
+        'event': 'status_update_received',
+        'statusType': status_type,
+        'statusValue': status_value,
+        'whatsappMessageId': whatsapp_message_id,
+        'recipientId': recipient_id,
+        'hasPaymentData': 'payment' in status,
+        'fullStatus': status,
+        'requestId': request_id
+    }))
+    
+    # Handle payment status webhooks FIRST (before other checks)
+    if status_type == 'payment' or 'payment' in status:
+        _process_payment_status(status, request_id)
         return
     
-    # Handle payment status webhooks
-    if status_type == 'payment':
-        _process_payment_status(status, request_id)
+    if not whatsapp_message_id or not status_value:
         return
     
     try:
@@ -848,18 +860,45 @@ def _process_payment_status(status: Dict, request_id: str) -> None:
         "timestamp": "1706140800"
     }
     """
+    # Log full status for debugging
+    logger.info(json.dumps({
+        'event': 'payment_status_processing',
+        'fullStatus': status,
+        'requestId': request_id
+    }))
+    
     payment_data = status.get('payment', {})
     reference_id = payment_data.get('reference_id', '')
     payment_status = status.get('status', '')
     recipient_id = status.get('recipient_id', '')
     timestamp = int(status.get('timestamp', time.time()))
     
+    # Log payment data extraction
+    logger.info(json.dumps({
+        'event': 'payment_data_extracted',
+        'paymentData': payment_data,
+        'referenceId': reference_id,
+        'paymentStatus': payment_status,
+        'recipientId': recipient_id,
+        'requestId': request_id
+    }))
+    
     amount = payment_data.get('amount', {})
     amount_value = amount.get('value', 0)
     amount_offset = amount.get('offset', 100)
     currency = payment_data.get('currency', 'INR')
     
+    # Log amount extraction
+    logger.info(json.dumps({
+        'event': 'payment_amount_extracted',
+        'amountObject': amount,
+        'amountValue': amount_value,
+        'amountOffset': amount_offset,
+        'requestId': request_id
+    }))
+    
     # Calculate actual amount (value / offset)
+    actual_amount = amount_value / amount_offset if amount_offset else amount_value
     actual_amount = amount_value / amount_offset if amount_offset else amount_value
     
     transaction = payment_data.get('transaction', {})
