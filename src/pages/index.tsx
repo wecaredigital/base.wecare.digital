@@ -116,8 +116,14 @@ const HomePage: React.FC = () => {
           </div>
         </section>
         {/* FEATURES SECTION */}
-        <section className={`reach anim ${show('reach') ? 'show' : ''}}`} id="reach">
+        <section className={`reach anim ${show('reach') ? 'show' : ''}`} id="reach">
           <div className="features-grid">
+            {features.map((f, i) => (
+              <div key={i} className="feature-card">
+                <div className="feature-icon">{f.icon}</div>
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
+              </div>
             ))}
           </div>
         </section>
