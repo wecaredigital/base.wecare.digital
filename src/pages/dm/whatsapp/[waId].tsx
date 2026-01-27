@@ -506,20 +506,64 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
       
       // Utility template (transactional)
       if (isUtilityTemplate) {
-        const utilityIcon = content?.toLowerCase().includes('order') ? '📦' :
-                           content?.toLowerCase().includes('shipping') || content?.toLowerCase().includes('delivery') ? '🚚' :
-                           content?.toLowerCase().includes('payment') ? '💳' :
-                           content?.toLowerCase().includes('booking') || content?.toLowerCase().includes('appointment') ? '📅' :
-                           content?.toLowerCase().includes('tracking') ? '📍' :
-                           '📋';
+        // Determine utility sub-type for better icon and styling
+        const isOrderRelated = content?.toLowerCase().match(/order|package|shipped|tracking|delivery|refund|cancel/);
+        const isAccountAlert = content?.toLowerCase().match(/account|balance|payment|reminder|subscription|profile|alert|security/);
+        const isFeedback = content?.toLowerCase().match(/feedback|survey|review|rating|experience/);
+        const isOptIn = content?.toLowerCase().match(/opt-in|opt-out|subscribe|unsubscribe|confirm/);
+        const isAppointment = content?.toLowerCase().match(/appointment|booking|reservation|schedule|visit/);
+        
+        // Select icon based on sub-type
+        const utilityIcon = isOrderRelated ? (
+          content?.toLowerCase().includes('shipped') || content?.toLowerCase().includes('delivery') ? '🚚' :
+          content?.toLowerCase().includes('tracking') ? '📍' :
+          content?.toLowerCase().includes('refund') ? '💰' :
+          content?.toLowerCase().includes('cancel') ? '❌' : '📦'
+        ) : isAccountAlert ? (
+          content?.toLowerCase().includes('balance') ? '💳' :
+          content?.toLowerCase().includes('payment') || content?.toLowerCase().includes('reminder') ? '⏰' :
+          content?.toLowerCase().includes('security') || content?.toLowerCase().includes('alert') ? '🔔' : '👤'
+        ) : isFeedback ? '⭐' :
+        isOptIn ? '✅' :
+        isAppointment ? '📅' : '📋';
+        
+        // Determine sub-label
+        const utilitySubLabel = isOrderRelated ? 'Order Update' :
+          isAccountAlert ? 'Account Alert' :
+          isFeedback ? 'Feedback Request' :
+          isOptIn ? 'Subscription' :
+          isAppointment ? 'Appointment' : 'Update';
+        
+        // Check for tracking numbers or order IDs
+        const trackingMatch = content?.match(/tracking[:\s#]*([A-Z0-9]{8,20})/i);
+        const orderMatch = content?.match(/order[:\s#]*([A-Z0-9-]{4,20})/i);
+        
         return (
           <div className="template-message utility-template">
             <div className="template-header">
               <span className="template-icon">{utilityIcon}</span>
               <span className="template-label">Utility</span>
+              <span className="template-sublabel">{utilitySubLabel}</span>
             </div>
             <div className="template-body">
               <div className="template-text">{content}</div>
+              {(trackingMatch || orderMatch) && (
+                <div className="utility-reference">
+                  {orderMatch && (
+                    <div className="reference-item">
+                      <span className="ref-label">Order:</span>
+                      <span className="ref-value">{orderMatch[1]}</span>
+                    </div>
+                  )}
+                  {trackingMatch && (
+                    <div className="reference-item">
+                      <span className="ref-label">Tracking:</span>
+                      <span className="ref-value">{trackingMatch[1]}</span>
+                      <span className="ref-copy" onClick={() => navigator.clipboard.writeText(trackingMatch[1])}>📋</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -999,6 +1043,13 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .utility-template .template-header { border-color: #d1d5db; }
         .utility-template .template-label { color: #374151; }
         .utility-template { background: #f9fafb; margin: -8px -12px; padding: 8px 12px; border-radius: 8px; }
+        .template-sublabel { font-size: 10px; color: #6b7280; margin-left: auto; background: #e5e7eb; padding: 2px 6px; border-radius: 4px; }
+        .utility-reference { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; padding: 8px; background: #fff; border-radius: 6px; border: 1px solid #e5e7eb; }
+        .reference-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        .ref-label { color: #6b7280; font-weight: 500; }
+        .ref-value { font-family: monospace; color: #374151; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+        .ref-copy { cursor: pointer; opacity: 0.6; font-size: 12px; }
+        .ref-copy:hover { opacity: 1; }
         
         /* Marketing template (promotional) */
         .marketing-template .template-header { border-color: #fcd34d; }
