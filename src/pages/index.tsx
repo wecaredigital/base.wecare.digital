@@ -166,7 +166,7 @@ const HomePage: React.FC = () => {
         </footer>
         <style jsx>{`
           .page{min-height:100vh;background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a}
-          .hdr{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
+          .hdr{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.97);backdrop-filter:blur(20px)}
           .hdr-in{max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;align-items:center}
           .logo{display:flex;align-items:center;gap:14px}.logo-text{display:flex;flex-direction:column;line-height:1.2}.logo-main{font-size:24px;font-weight:800;color:#1a1a1a}.logo-sub{font-size:13px;font-weight:600;color:#6b7280}
           .logo-img{width:52px;height:52px;border-radius:10px}
@@ -272,8 +272,8 @@ const HomePage: React.FC = () => {
           .channel-icon{font-size:40px;margin-bottom:16px}
           .channel-card h3{font-size:17px;font-weight:700;margin:0 0 8px;color:#1a1a1a}
           .channel-card p{font-size:14px;color:#6b7280;margin:0}
-          .ftr{border-top:1px solid #eaeaea;padding:24px}
-          .ftr-in{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+          .ftr{padding:24px}
+          .ftr-in{max-width:1200px;margin:0 auto;display:flex;justify-content:flex-start;align-items:center}
           .ftr-contact{font-size:16px;color:#9ca3af;text-decoration:none}
           .ftr-tagline{font-size:17px;color:#9ca3af}
           @media(max-width:1024px){.hero-content,.api-grid{grid-template-columns:1fr;text-align:center}.hero-left p{margin:0 auto 30px}.hero-stats{justify-content:center}.mockup-wrapper{width:100%;max-width:500px;height:auto;min-height:520px;margin:0 auto}.phone{position:relative;left:auto;top:auto;width:100%;max-width:300px;margin:0 auto 20px}.code-box{position:relative;right:auto;bottom:auto;width:100%;max-width:340px;margin:0 auto}.features-grid{grid-template-columns:repeat(3,1fr)}.stories-grid,.channels-grid{grid-template-columns:repeat(2,1fr)}.integrations-grid{grid-template-columns:repeat(3,1fr)}}
