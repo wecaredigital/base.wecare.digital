@@ -461,6 +461,107 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
     }
   };
 
+  // Render message content with special handling for unsupported types
+  const renderMessageContent = (msg: Message) => {
+    const content = msg.content || '';
+    const msgType = msg.messageType?.toLowerCase() || '';
+    
+    // Check if this is an unsupported message type
+    const isUnsupported = msgType === 'unsupported' || 
+                          content.includes('[Unsupported') || 
+                          content.includes('[Message type not supported');
+    
+    // For unsupported messages with media, show download link
+    if (isUnsupported && msg.mediaUrl) {
+      return (
+        <span className="unsupported-with-media">
+          <span className="unsupported-label">📎 Media attachment</span>
+          <a 
+            href={msg.mediaUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="media-download-link"
+          >
+            ↓ Download
+          </a>
+        </span>
+      );
+    }
+    
+    // For unsupported messages without media
+    if (isUnsupported) {
+      // Try to extract useful info from the content
+      const match = content.match(/\[Unsupported: (.+?)\]/);
+      const detail = match ? match[1] : 'Message type not viewable';
+      return (
+        <span className="unsupported-msg">
+          ⚠️ {detail}
+        </span>
+      );
+    }
+    
+    // Handle special message types with better display
+    if (content === '[Sticker]' && msg.mediaUrl) {
+      return null; // Sticker image is shown in media container
+    }
+    
+    if (content === '[Audio]' && msg.mediaUrl) {
+      return null; // Audio player is shown in media container
+    }
+    
+    if (content.startsWith('[Image]') || content.startsWith('[Video]')) {
+      // Show caption if present, otherwise hide (media shown above)
+      const caption = content.replace(/^\[(Image|Video)\]\s*/, '').trim();
+      return caption || null;
+    }
+    
+    // Location messages
+    if (content.startsWith('[Location:')) {
+      const match = content.match(/\[Location: ([\d.-]+), ([\d.-]+)\]/);
+      if (match) {
+        const [, lat, lng] = match;
+        return (
+          <a 
+            href={`https://maps.google.com/?q=${lat},${lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="location-link"
+          >
+            📍 View Location
+          </a>
+        );
+      }
+    }
+    
+    // Contact card
+    if (content === '[Contact Card]') {
+      return <span className="special-msg">👤 Contact Card</span>;
+    }
+    
+    // Interactive messages
+    if (content.startsWith('[Interactive:') || content.startsWith('[Button') || content.startsWith('[List')) {
+      return <span className="special-msg">{content.replace(/[\[\]]/g, '')}</span>;
+    }
+    
+    // Flow responses
+    if (content.startsWith('[Flow Response:')) {
+      return <span className="special-msg">📝 Flow Response</span>;
+    }
+    
+    // Order messages
+    if (content === '[Order]') {
+      return <span className="special-msg">🛒 Order</span>;
+    }
+    
+    // System messages
+    if (content === '[System Message]') {
+      return <span className="system-msg">ℹ️ System Message</span>;
+    }
+    
+    // Default: show content as-is
+    return content;
+  };
+
   return (
     <Layout user={user} onSignOut={signOut}>
       <Toast toasts={toast.toasts} onRemove={toast.removeToast} />
@@ -687,7 +788,9 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
                             })()}
                           </div>
                         )}
-                        <div className="message-content">{msg.content}</div>
+                        <div className="message-content">
+                          {renderMessageContent(msg)}
+                        </div>
                         <div className="message-footer">
                           {wabaInfo && (
                             <span 

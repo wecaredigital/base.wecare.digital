@@ -1371,6 +1371,57 @@ body {
   white-space: pre-wrap;
 }
 
+/* Unsupported message styles */
+.unsupported-msg {
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 13px;
+}
+
+.unsupported-with-media {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unsupported-label {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.media-download-link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 12px;
+  padding: 2px 8px;
+  background: #eff6ff;
+  border-radius: 4px;
+}
+
+.media-download-link:hover {
+  background: #dbeafe;
+}
+
+.location-link {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.location-link:hover {
+  text-decoration: underline;
+}
+
+.special-msg {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.system-msg {
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 12px;
+}
+
 .message-footer {
   display: flex;
   align-items: center;

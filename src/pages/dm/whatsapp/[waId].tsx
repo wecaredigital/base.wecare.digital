@@ -298,12 +298,40 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                           </div>
                         )}
                         <div className="message-text">
-                          {msg.content === '[unsupported]' || msg.messageType === 'unsupported' ? (
+                          {msg.content === '[unsupported]' || msg.messageType === 'unsupported' || 
+                           msg.content?.includes('[Unsupported') || msg.content?.includes('[Message type not supported') ? (
                             msg.mediaUrl ? (
-                              <span className="unsupported-msg">📎 Media attachment</span>
+                              <span className="unsupported-with-media">
+                                <span className="unsupported-label">📎 Media attachment</span>
+                                <a 
+                                  href={msg.mediaUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="media-download-link"
+                                >
+                                  ↓ Download
+                                </a>
+                              </span>
                             ) : (
-                              <span className="unsupported-msg">⚠️ Unsupported message type</span>
+                              <span className="unsupported-msg">⚠️ {msg.content?.match(/\[Unsupported: (.+?)\]/)?.[1] || 'Message type not viewable'}</span>
                             )
+                          ) : msg.content?.startsWith('[Location:') ? (
+                            (() => {
+                              const match = msg.content.match(/\[Location: ([\d.-]+), ([\d.-]+)\]/);
+                              if (match) {
+                                return (
+                                  <a 
+                                    href={`https://maps.google.com/?q=${match[1]},${match[2]}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="location-link"
+                                  >
+                                    📍 View Location
+                                  </a>
+                                );
+                              }
+                              return msg.content;
+                            })()
                           ) : (
                             msg.content
                           )}
