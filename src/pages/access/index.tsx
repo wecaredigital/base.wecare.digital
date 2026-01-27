@@ -1,24 +1,14 @@
 /**
  * Access Page - Authentication via AWS Cognito
  * URL: https://base.wecare.digital/access
+ * Note: Amplify is configured in _app.tsx
  */
 
 import React from 'react';
-import { Amplify } from 'aws-amplify';
 import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-
-// Configure Amplify
-Amplify.configure({
-  Auth: {
-    Cognito: {
-      userPoolId: 'us-east-1_CC9u1fYh6',
-      userPoolClientId: '5na5ba2pbpanm36138jdcd9gck',
-    }
-  }
-});
 
 const AccessPage: React.FC = () => {
   const router = useRouter();

@@ -26,20 +26,20 @@ const HomePage: React.FC = () => {
   const show = (id: string) => visible.has(id);
 
   const features = [
-    { icon: '', title: 'Rich Media', desc: 'Send images, videos, documents, and interactive buttons.' },
-    { icon: '', title: 'Templates', desc: 'Pre-approved message templates for notifications.' },
-    { icon: '', title: 'Catalogs', desc: 'Showcase products directly in chat.' },
-    { icon: '', title: 'Payments', desc: 'Collect payments within conversations.' },
-    { icon: '', title: 'Chatbots', desc: 'AI-powered 24/7 customer support.' },
+    { icon: '🖼️', title: 'Rich Media', desc: 'Send images, videos, documents, and interactive buttons.' },
+    { icon: '📋', title: 'Templates', desc: 'Pre-approved message templates for notifications.' },
+    { icon: '🛍️', title: 'Catalogs', desc: 'Showcase products directly in chat.' },
+    { icon: '💳', title: 'Payments', desc: 'Collect payments within conversations.' },
+    { icon: '🤖', title: 'Chatbots', desc: 'AI-powered 24/7 customer support.' },
   ];
 
   const useCases = [
-    { title: 'Promotional', desc: 'Drive sales with targeted campaigns and personalized offers.', icon: '' },
-    { title: 'Transactional', desc: 'Order confirmations, shipping updates, delivery notifications.', icon: '' },
-    { title: 'Appointments', desc: 'Booking confirmations, reminders, rescheduling.', icon: '' },
-    { title: 'OTPs', desc: 'Secure one-time passwords for verification.', icon: '' },
-    { title: 'Orders', desc: 'Complete order management from cart to delivery.', icon: '' },
-    { title: 'Surveys', desc: 'Collect feedback directly in chat.', icon: '' },
+    { title: 'Promotional', desc: 'Drive sales with targeted campaigns and personalized offers.', icon: '📢' },
+    { title: 'Transactional', desc: 'Order confirmations, shipping updates, delivery notifications.', icon: '📦' },
+    { title: 'Appointments', desc: 'Booking confirmations, reminders, rescheduling.', icon: '📅' },
+    { title: 'OTPs', desc: 'Secure one-time passwords for verification.', icon: '🔐' },
+    { title: 'Orders', desc: 'Complete order management from cart to delivery.', icon: '🛒' },
+    { title: 'Surveys', desc: 'Collect feedback directly in chat.', icon: '📊' },
   ];
 
   const codeExamples = [
