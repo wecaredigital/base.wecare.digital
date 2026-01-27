@@ -92,18 +92,26 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
       ]);
 
       // Process messages to get last message info per contact
-      const contactMsgMap = new Map<string, { lastMsg: any; lastWabaId: string; unread: number }>();
+      // Also track sender names from inbound messages
+      const contactMsgMap = new Map<string, { lastMsg: any; lastWabaId: string; unread: number; senderName: string }>();
       
       messagesData.forEach(m => {
         const existing = contactMsgMap.get(m.contactId);
         const msgTime = new Date(m.timestamp).getTime();
         
+        // Track sender name from inbound messages
+        const senderName = m.direction === 'INBOUND' && m.senderName ? m.senderName : (existing?.senderName || '');
+        
         if (!existing || msgTime > new Date(existing.lastMsg.timestamp).getTime()) {
           contactMsgMap.set(m.contactId, {
             lastMsg: m,
             lastWabaId: m.awsPhoneNumberId || '',
-            unread: (existing?.unread || 0) + (m.direction === 'INBOUND' && m.status === 'received' ? 1 : 0)
+            unread: (existing?.unread || 0) + (m.direction === 'INBOUND' && m.status === 'received' ? 1 : 0),
+            senderName: senderName || existing?.senderName || ''
           });
+        } else if (senderName && !existing.senderName) {
+          // Update sender name if we found one
+          existing.senderName = senderName;
         }
       });
 
@@ -111,11 +119,40 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
         .filter(c => c.phone)
         .map(c => {
           const msgInfo = contactMsgMap.get(c.contactId);
+          // Use contact name, or sender name from messages, or phone as fallback
+          const displayName = c.name || msgInfo?.senderName || c.phone;
+          
+          // Format last message with media type indicator
+          let lastMsgPreview = '';
+          if (msgInfo?.lastMsg) {
+            const msg = msgInfo.lastMsg;
+            const msgType = msg.messageType?.toLowerCase();
+            
+            // Add media type icon prefix
+            if (msgType === 'image') lastMsgPreview = '🖼️ ';
+            else if (msgType === 'video') lastMsgPreview = '🎬 ';
+            else if (msgType === 'audio' || msgType === 'voice') lastMsgPreview = '🎵 ';
+            else if (msgType === 'document') lastMsgPreview = '📄 ';
+            else if (msgType === 'sticker') lastMsgPreview = '🏷️ ';
+            else if (msgType === 'location') lastMsgPreview = '📍 ';
+            else if (msgType === 'contacts') lastMsgPreview = '👤 ';
+            
+            // Add content preview
+            const content = msg.content || '';
+            if (content.startsWith('[') && content.endsWith(']')) {
+              // Special message type - show type name
+              lastMsgPreview += content.replace(/[\[\]]/g, '');
+            } else {
+              lastMsgPreview += content.substring(0, 40);
+              if (content.length > 40) lastMsgPreview += '...';
+            }
+          }
+          
           return {
             id: c.contactId,
-            name: c.name || c.phone,
+            name: displayName,
             phone: c.phone,
-            lastMessage: msgInfo?.lastMsg?.content?.substring(0, 50) || '',
+            lastMessage: lastMsgPreview,
             lastMessageTime: msgInfo?.lastMsg?.timestamp,
             lastWabaId: msgInfo?.lastWabaId || '',
             unread: msgInfo?.unread || 0,
