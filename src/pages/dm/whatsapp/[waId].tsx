@@ -527,14 +527,42 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
       
       // Marketing template (promotional)
       if (isMarketingTemplate) {
+        // Check for coupon/promo codes (uppercase alphanumeric, 4-15 chars)
+        const couponMatch = content?.match(/\b([A-Z0-9]{4,15})\b/);
+        const hasCoupon = couponMatch && (
+          content?.toLowerCase().includes('code') ||
+          content?.toLowerCase().includes('coupon') ||
+          content?.toLowerCase().includes('use')
+        );
+        
+        // Check for limited time offers
+        const isLimitedTime = content?.toLowerCase().match(/limited|expires?|valid until|ends?|hurry|last chance|today only/);
+        
+        // Check for URLs
+        const urlMatch = content?.match(/(https?:\/\/[^\s]+)/);
+        
         return (
           <div className="template-message marketing-template">
             <div className="template-header">
               <span className="template-icon">📢</span>
               <span className="template-label">Marketing</span>
+              {isLimitedTime && <span className="template-badge urgent">⏰ Limited Time</span>}
             </div>
             <div className="template-body">
               <div className="template-text">{content}</div>
+              {hasCoupon && couponMatch && (
+                <div className="coupon-code" onClick={() => navigator.clipboard.writeText(couponMatch[1])}>
+                  <span className="coupon-label">Promo Code:</span>
+                  <span className="coupon-value">{couponMatch[1]}</span>
+                  <span className="coupon-copy">📋</span>
+                </div>
+              )}
+              {urlMatch && (
+                <a href={urlMatch[1]} target="_blank" rel="noopener noreferrer" className="template-cta-btn">
+                  <span>🔗</span>
+                  <span>Open Link</span>
+                </a>
+              )}
             </div>
           </div>
         );
@@ -976,6 +1004,16 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .marketing-template .template-header { border-color: #fcd34d; }
         .marketing-template .template-label { color: #b45309; }
         .marketing-template { background: #fffbeb; margin: -8px -12px; padding: 8px 12px; border-radius: 8px; }
+        .template-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: auto; }
+        .template-badge.urgent { background: #fef2f2; color: #dc2626; }
+        .coupon-code { display: flex; align-items: center; gap: 8px; background: #fef3c7; padding: 8px 12px; border-radius: 6px; margin-top: 8px; cursor: pointer; border: 1px dashed #f59e0b; }
+        .coupon-code:hover { background: #fde68a; }
+        .coupon-label { font-size: 11px; color: #92400e; }
+        .coupon-value { font-size: 16px; font-weight: 700; font-family: monospace; color: #b45309; letter-spacing: 1px; }
+        .coupon-copy { font-size: 14px; margin-left: auto; opacity: 0.6; }
+        .coupon-code:hover .coupon-copy { opacity: 1; }
+        .template-cta-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; background: #f59e0b; color: #fff; border-radius: 6px; margin-top: 8px; text-decoration: none; font-size: 13px; font-weight: 500; transition: background 0.2s; }
+        .template-cta-btn:hover { background: #d97706; }
         
         /* Button messages (quick reply) */
         .button-message { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f0fdf4; border-radius: 8px; border-left: 3px solid #22c55e; }
