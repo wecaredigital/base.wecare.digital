@@ -7,7 +7,7 @@ import { defineFunction } from '@aws-amplify/backend';
  * Requirements: 2.1, 2.2, 2.3
  */
 export const contactsCreate = defineFunction({
-  name: 'contacts-create',
+  name: 'wecare-contacts-create',
   entry: './handler.py',
   runtime: 20, // Python 3.12
   timeoutSeconds: 30,
@@ -15,5 +15,6 @@ export const contactsCreate = defineFunction({
   environment: {
     AWS_REGION: 'us-east-1',
     LOG_LEVEL: 'INFO',
+    CONTACTS_TABLE: 'base-wecare-digital-ContactsTable',
   },
 });

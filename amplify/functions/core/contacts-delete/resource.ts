@@ -1,7 +1,7 @@
 import { defineFunction } from '@aws-amplify/backend';
 
 export const contactsDelete = defineFunction({
-  name: 'contacts-delete',
+  name: 'wecare-contacts-delete',
   entry: './handler.py',
   runtime: 20,
   timeoutSeconds: 60, // Increased for hard delete operations

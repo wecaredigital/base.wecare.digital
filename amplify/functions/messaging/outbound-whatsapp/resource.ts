@@ -1,7 +1,7 @@
 import { defineFunction } from '@aws-amplify/backend';
 
 export const outboundWhatsapp = defineFunction({
-  name: 'outbound-whatsapp',
+  name: 'wecare-outbound-whatsapp',
   entry: './handler.py',
   runtime: 20,
   timeoutSeconds: 60,

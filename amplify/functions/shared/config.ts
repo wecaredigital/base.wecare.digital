@@ -23,7 +23,7 @@ export const TABLES = {
   AI_INTERACTIONS: process.env.AI_INTERACTIONS_TABLE || 'base-wecare-digital-AIInteractionsTable',
   RATE_LIMIT: process.env.RATE_LIMIT_TABLE || 'base-wecare-digital-RateLimitTable',
   SYSTEM_CONFIG: process.env.SYSTEM_CONFIG_TABLE || 'base-wecare-digital-SystemConfigTable',
-  VOICE_CALLS: process.env.VOICE_CALLS_TABLE || 'base-wecare-digital-VoiceCallsTable',
+  VOICE_CALLS: process.env.VOICE_CALLS_TABLE || 'base-wecare-digital-VoiceCalls',
 };
 
 // S3 Buckets
