@@ -161,6 +161,40 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             'error': str(e),
                             'requestId': request_id
                         }))
+                
+                # Process template status updates (APPROVED, REJECTED, PAUSED, etc.)
+                field = change.get('field', '')
+                if field == 'message_template_status_update':
+                    try:
+                        _process_template_status(value, request_id)
+                    except Exception as e:
+                        logger.error(json.dumps({
+                            'event': 'template_status_processing_error',
+                            'error': str(e),
+                            'requestId': request_id
+                        }))
+                
+                # Process phone number quality updates
+                if field == 'phone_number_quality_update':
+                    try:
+                        _process_phone_quality_update(value, request_id)
+                    except Exception as e:
+                        logger.error(json.dumps({
+                            'event': 'phone_quality_processing_error',
+                            'error': str(e),
+                            'requestId': request_id
+                        }))
+                
+                # Process account updates (messaging limits, etc.)
+                if field == 'account_update':
+                    try:
+                        _process_account_update(value, request_id)
+                    except Exception as e:
+                        logger.error(json.dumps({
+                            'event': 'account_update_processing_error',
+                            'error': str(e),
+                            'requestId': request_id
+                        }))
                         
         except Exception as e:
             logger.error(json.dumps({
@@ -1464,3 +1498,270 @@ def _store_ai_interaction(message_id: str, query: str, response: str, request_id
         })
     except Exception as e:
         logger.error(f"Failed to store AI interaction: {str(e)}")
+
+
+# ============================================================================
+# WHATSAPP BUSINESS ACCOUNT WEBHOOKS
+# Template Status, Phone Quality, Messaging Limits
+# ============================================================================
+
+def _process_template_status(value: Dict, request_id: str) -> None:
+    """
+    Process template status update webhook.
+    
+    Webhook format:
+    {
+        "event": "APPROVED" | "REJECTED" | "PENDING" | "PAUSED" | "DISABLED" | "FLAGGED",
+        "message_template_id": 123456789,
+        "message_template_name": "template_name",
+        "message_template_language": "en_US",
+        "reason": "NONE" | "ABUSIVE_CONTENT" | "INVALID_FORMAT" | ...
+    }
+    
+    Events:
+    - APPROVED: Template approved and ready to use
+    - REJECTED: Template rejected (check reason)
+    - PENDING: Template submitted for review
+    - PAUSED: Template paused due to quality issues
+    - DISABLED: Template disabled
+    - FLAGGED: Template flagged for review
+    """
+    event = value.get('event', '')
+    template_id = value.get('message_template_id', '')
+    template_name = value.get('message_template_name', '')
+    template_language = value.get('message_template_language', '')
+    reason = value.get('reason', 'NONE')
+    
+    logger.info(json.dumps({
+        'event': 'template_status_update',
+        'templateEvent': event,
+        'templateId': template_id,
+        'templateName': template_name,
+        'templateLanguage': template_language,
+        'reason': reason,
+        'requestId': request_id
+    }))
+    
+    # Store template status in SystemConfig table for dashboard display
+    _store_system_event(
+        event_type='template_status',
+        event_data={
+            'event': event,
+            'templateId': str(template_id),
+            'templateName': template_name,
+            'templateLanguage': template_language,
+            'reason': reason
+        },
+        request_id=request_id
+    )
+    
+    # Log warning for rejected/paused templates
+    if event in ['REJECTED', 'PAUSED', 'DISABLED', 'FLAGGED']:
+        logger.warning(json.dumps({
+            'event': 'template_status_alert',
+            'templateEvent': event,
+            'templateName': template_name,
+            'reason': reason,
+            'action': 'Review template in Meta Business Manager',
+            'requestId': request_id
+        }))
+
+
+def _process_phone_quality_update(value: Dict, request_id: str) -> None:
+    """
+    Process phone number quality update webhook.
+    
+    Webhook format:
+    {
+        "display_phone_number": "+1234567890",
+        "current_limit": "TIER_1K" | "TIER_10K" | "TIER_100K" | "TIER_UNLIMITED",
+        "event": "FLAGGED" | "UNFLAGGED",
+        "quality_score": "GREEN" | "YELLOW" | "RED"
+    }
+    
+    Quality scores:
+    - GREEN: High quality, no issues
+    - YELLOW: Medium quality, some issues
+    - RED: Low quality, at risk of being blocked
+    
+    Events:
+    - FLAGGED: Phone number flagged due to quality issues
+    - UNFLAGGED: Phone number quality restored
+    """
+    display_phone = value.get('display_phone_number', '')
+    current_limit = value.get('current_limit', '')
+    event = value.get('event', '')
+    quality_score = value.get('quality_score', '')
+    
+    logger.info(json.dumps({
+        'event': 'phone_quality_update',
+        'displayPhone': display_phone,
+        'currentLimit': current_limit,
+        'qualityEvent': event,
+        'qualityScore': quality_score,
+        'requestId': request_id
+    }))
+    
+    # Store phone quality in SystemConfig table
+    _store_system_event(
+        event_type='phone_quality',
+        event_data={
+            'displayPhone': display_phone,
+            'currentLimit': current_limit,
+            'event': event,
+            'qualityScore': quality_score
+        },
+        request_id=request_id
+    )
+    
+    # Log warning for quality issues
+    if quality_score in ['YELLOW', 'RED'] or event == 'FLAGGED':
+        logger.warning(json.dumps({
+            'event': 'phone_quality_alert',
+            'displayPhone': display_phone,
+            'qualityScore': quality_score,
+            'qualityEvent': event,
+            'action': 'Review message quality and reduce spam complaints',
+            'requestId': request_id
+        }))
+
+
+def _process_account_update(value: Dict, request_id: str) -> None:
+    """
+    Process account update webhook (messaging limits, restrictions, etc.).
+    
+    Webhook format for messaging limit changes:
+    {
+        "phone_number": "+1234567890",
+        "event": "PHONE_NUMBER_MESSAGING_LIMIT_CHANGED",
+        "current_limit": "TIER_1K" | "TIER_10K" | "TIER_100K" | "TIER_UNLIMITED"
+    }
+    
+    Webhook format for account restrictions:
+    {
+        "event": "ACCOUNT_RESTRICTION",
+        "restriction_type": "RESTRICTED_ADD_PHONE_NUMBER_ACTION" | ...
+    }
+    
+    Messaging limit tiers:
+    - TIER_1K: 1,000 business-initiated conversations per 24 hours
+    - TIER_10K: 10,000 business-initiated conversations per 24 hours
+    - TIER_100K: 100,000 business-initiated conversations per 24 hours
+    - TIER_UNLIMITED: Unlimited business-initiated conversations
+    """
+    event = value.get('event', '')
+    phone_number = value.get('phone_number', '')
+    current_limit = value.get('current_limit', '')
+    restriction_type = value.get('restriction_type', '')
+    ban_info = value.get('ban_info', {})
+    
+    logger.info(json.dumps({
+        'event': 'account_update',
+        'accountEvent': event,
+        'phoneNumber': phone_number,
+        'currentLimit': current_limit,
+        'restrictionType': restriction_type,
+        'banInfo': ban_info,
+        'requestId': request_id
+    }))
+    
+    # Store account update in SystemConfig table
+    _store_system_event(
+        event_type='account_update',
+        event_data={
+            'event': event,
+            'phoneNumber': phone_number,
+            'currentLimit': current_limit,
+            'restrictionType': restriction_type,
+            'banInfo': ban_info
+        },
+        request_id=request_id
+    )
+    
+    # Log messaging limit changes
+    if event == 'PHONE_NUMBER_MESSAGING_LIMIT_CHANGED':
+        logger.info(json.dumps({
+            'event': 'messaging_limit_changed',
+            'phoneNumber': phone_number,
+            'newLimit': current_limit,
+            'requestId': request_id
+        }))
+    
+    # Log warnings for restrictions
+    if event == 'ACCOUNT_RESTRICTION' or restriction_type:
+        logger.warning(json.dumps({
+            'event': 'account_restriction_alert',
+            'restrictionType': restriction_type,
+            'action': 'Review account in Meta Business Manager',
+            'requestId': request_id
+        }))
+    
+    # Log ban info if present
+    if ban_info:
+        logger.error(json.dumps({
+            'event': 'account_ban_alert',
+            'banInfo': ban_info,
+            'action': 'Contact Meta support immediately',
+            'requestId': request_id
+        }))
+
+
+def _store_system_event(event_type: str, event_data: Dict, request_id: str) -> None:
+    """
+    Store system event in SystemConfig table for dashboard display.
+    Uses a composite key: whatsapp_events_{event_type}
+    Stores last 10 events of each type.
+    """
+    try:
+        config_table = dynamodb.Table(SYSTEM_CONFIG_TABLE)
+        config_key = f'whatsapp_events_{event_type}'
+        now = int(time.time())
+        
+        # Get existing events
+        try:
+            response = config_table.get_item(Key={'configKey': config_key})
+            existing = response.get('Item', {})
+            events_list = json.loads(existing.get('configValue', '[]'))
+        except Exception:
+            events_list = []
+        
+        # Add new event with timestamp
+        new_event = {
+            'timestamp': now,
+            'data': event_data
+        }
+        events_list.insert(0, new_event)
+        
+        # Keep only last 10 events
+        events_list = events_list[:10]
+        
+        # Store updated events
+        config_table.put_item(Item={
+            'configKey': config_key,
+            'configValue': json.dumps(events_list),
+            'updatedAt': Decimal(str(now))
+        })
+        
+        logger.info(json.dumps({
+            'event': 'system_event_stored',
+            'eventType': event_type,
+            'configKey': config_key,
+            'eventsCount': len(events_list),
+            'requestId': request_id
+        }))
+        
+    except dynamodb.meta.client.exceptions.ResourceNotFoundException:
+        # SystemConfig table doesn't exist - skip silently
+        logger.warning(json.dumps({
+            'event': 'system_event_store_skipped',
+            'eventType': event_type,
+            'reason': 'SystemConfig table not found',
+            'requestId': request_id
+        }))
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'system_event_store_error',
+            'eventType': event_type,
+            'error': str(e),
+            'requestId': request_id
+        }))
