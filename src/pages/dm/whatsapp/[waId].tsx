@@ -461,13 +461,28 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
       );
     }
     
-    // Template messages (authentication OTP, marketing, etc.)
+    // Template messages (authentication OTP, marketing, utility)
     if (messageType === 'template') {
       // Check if it's an OTP/authentication template (contains code pattern)
-      const otpMatch = content?.match(/(\d{4,8})/);
-      const isOtpTemplate = otpMatch || content?.toLowerCase().includes('code') || 
-                            content?.toLowerCase().includes('otp') || content?.toLowerCase().includes('verification');
+      const otpMatch = content?.match(/\b(\d{4,8})\b/);
+      const isOtpTemplate = otpMatch && (
+        content?.toLowerCase().includes('code') || 
+        content?.toLowerCase().includes('otp') || 
+        content?.toLowerCase().includes('verification') ||
+        content?.toLowerCase().includes('password')
+      );
       
+      // Check for utility template patterns (order, shipping, delivery, payment, booking)
+      const isUtilityTemplate = content?.toLowerCase().match(
+        /order|shipping|delivery|payment|booking|appointment|confirmation|update|status|tracking|receipt|invoice/
+      );
+      
+      // Check for marketing template patterns (offer, discount, sale, promo)
+      const isMarketingTemplate = content?.toLowerCase().match(
+        /offer|discount|sale|promo|deal|limited|exclusive|special|free|win|congratulations|welcome/
+      );
+      
+      // OTP/Authentication template
       if (isOtpTemplate && otpMatch) {
         return (
           <div className="template-message otp-template">
@@ -489,12 +504,48 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         );
       }
       
+      // Utility template (transactional)
+      if (isUtilityTemplate) {
+        const utilityIcon = content?.toLowerCase().includes('order') ? '📦' :
+                           content?.toLowerCase().includes('shipping') || content?.toLowerCase().includes('delivery') ? '🚚' :
+                           content?.toLowerCase().includes('payment') ? '💳' :
+                           content?.toLowerCase().includes('booking') || content?.toLowerCase().includes('appointment') ? '📅' :
+                           content?.toLowerCase().includes('tracking') ? '📍' :
+                           '📋';
+        return (
+          <div className="template-message utility-template">
+            <div className="template-header">
+              <span className="template-icon">{utilityIcon}</span>
+              <span className="template-label">Utility</span>
+            </div>
+            <div className="template-body">
+              <div className="template-text">{content}</div>
+            </div>
+          </div>
+        );
+      }
+      
+      // Marketing template (promotional)
+      if (isMarketingTemplate) {
+        return (
+          <div className="template-message marketing-template">
+            <div className="template-header">
+              <span className="template-icon">📢</span>
+              <span className="template-label">Marketing</span>
+            </div>
+            <div className="template-body">
+              <div className="template-text">{content}</div>
+            </div>
+          </div>
+        );
+      }
+      
       // Generic template message
       return (
         <div className="template-message">
           <div className="template-header">
             <span className="template-icon">📝</span>
-            <span className="template-label">Template Message</span>
+            <span className="template-label">Template</span>
           </div>
           <div className="template-body">
             <div className="template-text">{content}</div>
@@ -897,13 +948,17 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .payment-label { font-size: 11px; color: #166534; font-weight: 500; text-transform: uppercase; }
         .payment-content { font-size: 14px; color: #166534; }
         
-        /* Template messages (OTP, authentication, marketing) */
+        /* Template messages (OTP, authentication, marketing, utility) */
         .template-message { display: flex; flex-direction: column; gap: 8px; min-width: 200px; }
         .template-header { display: flex; align-items: center; gap: 6px; padding-bottom: 6px; border-bottom: 1px solid #e5e5e5; }
         .template-icon { font-size: 16px; }
         .template-label { font-size: 11px; color: #666; font-weight: 500; text-transform: uppercase; }
         .template-body { padding: 4px 0; }
-        .template-text { font-size: 14px; line-height: 1.4; }
+        .template-text { font-size: 14px; line-height: 1.4; white-space: pre-wrap; }
+        
+        /* OTP/Authentication template */
+        .otp-template .template-header { border-color: #bfdbfe; }
+        .otp-template .template-label { color: #1e40af; }
         .otp-template .template-body { text-align: center; padding: 8px 0; }
         .otp-code { font-size: 28px; font-weight: 700; font-family: monospace; letter-spacing: 4px; color: #1e40af; background: #eff6ff; padding: 12px 20px; border-radius: 8px; margin-bottom: 8px; }
         .otp-text { font-size: 13px; color: #666; }
@@ -911,6 +966,16 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .template-button:hover { background: #dbeafe; border-color: #93c5fd; }
         .template-button .btn-icon { font-size: 14px; }
         .copy-code-btn { color: #1e40af; font-weight: 500; font-size: 13px; }
+        
+        /* Utility template (transactional) */
+        .utility-template .template-header { border-color: #d1d5db; }
+        .utility-template .template-label { color: #374151; }
+        .utility-template { background: #f9fafb; margin: -8px -12px; padding: 8px 12px; border-radius: 8px; }
+        
+        /* Marketing template (promotional) */
+        .marketing-template .template-header { border-color: #fcd34d; }
+        .marketing-template .template-label { color: #b45309; }
+        .marketing-template { background: #fffbeb; margin: -8px -12px; padding: 8px 12px; border-radius: 8px; }
         
         /* Button messages (quick reply) */
         .button-message { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f0fdf4; border-radius: 8px; border-left: 3px solid #22c55e; }
