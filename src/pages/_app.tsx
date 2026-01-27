@@ -17,6 +17,7 @@ import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import '../styles/Pages.css';
 import '../styles/Layout.css';
+import '../styles/Dashboard.css';
 import FloatingAgent from '../components/FloatingAgent';
 
 // Configure Amplify with Cognito Auth
