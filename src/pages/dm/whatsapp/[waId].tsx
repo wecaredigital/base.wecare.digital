@@ -461,6 +461,60 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
       );
     }
     
+    // Template messages (authentication OTP, marketing, etc.)
+    if (messageType === 'template') {
+      // Check if it's an OTP/authentication template (contains code pattern)
+      const otpMatch = content?.match(/(\d{4,8})/);
+      const isOtpTemplate = otpMatch || content?.toLowerCase().includes('code') || 
+                            content?.toLowerCase().includes('otp') || content?.toLowerCase().includes('verification');
+      
+      if (isOtpTemplate && otpMatch) {
+        return (
+          <div className="template-message otp-template">
+            <div className="template-header">
+              <span className="template-icon">🔐</span>
+              <span className="template-label">Authentication</span>
+            </div>
+            <div className="template-body">
+              <div className="otp-code">{otpMatch[1]}</div>
+              <div className="otp-text">{content?.replace(otpMatch[1], '').trim() || 'Your verification code'}</div>
+            </div>
+            <div className="template-button copy-code-btn" onClick={() => {
+              navigator.clipboard.writeText(otpMatch[1]);
+            }}>
+              <span className="btn-icon">📋</span>
+              <span>Copy Code</span>
+            </div>
+          </div>
+        );
+      }
+      
+      // Generic template message
+      return (
+        <div className="template-message">
+          <div className="template-header">
+            <span className="template-icon">📝</span>
+            <span className="template-label">Template Message</span>
+          </div>
+          <div className="template-body">
+            <div className="template-text">{content}</div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Button messages (quick reply buttons from templates)
+    if (messageType === 'button' || content?.startsWith('[Button]')) {
+      return (
+        <div className="button-message">
+          <div className="button-icon">🔘</div>
+          <div className="button-content">
+            <span className="button-text">{content?.replace('[Button]', '').trim() || 'Button pressed'}</span>
+          </div>
+        </div>
+      );
+    }
+    
     // System messages
     if (messageType === 'system' || content === '[System Message]') {
       return (
@@ -842,6 +896,27 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .payment-info { display: flex; flex-direction: column; }
         .payment-label { font-size: 11px; color: #166534; font-weight: 500; text-transform: uppercase; }
         .payment-content { font-size: 14px; color: #166534; }
+        
+        /* Template messages (OTP, authentication, marketing) */
+        .template-message { display: flex; flex-direction: column; gap: 8px; min-width: 200px; }
+        .template-header { display: flex; align-items: center; gap: 6px; padding-bottom: 6px; border-bottom: 1px solid #e5e5e5; }
+        .template-icon { font-size: 16px; }
+        .template-label { font-size: 11px; color: #666; font-weight: 500; text-transform: uppercase; }
+        .template-body { padding: 4px 0; }
+        .template-text { font-size: 14px; line-height: 1.4; }
+        .otp-template .template-body { text-align: center; padding: 8px 0; }
+        .otp-code { font-size: 28px; font-weight: 700; font-family: monospace; letter-spacing: 4px; color: #1e40af; background: #eff6ff; padding: 12px 20px; border-radius: 8px; margin-bottom: 8px; }
+        .otp-text { font-size: 13px; color: #666; }
+        .template-button { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .template-button:hover { background: #dbeafe; border-color: #93c5fd; }
+        .template-button .btn-icon { font-size: 14px; }
+        .copy-code-btn { color: #1e40af; font-weight: 500; font-size: 13px; }
+        
+        /* Button messages (quick reply) */
+        .button-message { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f0fdf4; border-radius: 8px; border-left: 3px solid #22c55e; }
+        .button-icon { font-size: 18px; }
+        .button-content { display: flex; flex-direction: column; }
+        .button-text { font-size: 14px; color: #166534; }
         
         /* Reaction messages */
         .reaction-message { display: flex; align-items: center; gap: 8px; padding: 4px 8px; }
