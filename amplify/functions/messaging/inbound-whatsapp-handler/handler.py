@@ -937,6 +937,7 @@ def _process_payment_status(status: Dict, request_id: str) -> None:
             recipient_id=recipient_id,
             reference_id=reference_id,
             order_status='completed',
+            amount=actual_amount,  # Pass amount in rupees
             description=f'Payment of ₹{actual_amount:.2f} received successfully! Thank you ✅',
             request_id=request_id
         )
@@ -945,6 +946,7 @@ def _process_payment_status(status: Dict, request_id: str) -> None:
             recipient_id=recipient_id,
             reference_id=reference_id,
             order_status='canceled',
+            amount=0,
             description='Payment failed. Please try again ❌',
             request_id=request_id
         )
@@ -1063,7 +1065,7 @@ def _get_contact_by_phone(phone: str) -> Optional[Dict]:
 
 
 def _send_order_status_message(recipient_id: str, reference_id: str, 
-                                order_status: str, description: str,
+                                order_status: str, amount: float, description: str,
                                 request_id: str) -> None:
     """
     Send order_status interactive message to confirm payment status.
@@ -1117,6 +1119,7 @@ def _send_order_status_message(recipient_id: str, reference_id: str,
                 'orderStatusDetails': {
                     'reference_id': reference_id,
                     'order_status': order_status,
+                    'amount': amount,  # Amount in rupees for display
                     'description': description
                 }
             })
