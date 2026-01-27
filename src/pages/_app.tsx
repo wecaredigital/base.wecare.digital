@@ -72,12 +72,19 @@ export default function App({ Component, pageProps }: AppProps) {
             }
           }}
         >
-          {({ signOut, user }) => (
-            <>
-              <Component {...pageProps} signOut={signOut} user={user} />
-              <FloatingAgent />
-            </>
-          )}
+          {({ signOut, user }) => {
+            // Wrap signOut to redirect to home page
+            const handleSignOut = () => {
+              signOut();
+              router.push('/');
+            };
+            return (
+              <>
+                <Component {...pageProps} signOut={handleSignOut} user={user} />
+                <FloatingAgent />
+              </>
+            );
+          }}
         </Authenticator>
       )}
     </>

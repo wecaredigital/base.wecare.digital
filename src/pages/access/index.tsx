@@ -36,9 +36,9 @@ const AccessPage: React.FC = () => {
           }}
         >
           {({ signOut, user }) => {
-            // Redirect to home after login
+            // Redirect to dashboard after login from /access
             if (typeof window !== 'undefined') {
-              router.push('/');
+              router.push('/dashboard');
             }
             return (
               <div style={{ textAlign: 'center', padding: '40px' }}>
