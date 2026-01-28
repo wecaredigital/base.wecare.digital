@@ -510,27 +510,48 @@ export interface AIConfig {
 }
 
 // Bedrock AI Configuration
-// TODO: Update after creating new Bedrock Agents and Knowledge Bases
-// INTERNAL: For admin tasks (FloatingAgent)
-// EXTERNAL: For WhatsApp auto-reply (customer-facing)
+// INTERNAL: For admin tasks (FloatingAgent) - Agent: TJAZR473IJ, KB: 7IWHVB0ZXQ
+// EXTERNAL: For WhatsApp auto-reply (customer-facing) - Agent: JDXIOU2UR9, KB: CTH8DH3RXY
 const AI_CONFIG: AIConfig = {
-  enabled: false,  // Disabled until new agents are configured
-  autoReplyEnabled: false,
-  knowledgeBaseId: '',  // External KB ID (for WhatsApp)
-  agentId: '',  // External Agent ID (for WhatsApp)
-  agentAliasId: '',  // External Agent Alias
+  enabled: true,
+  autoReplyEnabled: true,
+  knowledgeBaseId: 'CTH8DH3RXY',  // External KB ID (for WhatsApp auto-reply)
+  agentId: 'JDXIOU2UR9',  // External Agent ID (for WhatsApp auto-reply)
+  agentAliasId: 'AQVQPGYXRR',  // External Agent Alias
   maxTokens: 1024,
   temperature: 0.7,
   systemPrompt: 'You are a helpful customer service assistant for WECARE.DIGITAL.',
 };
 
 export async function getAIConfig(): Promise<AIConfig> {
-  // In production, this would fetch from SystemConfig table
+  // Try to fetch from API first
+  const data = await apiCall<any>(`${API_BASE}/ai/config`);
+  if (data && data.config) {
+    return {
+      enabled: data.config.enabled ?? AI_CONFIG.enabled,
+      autoReplyEnabled: data.config.autoReplyEnabled ?? AI_CONFIG.autoReplyEnabled,
+      knowledgeBaseId: data.config.knowledgeBaseId || AI_CONFIG.knowledgeBaseId,
+      agentId: data.config.agentId || AI_CONFIG.agentId,
+      agentAliasId: data.config.agentAliasId || AI_CONFIG.agentAliasId,
+      maxTokens: data.config.maxTokens || AI_CONFIG.maxTokens,
+      temperature: data.config.temperature ?? AI_CONFIG.temperature,
+      systemPrompt: data.config.systemPrompt || AI_CONFIG.systemPrompt,
+    };
+  }
   return AI_CONFIG;
 }
 
 export async function updateAIConfig(updates: Partial<AIConfig>): Promise<AIConfig> {
-  // In production, this would update SystemConfig table
+  // Try to update via API first
+  const data = await apiCall<any>(`${API_BASE}/ai/config`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  });
+  if (data && data.config) {
+    Object.assign(AI_CONFIG, data.config);
+    return AI_CONFIG;
+  }
+  // Fallback to local update
   Object.assign(AI_CONFIG, updates);
   return AI_CONFIG;
 }

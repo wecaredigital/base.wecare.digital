@@ -54,7 +54,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     Requirements: 9.1-9.7
     """
     request_id = context.aws_request_id if context else 'local'
-    http_method = event.get('requestContext', {}).get('http', {}).get('method', 'POST')
+    
+    # Handle both HTTP API v2 and REST API event formats
+    http_method = (
+        event.get('requestContext', {}).get('http', {}).get('method') or
+        event.get('httpMethod') or
+        'GET'
+    )
     
     logger.info(json.dumps({
         'event': 'dlq_handler_start',

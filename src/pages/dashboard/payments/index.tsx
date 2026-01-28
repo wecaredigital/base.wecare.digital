@@ -26,6 +26,7 @@ interface Payment {
 const DashboardPaymentsPage: React.FC<PageProps> = ({ signOut, user }) => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
 
   useEffect(() => {
@@ -34,35 +35,44 @@ const DashboardPaymentsPage: React.FC<PageProps> = ({ signOut, user }) => {
 
   const loadPayments = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Try to fetch from payments API
+      // Fetch from payments API
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod'}/payments`);
       if (response.ok) {
         const data = await response.json();
-        setPayments(Array.isArray(data) ? data : data.payments || []);
+        const paymentsList = Array.isArray(data) ? data : data.payments || [];
+        setPayments(paymentsList.map(normalizePayment));
+      } else if (response.status === 404) {
+        // No payments yet - this is OK
+        setPayments([]);
       } else {
-        // Use sample data for demo
-        setPayments(getSamplePayments());
+        setError(`Failed to load payments: ${response.status} ${response.statusText}`);
+        setPayments([]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load payments:', err);
-      setPayments(getSamplePayments());
+      setError(err.message || 'Failed to connect to payments API');
+      setPayments([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Sample payments for demo
-  const getSamplePayments = (): Payment[] => {
-    const now = Date.now();
-    return [
-      { id: '1', referenceId: 'WDPL_A1B2C3D4', amount: 150000, currency: 'INR', status: 'completed', contactId: 'c1', contactName: 'Rahul Sharma', contactPhone: '+919876543210', channel: 'whatsapp', createdAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(), completedAt: new Date(now - 1.5 * 60 * 60 * 1000).toISOString() },
-      { id: '2', referenceId: 'WDPL_E5F6G7H8', amount: 250000, currency: 'INR', status: 'completed', contactId: 'c2', contactName: 'Priya Patel', contactPhone: '+919123456789', channel: 'whatsapp', createdAt: new Date(now - 5 * 60 * 60 * 1000).toISOString(), completedAt: new Date(now - 4.8 * 60 * 60 * 1000).toISOString() },
-      { id: '3', referenceId: 'WDPL_I9J0K1L2', amount: 75000, currency: 'INR', status: 'pending', contactId: 'c3', contactName: 'Amit Kumar', contactPhone: '+919988776655', channel: 'link', createdAt: new Date(now - 1 * 60 * 60 * 1000).toISOString() },
-      { id: '4', referenceId: 'WDPL_M3N4O5P6', amount: 500000, currency: 'INR', status: 'completed', contactId: 'c4', contactName: 'Sneha Gupta', contactPhone: '+919876501234', channel: 'whatsapp', createdAt: new Date(now - 24 * 60 * 60 * 1000).toISOString(), completedAt: new Date(now - 23 * 60 * 60 * 1000).toISOString() },
-      { id: '5', referenceId: 'WDPL_Q7R8S9T0', amount: 120000, currency: 'INR', status: 'failed', contactId: 'c5', contactName: 'Vikram Singh', contactPhone: '+919765432100', channel: 'upi', createdAt: new Date(now - 48 * 60 * 60 * 1000).toISOString() },
-    ];
-  };
+  // Normalize payment data from API
+  const normalizePayment = (p: any): Payment => ({
+    id: p.id || p.paymentId || '',
+    referenceId: p.referenceId || p.orderId || '',
+    amount: p.amount || p.amountInRupees * 100 || 0,
+    currency: p.currency || 'INR',
+    status: (p.status || 'pending').toLowerCase() as Payment['status'],
+    contactId: p.contactId || '',
+    contactName: p.contactName || p.email || '',
+    contactPhone: p.contact || p.contactPhone || '',
+    channel: p.channel || (p.source?.includes('whatsapp') ? 'whatsapp' : 'link'),
+    createdAt: p.createdAt ? new Date(p.createdAt * 1000).toISOString() : new Date().toISOString(),
+    completedAt: p.completedAt ? new Date(p.completedAt * 1000).toISOString() : undefined,
+  });
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -145,6 +155,32 @@ const DashboardPaymentsPage: React.FC<PageProps> = ({ signOut, user }) => {
             <a href="/pay/link" className="btn-secondary">+ Pay Link</a>
           </div>
         </div>
+
+        {/* Error Banner */}
+        {error && (
+          <div style={{ 
+            background: '#FFF3E0', 
+            border: '1px solid #FF9800', 
+            borderRadius: 8, 
+            padding: 16, 
+            marginBottom: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12
+          }}>
+            <span style={{ fontSize: 20 }}>⚠️</span>
+            <div>
+              <strong style={{ color: '#E65100' }}>Unable to load payments</strong>
+              <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>{error}</div>
+            </div>
+            <button 
+              onClick={loadPayments} 
+              style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 4, border: '1px solid #FF9800', background: 'white', cursor: 'pointer' }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Summary Stats */}
         <div className="stats-grid">

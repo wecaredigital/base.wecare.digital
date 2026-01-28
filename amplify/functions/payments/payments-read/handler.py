@@ -1,0 +1,159 @@
+"""
+Payments Read Lambda Function
+
+Purpose: List and retrieve payment records
+"""
+
+import os
+import json
+import logging
+import boto3
+from typing import Dict, Any
+from boto3.dynamodb.conditions import Key, Attr
+
+# Configure logging
+logger = logging.getLogger()
+logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
+
+# AWS clients
+dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+
+# Environment variables
+PAYMENTS_TABLE = os.environ.get('PAYMENTS_TABLE', 'base-wecare-digital-PaymentsTable')
+
+
+def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """Handle payment read operations."""
+    request_id = context.aws_request_id if context else 'local'
+    http_method = event.get('requestContext', {}).get('http', {}).get('method', 'GET')
+    path_params = event.get('pathParameters') or {}
+    query_params = event.get('queryStringParameters') or {}
+    
+    logger.info(json.dumps({
+        'event': 'payments_handler',
+        'method': http_method,
+        'requestId': request_id
+    }))
+    
+    try:
+        # GET /payments - List payments
+        if http_method == 'GET' and not path_params.get('paymentId'):
+            return _list_payments(query_params, request_id)
+        
+        # GET /payments/{paymentId} - Get single payment
+        if http_method == 'GET' and path_params.get('paymentId'):
+            return _get_payment(path_params['paymentId'], request_id)
+        
+        return _response(405, {'error': 'Method not allowed'})
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'payments_error',
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return _response(500, {'error': 'Internal server error'})
+
+
+def _list_payments(params: Dict, request_id: str) -> Dict[str, Any]:
+    """List payments with optional filters."""
+    try:
+        table = dynamodb.Table(PAYMENTS_TABLE)
+        
+        scan_kwargs = {'Limit': int(params.get('limit', 100))}
+        filter_expressions = []
+        
+        if params.get('status'):
+            filter_expressions.append(Attr('status').eq(params['status']))
+        if params.get('contact'):
+            filter_expressions.append(Attr('contact').contains(params['contact']))
+        if params.get('orderId'):
+            filter_expressions.append(Attr('orderId').eq(params['orderId']))
+        if params.get('referenceId'):
+            filter_expressions.append(Attr('referenceId').eq(params['referenceId']))
+        
+        if filter_expressions:
+            combined = filter_expressions[0]
+            for expr in filter_expressions[1:]:
+                combined = combined & expr
+            scan_kwargs['FilterExpression'] = combined
+        
+        result = table.scan(**scan_kwargs)
+        payments = result.get('Items', [])
+        
+        # Sort by createdAt descending
+        payments.sort(key=lambda x: float(x.get('createdAt', 0)), reverse=True)
+        
+        return _response(200, {
+            'payments': [_normalize_payment(p) for p in payments],
+            'count': len(payments)
+        })
+        
+    except Exception as e:
+        logger.error(f"List payments error: {str(e)}")
+        return _response(500, {'error': str(e)})
+
+
+def _get_payment(payment_id: str, request_id: str) -> Dict[str, Any]:
+    """Get a single payment."""
+    try:
+        table = dynamodb.Table(PAYMENTS_TABLE)
+        result = table.get_item(Key={'id': payment_id})
+        payment = result.get('Item')
+        
+        if payment:
+            return _response(200, {'payment': _normalize_payment(payment)})
+        
+        # Try by paymentId (Razorpay ID)
+        result = table.scan(
+            FilterExpression=Attr('paymentId').eq(payment_id),
+            Limit=1
+        )
+        items = result.get('Items', [])
+        if items:
+            return _response(200, {'payment': _normalize_payment(items[0])})
+        
+        return _response(404, {'error': 'Payment not found'})
+        
+    except Exception as e:
+        logger.error(f"Get payment error: {str(e)}")
+        return _response(500, {'error': str(e)})
+
+
+def _normalize_payment(item: Dict) -> Dict:
+    """Normalize payment record for API response."""
+    amount = item.get('amount', 0)
+    if isinstance(amount, (int, float)):
+        amount_rupees = amount / 100 if amount > 1000 else amount
+    else:
+        amount_rupees = float(amount) / 100 if float(amount) > 1000 else float(amount)
+    
+    return {
+        'id': item.get('id', ''),
+        'paymentId': item.get('paymentId', ''),
+        'orderId': item.get('orderId', ''),
+        'referenceId': item.get('referenceId', ''),
+        'status': item.get('status', 'unknown'),
+        'amount': float(item.get('amount', 0)),
+        'amountInRupees': float(item.get('amountInRupees', amount_rupees)),
+        'currency': item.get('currency', 'INR'),
+        'method': item.get('method', ''),
+        'contact': item.get('contact', ''),
+        'email': item.get('email', ''),
+        'source': item.get('source', ''),
+        'createdAt': int(float(item.get('createdAt', 0))),
+    }
+
+
+def _response(status_code: int, body: Dict) -> Dict[str, Any]:
+    """Return HTTP response with CORS headers."""
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+            'Access-Control-Allow-Methods': 'GET,OPTIONS'
+        },
+        'body': json.dumps(body, default=str)
+    }
