@@ -248,7 +248,7 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
     setStarredMessages(api.getStarredMessages());
   };
 
-  // Export chat
+  // Export chat as text
   const exportChat = () => {
     if (!selectedContact) return;
     const chatMessages = messages.filter(m => m.contactId === selectedContact.id);
@@ -262,6 +262,22 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
       selectedContact.name
     );
     api.downloadFile(text, `chat_${selectedContact.name}_${new Date().toISOString().split('T')[0]}.txt`, 'text/plain');
+  };
+
+  // Export chat as PDF
+  const exportChatPDF = () => {
+    if (!selectedContact) return;
+    const chatMessages = messages.filter(m => m.contactId === selectedContact.id);
+    api.exportChatToPDF(
+      chatMessages.map(m => ({
+        ...m,
+        direction: m.direction.toUpperCase() as 'INBOUND' | 'OUTBOUND',
+        channel: 'WHATSAPP' as const,
+        messageId: m.id,
+      })),
+      selectedContact.name,
+      wabaInfo?.name
+    );
   };
 
   const handleSend = async () => {
@@ -949,13 +965,18 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                     >
                       🔍
                     </button>
-                    <button 
-                      className="chat-action-btn" 
-                      onClick={exportChat}
-                      title="Export chat"
-                    >
-                      ⬇️
-                    </button>
+                    <div className="export-dropdown">
+                      <button 
+                        className="chat-action-btn" 
+                        title="Export chat"
+                      >
+                        ⬇️
+                      </button>
+                      <div className="export-menu">
+                        <button onClick={exportChat}>📄 Export as Text</button>
+                        <button onClick={exportChatPDF}>📑 Export as PDF</button>
+                      </div>
+                    </div>
                     <div className={`window-badge ${selectedContact.windowOpen ? 'open' : 'closed'}`}>
                       {selectedContact.windowOpen 
                         ? `● Open ${windowCountdown ? `(${windowCountdown})` : ''}` 
@@ -1376,6 +1397,13 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .chat-header-actions { display: flex; align-items: center; gap: 8px; }
         .chat-action-btn { background: none; border: none; cursor: pointer; font-size: 18px; padding: 6px; border-radius: 6px; opacity: 0.7; transition: all 0.2s; }
         .chat-action-btn:hover { opacity: 1; background: rgba(0,0,0,0.05); }
+        
+        /* Export dropdown */
+        .export-dropdown { position: relative; }
+        .export-dropdown:hover .export-menu { display: block; }
+        .export-menu { display: none; position: absolute; top: 100%; right: 0; background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 160px; z-index: 100; overflow: hidden; }
+        .export-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; text-align: left; transition: background 0.2s; }
+        .export-menu button:hover { background: #f5f5f5; }
         
         /* Message search bar */
         .message-search-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #fff; border-bottom: 1px solid #e5e5e5; }
