@@ -1,14 +1,15 @@
 ﻿/**
  * WECARE.DIGITAL Admin Platform
- * Auth with Authenticator.Provider wrapping entire app for persistent auth state
+ * Auth using fetchAuthSession for reliable auth state across navigation
  */
 
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Amplify } from 'aws-amplify';
-import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
+import { fetchAuthSession, signOut as amplifySignOut } from 'aws-amplify/auth';
+import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import '../styles/Pages.css';
 import '../styles/Layout.css';
@@ -54,56 +55,121 @@ const AuthHeader = () => (
   </div>
 );
 
-// Inner app component that uses auth context
-function AppContent({ Component, pageProps }: { Component: any; pageProps: any }) {
+export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
-  const { authStatus, user, signOut } = useAuthenticator((context) => [context.authStatus, context.user]);
+  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
+  const [user, setUser] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
   
   // Public pages that don't require auth
   const isPublic = router.pathname === '/';
 
+  // Check auth session
+  const checkAuth = useCallback(async () => {
+    try {
+      const session = await fetchAuthSession();
+      if (session.tokens?.idToken) {
+        const payload = session.tokens.idToken.payload;
+        setUser({
+          email: payload.email,
+          username: payload['cognito:username'],
+          signInDetails: { loginId: payload.email }
+        });
+        setAuthState('authenticated');
+      } else {
+        setAuthState('unauthenticated');
+        setUser(null);
+      }
+    } catch (err) {
+      console.log('Auth check:', err);
+      setAuthState('unauthenticated');
+      setUser(null);
+    }
+  }, []);
+
+  // Initial auth check on mount
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    checkAuth();
+  }, [checkAuth]);
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    try {
+      await amplifySignOut();
+      setAuthState('unauthenticated');
+      setUser(null);
+      router.push('/');
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+  };
 
   // Server-side render - show loading
   if (!isClient) {
-    return <LoadingScreen />;
+    return (
+      <>
+        <Head>
+          <title>WECARE.DIGITAL</title>
+          <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
+        </Head>
+        <LoadingScreen />
+      </>
+    );
   }
 
   // Public page - render without auth check
   if (isPublic) {
-    return <Component {...pageProps} />;
-  }
-
-  // Protected page - check auth status
-  if (authStatus === 'configuring') {
-    return <LoadingScreen />;
-  }
-
-  // Not authenticated - show login form
-  if (authStatus !== 'authenticated') {
     return (
-      <Authenticator hideSignUp={true} components={{ Header: AuthHeader }} />
+      <>
+        <Head>
+          <title>WECARE.DIGITAL</title>
+          <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
+        </Head>
+        <Component {...pageProps} />
+      </>
     );
   }
 
-  // Authenticated - render the page with user props
-  const handleSignOut = () => {
-    signOut();
-    router.push('/');
-  };
+  // Still checking auth
+  if (authState === 'loading') {
+    return (
+      <>
+        <Head>
+          <title>WECARE.DIGITAL</title>
+          <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
+        </Head>
+        <LoadingScreen />
+      </>
+    );
+  }
 
-  return (
-    <>
-      <Component {...pageProps} signOut={handleSignOut} user={user} />
-      <FloatingAgent />
-    </>
-  );
-}
+  // Not authenticated - show login form
+  if (authState === 'unauthenticated') {
+    return (
+      <>
+        <Head>
+          <title>WECARE.DIGITAL</title>
+          <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
+        </Head>
+        <Authenticator hideSignUp={true} components={{ Header: AuthHeader }}>
+          {({ user: authUser }) => {
+            // User just logged in - update state and re-check
+            if (authUser && authState === 'unauthenticated') {
+              checkAuth();
+            }
+            return <LoadingScreen />;
+          }}
+        </Authenticator>
+      </>
+    );
+  }
 
-export default function App({ Component, pageProps }: AppProps) {
+  // Authenticated - render the page
   return (
     <>
       <Head>
@@ -111,9 +177,8 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
       </Head>
-      <Authenticator.Provider>
-        <AppContent Component={Component} pageProps={pageProps} />
-      </Authenticator.Provider>
+      <Component {...pageProps} signOut={handleSignOut} user={user} />
+      <FloatingAgent />
     </>
   );
 }
