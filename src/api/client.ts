@@ -312,6 +312,48 @@ export async function sendWhatsAppReaction(request: SendReactionRequest): Promis
   });
 }
 
+// Interactive message types
+export interface InteractiveListSection {
+  title: string;
+  rows: { id: string; title: string; description?: string }[];
+}
+
+export interface InteractiveButton {
+  id: string;
+  title: string;
+}
+
+export interface SendInteractiveRequest {
+  contactId: string;
+  phoneNumberId?: string;
+  interactiveType: 'list' | 'button' | 'location_request';
+  interactiveData: {
+    header?: string;
+    headerType?: 'text' | 'image' | 'video' | 'document';
+    headerMedia?: string;
+    headerFilename?: string;
+    body: string;
+    footer?: string;
+    buttonText?: string;  // For list messages
+    sections?: InteractiveListSection[];  // For list messages
+    buttons?: InteractiveButton[];  // For button messages
+  };
+}
+
+// Send interactive WhatsApp message (list, buttons, location request)
+export async function sendWhatsAppInteractive(request: SendInteractiveRequest): Promise<{ messageId: string; status: string; interactiveType: string } | null> {
+  return apiCall<{ messageId: string; status: string; interactiveType: string }>(`${API_BASE}/whatsapp/send`, {
+    method: 'POST',
+    body: JSON.stringify({
+      contactId: request.contactId,
+      phoneNumberId: request.phoneNumberId,
+      isInteractive: true,
+      interactiveType: request.interactiveType,
+      interactiveData: request.interactiveData,
+    }),
+  });
+}
+
 export async function sendSmsMessage(contactId: string, content: string): Promise<{ messageId: string; status: string } | null> {
   return apiCall<{ messageId: string; status: string }>(`${API_BASE}/sms/send`, {
     method: 'POST',
@@ -1211,5 +1253,293 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
       orderDetails: orderDetails,
       headerImageUrl: request.headerImageUrl,
     }),
+  });
+}
+
+
+// ============================================================================
+// WABA MANAGEMENT API (AWS EUM Social)
+// ============================================================================
+
+export interface WABAAccount {
+  id: string;
+  wabaId: string;
+  wabaName: string;
+  arn: string;
+  registrationStatus: string;
+  linkDate?: number;
+  enableSending: boolean;
+  enableReceiving: boolean;
+  eventDestinations: { eventDestinationArn: string; roleArn: string }[];
+  phoneNumbers?: WABAPhoneNumber[];
+}
+
+export interface WABAPhoneNumber {
+  phoneNumberId: string;
+  phoneNumber: string;
+  displayPhoneNumber: string;
+  displayPhoneNumberName: string;
+  qualityRating: 'GREEN' | 'YELLOW' | 'RED' | 'UNKNOWN';
+  metaPhoneNumberId: string;
+  dataLocalizationRegion: string;
+  arn: string;
+  linkedWabaId?: string;
+}
+
+export interface WABASystemEvents {
+  templateStatus: { timestamp: number; data: any }[];
+  phoneQuality: { timestamp: number; data: any }[];
+  accountUpdates: { timestamp: number; data: any }[];
+}
+
+/**
+ * List all linked WhatsApp Business Accounts
+ * API: ListLinkedWhatsAppBusinessAccounts
+ */
+export async function listWABAs(): Promise<WABAAccount[]> {
+  const data = await apiCall<any>(`${API_BASE}/waba`);
+  if (data && data.wabas) {
+    return data.wabas;
+  }
+  return [];
+}
+
+/**
+ * Get WABA details including phone numbers with quality ratings
+ * API: GetLinkedWhatsAppBusinessAccount
+ */
+export async function getWABADetails(wabaId: string): Promise<WABAAccount | null> {
+  const data = await apiCall<any>(`${API_BASE}/waba/${wabaId}`);
+  if (data) {
+    return data;
+  }
+  return null;
+}
+
+/**
+ * Get phone number details including quality rating
+ * API: GetLinkedWhatsAppBusinessAccountPhoneNumber
+ */
+export async function getPhoneNumberDetails(phoneNumberId: string): Promise<WABAPhoneNumber | null> {
+  const data = await apiCall<any>(`${API_BASE}/waba/phone/${phoneNumberId}`);
+  if (data) {
+    return data;
+  }
+  return null;
+}
+
+/**
+ * Get system events (template status, phone quality, account updates)
+ * Stored by inbound webhook handler
+ */
+export async function getWABASystemEvents(eventType?: string): Promise<WABASystemEvents> {
+  let url = `${API_BASE}/waba/events`;
+  if (eventType) url += `?type=${eventType}`;
+  
+  const data = await apiCall<any>(url);
+  if (data) {
+    return {
+      templateStatus: data.templateStatus || [],
+      phoneQuality: data.phoneQuality || [],
+      accountUpdates: data.accountUpdates || [],
+    };
+  }
+  return { templateStatus: [], phoneQuality: [], accountUpdates: [] };
+}
+
+/**
+ * Delete WhatsApp media from Meta servers
+ * API: DeleteWhatsAppMessageMedia
+ */
+export async function deleteWhatsAppMedia(mediaId: string, phoneNumberId: string): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/waba/media/${mediaId}?phoneNumberId=${phoneNumberId}`, {
+    method: 'DELETE',
+  });
+  return data?.success === true;
+}
+
+
+// ============================================================================
+// TEMPLATE MANAGEMENT API (AWS EUM Social)
+// ============================================================================
+
+export interface TemplateDefinition {
+  name: string;
+  language: string;
+  category: 'UTILITY' | 'MARKETING' | 'AUTHENTICATION';
+  components: TemplateComponent[];
+}
+
+export interface MetaLibraryTemplate {
+  templateId: string;
+  templateName: string;
+  templateCategory: string;
+  templateLanguage: string;
+  templateBody: string;
+  templateHeader?: string;
+  templateTopic?: string;
+  templateUseCase?: string;
+  templateIndustry?: string[];
+  templateButtons?: any[];
+  templateBodyExampleParams?: string[];
+}
+
+export interface CreateTemplateRequest {
+  wabaId?: string;
+  templateDefinition: TemplateDefinition;
+}
+
+export interface CreateFromLibraryRequest {
+  wabaId?: string;
+  metaLibraryTemplate: {
+    libraryTemplateName: string;
+    templateName: string;
+    templateCategory: string;
+    templateLanguage: string;
+    libraryTemplateBodyInputs?: {
+      addTrackPackageLink?: boolean;
+      addContactNumber?: boolean;
+      addLearnMoreLink?: boolean;
+      addSecurityRecommendation?: boolean;
+      codeExpirationMinutes?: number;
+    };
+    libraryTemplateButtonInputs?: any[];
+  };
+}
+
+export interface UpdateTemplateRequest {
+  wabaId?: string;
+  templateCategory?: string;
+  templateComponents?: any;
+  parameterFormat?: string;
+  ctaUrlLinkTrackingOptedOut?: boolean;
+}
+
+/**
+ * List templates for a WABA (enhanced version)
+ * API: ListWhatsAppMessageTemplates
+ */
+export async function listTemplates(wabaId?: string, maxResults?: number): Promise<WhatsAppTemplate[]> {
+  let url = `${API_BASE}/templates`;
+  const params = new URLSearchParams();
+  if (wabaId) params.append('wabaId', wabaId);
+  if (maxResults) params.append('maxResults', maxResults.toString());
+  if (params.toString()) url += `?${params}`;
+  
+  const data = await apiCall<any>(url);
+  if (data && data.templates) {
+    return data.templates.map(normalizeTemplate);
+  }
+  return [];
+}
+
+/**
+ * Get template details
+ * API: GetWhatsAppMessageTemplate
+ */
+export async function getTemplateDetails(templateId: string, wabaId?: string): Promise<any | null> {
+  let url = `${API_BASE}/templates/${templateId}`;
+  if (wabaId) url += `?wabaId=${wabaId}`;
+  
+  const data = await apiCall<any>(url);
+  if (data) {
+    return data.template || data;
+  }
+  return null;
+}
+
+/**
+ * Create a new template from custom definition
+ * API: CreateWhatsAppMessageTemplate
+ */
+export async function createTemplate(request: CreateTemplateRequest): Promise<{ metaTemplateId: string; category: string; templateStatus: string } | null> {
+  return apiCall<any>(`${API_BASE}/templates`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+/**
+ * Create template from Meta's library
+ * API: CreateWhatsAppMessageTemplateFromLibrary
+ */
+export async function createTemplateFromLibrary(request: CreateFromLibraryRequest): Promise<{ metaTemplateId: string; category: string; templateStatus: string } | null> {
+  return apiCall<any>(`${API_BASE}/templates/from-library`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+/**
+ * Update an existing template
+ * API: UpdateWhatsAppMessageTemplate
+ */
+export async function updateTemplate(templateId: string, request: UpdateTemplateRequest): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/templates/${templateId}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  });
+  return data?.success === true;
+}
+
+/**
+ * Delete a template
+ * API: DeleteWhatsAppMessageTemplate
+ */
+export async function deleteTemplate(templateName: string, wabaId?: string, deleteAllLanguages?: boolean): Promise<boolean> {
+  let url = `${API_BASE}/templates/${templateName}`;
+  const params = new URLSearchParams();
+  params.append('templateName', templateName);
+  if (wabaId) params.append('wabaId', wabaId);
+  if (deleteAllLanguages) params.append('deleteAllLanguages', 'true');
+  url += `?${params}`;
+  
+  const data = await apiCall<any>(url, { method: 'DELETE' });
+  return data?.success === true;
+}
+
+/**
+ * Browse Meta's template library
+ * API: ListWhatsAppTemplateLibrary
+ */
+export async function listTemplateLibrary(filters?: {
+  wabaId?: string;
+  searchKey?: string;
+  topic?: string;
+  usecase?: string;
+  industry?: string;
+  language?: string;
+  maxResults?: number;
+}): Promise<MetaLibraryTemplate[]> {
+  let url = `${API_BASE}/templates/library`;
+  if (filters) {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.append(key, value.toString());
+    });
+    if (params.toString()) url += `?${params}`;
+  }
+  
+  const data = await apiCall<any>(url);
+  if (data && data.templates) {
+    return data.templates;
+  }
+  return [];
+}
+
+/**
+ * Upload media for template headers
+ * API: CreateWhatsAppMessageTemplateMedia
+ */
+export async function uploadTemplateMedia(request: {
+  wabaId?: string;
+  mediaBase64?: string;
+  s3Key?: string;
+  mediaType?: string;
+  filename?: string;
+}): Promise<{ metaHeaderHandle: string; s3Key: string } | null> {
+  return apiCall<any>(`${API_BASE}/templates/media`, {
+    method: 'POST',
+    body: JSON.stringify(request),
   });
 }

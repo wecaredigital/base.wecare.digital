@@ -86,6 +86,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Interactive payment support (for within 24h window - uses payment_settings)
         is_interactive_payment = body.get('isInteractivePayment', False)
         
+        # Interactive message support (list, buttons, location request)
+        is_interactive = body.get('isInteractive', False)
+        interactive_type = body.get('interactiveType')  # 'list', 'button', 'location_request'
+        interactive_data = body.get('interactiveData', {})
+        
         # Order status support (for payment confirmation messages)
         is_order_status = body.get('isOrderStatus', False)
         order_status_details = body.get('orderStatusDetails')
@@ -150,6 +155,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return _handle_order_status_send(
                 message_id, contact_id, recipient_phone, phone_number_id,
                 order_status_details, request_id
+            )
+        
+        # Handle interactive messages (list, buttons, location request)
+        if is_interactive and interactive_type:
+            return _handle_interactive_send(
+                message_id, contact_id, recipient_phone, phone_number_id,
+                interactive_type, interactive_data, request_id
             )
         
         # Requirement 5.2: LIVE mode - call API
@@ -467,6 +479,215 @@ def _handle_order_status_send(message_id: str, contact_id: str, recipient_phone:
         }))
         _emit_delivery_metric('failed', is_template=False)
         return _error_response(500, f'Failed to send order status: {error_msg}')
+
+
+def _handle_interactive_send(message_id: str, contact_id: str, recipient_phone: str,
+                              phone_number_id: str, interactive_type: str,
+                              interactive_data: Dict, request_id: str) -> Dict[str, Any]:
+    """
+    Send interactive messages (list, buttons, location request).
+    
+    Interactive Types:
+    - list: Up to 10 sections with rows (max 10 rows total)
+    - button: Up to 3 quick reply buttons
+    - location_request: Request user's location
+    
+    Per WhatsApp Business API docs:
+    https://developers.facebook.com/docs/whatsapp/guides/interactive-messages/
+    """
+    try:
+        # Normalize phone number
+        formatted_phone = _normalize_phone_number(recipient_phone)
+        whatsapp_phone = f"+{formatted_phone}"
+        
+        # Base payload
+        payload = {
+            'messaging_product': 'whatsapp',
+            'recipient_type': 'individual',
+            'to': whatsapp_phone,
+            'type': 'interactive'
+        }
+        
+        # Build interactive payload based on type
+        if interactive_type == 'list':
+            # List message with sections and rows
+            header_text = interactive_data.get('header', '')
+            body_text = interactive_data.get('body', 'Please select an option')
+            footer_text = interactive_data.get('footer', '')
+            button_text = interactive_data.get('buttonText', 'View Options')
+            sections = interactive_data.get('sections', [])
+            
+            interactive_payload = {
+                'type': 'list',
+                'body': {'text': body_text},
+                'action': {
+                    'button': button_text,
+                    'sections': []
+                }
+            }
+            
+            # Add header if provided
+            if header_text:
+                interactive_payload['header'] = {'type': 'text', 'text': header_text}
+            
+            # Add footer if provided
+            if footer_text:
+                interactive_payload['footer'] = {'text': footer_text}
+            
+            # Build sections (max 10 sections, max 10 rows total)
+            for section in sections[:10]:
+                section_obj = {
+                    'title': section.get('title', 'Options'),
+                    'rows': []
+                }
+                for row in section.get('rows', [])[:10]:
+                    section_obj['rows'].append({
+                        'id': row.get('id', str(len(section_obj['rows']))),
+                        'title': row.get('title', 'Option')[:24],  # Max 24 chars
+                        'description': row.get('description', '')[:72]  # Max 72 chars
+                    })
+                if section_obj['rows']:
+                    interactive_payload['action']['sections'].append(section_obj)
+            
+            payload['interactive'] = interactive_payload
+            
+        elif interactive_type == 'button':
+            # Reply buttons (max 3)
+            header_text = interactive_data.get('header', '')
+            header_type = interactive_data.get('headerType', 'text')  # text, image, video, document
+            body_text = interactive_data.get('body', 'Please select an option')
+            footer_text = interactive_data.get('footer', '')
+            buttons = interactive_data.get('buttons', [])
+            
+            interactive_payload = {
+                'type': 'button',
+                'body': {'text': body_text},
+                'action': {'buttons': []}
+            }
+            
+            # Add header if provided
+            if header_text or header_type != 'text':
+                if header_type == 'text':
+                    interactive_payload['header'] = {'type': 'text', 'text': header_text}
+                elif header_type == 'image':
+                    interactive_payload['header'] = {
+                        'type': 'image',
+                        'image': {'link': interactive_data.get('headerMedia', '')}
+                    }
+                elif header_type == 'video':
+                    interactive_payload['header'] = {
+                        'type': 'video',
+                        'video': {'link': interactive_data.get('headerMedia', '')}
+                    }
+                elif header_type == 'document':
+                    interactive_payload['header'] = {
+                        'type': 'document',
+                        'document': {
+                            'link': interactive_data.get('headerMedia', ''),
+                            'filename': interactive_data.get('headerFilename', 'document.pdf')
+                        }
+                    }
+            
+            # Add footer if provided
+            if footer_text:
+                interactive_payload['footer'] = {'text': footer_text}
+            
+            # Build buttons (max 3)
+            for i, btn in enumerate(buttons[:3]):
+                interactive_payload['action']['buttons'].append({
+                    'type': 'reply',
+                    'reply': {
+                        'id': btn.get('id', f'btn_{i}'),
+                        'title': btn.get('title', 'Button')[:20]  # Max 20 chars
+                    }
+                })
+            
+            payload['interactive'] = interactive_payload
+            
+        elif interactive_type == 'location_request':
+            # Location request message
+            body_text = interactive_data.get('body', 'Please share your location')
+            
+            interactive_payload = {
+                'type': 'location_request_message',
+                'body': {'text': body_text},
+                'action': {'name': 'send_location'}
+            }
+            
+            payload['interactive'] = interactive_payload
+            
+        else:
+            return _error_response(400, f'Invalid interactive type: {interactive_type}')
+        
+        logger.info(json.dumps({
+            'event': 'interactive_payload',
+            'to': whatsapp_phone,
+            'interactiveType': interactive_type,
+            'payload': payload,
+            'requestId': request_id
+        }))
+        
+        # Call SendWhatsAppMessage API
+        response = social_messaging.send_whatsapp_message(
+            originationPhoneNumberId=phone_number_id,
+            message=json.dumps(payload),
+            metaApiVersion=META_API_VERSION
+        )
+        
+        whatsapp_message_id = response.get('messageId', '')
+        
+        # Store message record
+        _store_message_record(
+            message_id=message_id,
+            contact_id=contact_id,
+            content=f'[Interactive: {interactive_type}] {interactive_data.get("body", "")}',
+            status='sent',
+            is_template=False,
+            whatsapp_message_id=whatsapp_message_id,
+            phone_number_id=phone_number_id
+        )
+        
+        logger.info(json.dumps({
+            'event': 'interactive_sent',
+            'messageId': message_id,
+            'whatsappMessageId': whatsapp_message_id,
+            'contactId': contact_id,
+            'interactiveType': interactive_type,
+            'requestId': request_id
+        }))
+        
+        # Emit success metric
+        _emit_delivery_metric('success', is_template=False)
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
+            'body': json.dumps({
+                'messageId': message_id,
+                'whatsappMessageId': whatsapp_message_id,
+                'status': 'sent',
+                'mode': 'LIVE',
+                'type': 'interactive',
+                'interactiveType': interactive_type
+            })
+        }
+        
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(json.dumps({
+            'event': 'interactive_send_error',
+            'messageId': message_id,
+            'interactiveType': interactive_type,
+            'error': error_msg,
+            'requestId': request_id
+        }))
+        _emit_delivery_metric('failed', is_template=False)
+        return _error_response(500, f'Failed to send interactive message: {error_msg}')
 
 
 def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,

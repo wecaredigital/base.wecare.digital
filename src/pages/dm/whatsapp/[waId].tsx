@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../../../components/Layout';
 import RichTextEditor from '../../../components/RichTextEditor';
+import InteractiveMessageComposer from '../../../components/InteractiveMessageComposer';
 import * as api from '../../../api/client';
 
 interface PageProps {
@@ -66,6 +67,9 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Interactive message composer state
+  const [showInteractiveComposer, setShowInteractiveComposer] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -882,6 +886,14 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                       >
                         🎤
                       </button>
+                      <button 
+                        className="interactive-btn" 
+                        onClick={() => setShowInteractiveComposer(true)}
+                        title="Send Interactive Message"
+                        disabled={!selectedContact.windowOpen}
+                      >
+                        📋
+                      </button>
                       <div className="compose-input">
                         <RichTextEditor
                           value={messageText}
@@ -895,6 +907,17 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                         />
                       </div>
                     </div>
+                  )}
+                  
+                  {/* Interactive Message Composer */}
+                  {showInteractiveComposer && selectedContact && (
+                    <InteractiveMessageComposer
+                      contactId={selectedContact.id}
+                      phoneNumberId={waId as string}
+                      onClose={() => setShowInteractiveComposer(false)}
+                      onSent={() => loadData()}
+                      onError={(msg) => setError(msg)}
+                    />
                   )}
                 </div>
               </>
@@ -1112,6 +1135,9 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .compose-input { flex: 1; }
         .voice-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: #25D366; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
         .voice-btn:hover { background: #128C7E; transform: scale(1.05); }
+        .interactive-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: #3b82f6; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+        .interactive-btn:hover:not(:disabled) { background: #2563eb; transform: scale(1.05); }
+        .interactive-btn:disabled { background: #9ca3af; cursor: not-allowed; opacity: 0.6; }
         .voice-recording { display: flex; align-items: center; gap: 12px; background: #fff; padding: 12px 16px; border-radius: 24px; }
         .cancel-record-btn { width: 32px; height: 32px; border-radius: 50%; border: none; background: #ef4444; color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .cancel-record-btn:hover { background: #dc2626; }
