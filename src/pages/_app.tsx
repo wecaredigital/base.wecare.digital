@@ -1,6 +1,6 @@
 ﻿/**
  * WECARE.DIGITAL Admin Platform
- * Simple auth: Authenticator wraps all protected pages
+ * Auth with Authenticator.Provider for persistent auth state across navigation
  */
 
 import type { AppProps } from 'next/app';
@@ -8,14 +8,14 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { Amplify } from 'aws-amplify';
-import { Authenticator } from '@aws-amplify/ui-react';
+import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import '../styles/Pages.css';
 import '../styles/Layout.css';
 import '../styles/Dashboard.css';
 import FloatingAgent from '../components/FloatingAgent';
 
-// Configure Amplify
+// Configure Amplify - must be before any auth calls
 Amplify.configure({
   Auth: {
     Cognito: {
@@ -46,13 +46,44 @@ const LoadingScreen = () => (
   </div>
 );
 
-// Auth header
+// Auth header for login form
 const AuthHeader = () => (
   <div style={{ textAlign: 'center', padding: '20px' }}>
     <h1 style={{ fontSize: '24px', fontWeight: 300, color: '#1a1a1a' }}>WECARE.DIGITAL</h1>
     <p style={{ color: '#666', fontSize: '14px' }}>Admin Platform</p>
   </div>
 );
+
+// Protected content wrapper - uses auth context from Provider
+function ProtectedContent({ Component, pageProps }: { Component: any; pageProps: any }) {
+  const router = useRouter();
+  const { authStatus, user, signOut } = useAuthenticator((context) => [context.authStatus, context.user]);
+
+  // Show loading while checking auth
+  if (authStatus === 'configuring') {
+    return <LoadingScreen />;
+  }
+
+  // Not authenticated - show login form
+  if (authStatus !== 'authenticated') {
+    return (
+      <Authenticator hideSignUp={true} components={{ Header: AuthHeader }} />
+    );
+  }
+
+  // Authenticated - render the page
+  const handleSignOut = () => {
+    signOut();
+    router.push('/');
+  };
+
+  return (
+    <>
+      <Component {...pageProps} signOut={handleSignOut} user={user} />
+      <FloatingAgent />
+    </>
+  );
+}
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -93,7 +124,7 @@ export default function App({ Component, pageProps }: AppProps) {
     );
   }
 
-  // All other pages - protected with Authenticator
+  // All protected pages - wrap in Authenticator.Provider for shared auth state
   return (
     <>
       <Head>
@@ -101,14 +132,9 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
       </Head>
-      <Authenticator hideSignUp={true} components={{ Header: AuthHeader }}>
-        {({ signOut, user }) => (
-          <>
-            <Component {...pageProps} signOut={() => { signOut(); router.push('/'); }} user={user} />
-            <FloatingAgent />
-          </>
-        )}
-      </Authenticator>
+      <Authenticator.Provider>
+        <ProtectedContent Component={Component} pageProps={pageProps} />
+      </Authenticator.Provider>
     </>
   );
 }

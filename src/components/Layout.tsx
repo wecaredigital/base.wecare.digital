@@ -2,17 +2,13 @@
  * Layout Component with Sidebar Navigation
  * WECARE.DIGITAL Admin Platform
  * 
- * Design Rules (10.1):
- * - No emoji icons - Unicode symbols only
- * - Helvetica Light / system font
- * - White background, black buttons, 13px rounded corners
- * - No environment banner
- * - WebView compatible (Android WebView + iOS WKWebView)
+ * Using Next.js Link for client-side navigation (no page reload)
+ * Auth state is preserved via Authenticator.Provider in _app.tsx
  */
 
-import React, { ReactNode, useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import React, { ReactNode, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import FloatingAgent from './FloatingAgent';
 import SearchModal from './SearchModal';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
