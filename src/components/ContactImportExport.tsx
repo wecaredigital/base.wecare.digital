@@ -1,38 +1,107 @@
 /**
  * Contact Import/Export Component
- * CSV import and export functionality
+ * CSV import, Google Contacts import, and export functionality
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import * as api from '../api/client';
+
+// Google API Client ID - Replace with your own from Google Cloud Console
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
 interface ContactImportExportProps {
   contacts: api.Contact[];
   onImportComplete?: () => void;
 }
 
+type ImportTab = 'csv' | 'google' | 'manual';
+
+interface GoogleContact {
+  name: string;
+  phone: string;
+  email: string;
+}
+
 const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onImportComplete }) => {
+  const [activeTab, setActiveTab] = useState<ImportTab>('csv');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<api.ImportResult | null>(null);
   const [previewData, setPreviewData] = useState<Partial<api.Contact>[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Google Contacts state
+  const [googleContacts, setGoogleContacts] = useState<GoogleContact[]>([]);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [selectedGoogleContacts, setSelectedGoogleContacts] = useState<Set<number>>(new Set());
+  
+  // Manual entry state
+  const [manualName, setManualName] = useState('');
+  const [manualPhone, setManualPhone] = useState('');
+  const [manualEmail, setManualEmail] = useState('');
+  const [manualOptInWA, setManualOptInWA] = useState(true);
+  const [manualSaving, setManualSaving] = useState(false);
 
+
+  // CSV file handling
   const handleFileSelect = async (file: File) => {
-    if (!file.name.endsWith('.csv')) {
-      alert('Please select a CSV file');
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.vcf')) {
+      alert('Please select a CSV or VCF file');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      const parsed = api.parseContactsCSV(content);
+      let parsed: Partial<api.Contact>[];
+      
+      if (file.name.endsWith('.vcf')) {
+        parsed = parseVCardContacts(content);
+      } else {
+        parsed = api.parseContactsCSV(content);
+      }
+      
       setPreviewData(parsed);
       setImportResult(null);
     };
     reader.readAsText(file);
   };
+
+  // Parse vCard format (exported from Google Contacts)
+  const parseVCardContacts = (content: string): Partial<api.Contact>[] => {
+    const contacts: Partial<api.Contact>[] = [];
+    const vcards = content.split('END:VCARD');
+    
+    for (const vcard of vcards) {
+      if (!vcard.includes('BEGIN:VCARD')) continue;
+      
+      const contact: Partial<api.Contact> = {};
+      
+      // Parse name
+      const fnMatch = vcard.match(/FN:(.+)/);
+      if (fnMatch) contact.name = fnMatch[1].trim();
+      
+      // Parse phone
+      const telMatch = vcard.match(/TEL[^:]*:(.+)/);
+      if (telMatch) {
+        let phone = telMatch[1].replace(/[^\d+]/g, '');
+        if (!phone.startsWith('+')) phone = '+' + phone;
+        contact.phone = phone;
+      }
+      
+      // Parse email
+      const emailMatch = vcard.match(/EMAIL[^:]*:(.+)/);
+      if (emailMatch) contact.email = emailMatch[1].trim();
+      
+      if (contact.phone || contact.email) {
+        contacts.push(contact);
+      }
+    }
+    
+    return contacts;
+  };
+
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -71,85 +140,400 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
     }
   };
 
+  // Google Contacts OAuth flow
+  const handleGoogleImport = async () => {
+    if (!GOOGLE_CLIENT_ID) {
+      setGoogleError('Google API not configured. Please export contacts from Google as CSV/VCF and use CSV import.');
+      return;
+    }
+    
+    setGoogleLoading(true);
+    setGoogleError(null);
+    
+    try {
+      // Load Google API
+      const gapi = (window as any).gapi;
+      if (!gapi) {
+        // Load Google API script
+        await loadGoogleAPI();
+      }
+      
+      // Initialize and sign in
+      await initGoogleAuth();
+      const contacts = await fetchGoogleContacts();
+      setGoogleContacts(contacts);
+      setSelectedGoogleContacts(new Set(contacts.map((_, i) => i)));
+    } catch (err: any) {
+      console.error('Google import error:', err);
+      setGoogleError(err.message || 'Failed to connect to Google. Try exporting as CSV instead.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+
+  const loadGoogleAPI = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if ((window as any).gapi) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://apis.google.com/js/api.js';
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Google API'));
+      document.body.appendChild(script);
+    });
+  };
+
+  const initGoogleAuth = async () => {
+    const gapi = (window as any).gapi;
+    await new Promise<void>((resolve) => gapi.load('client:auth2', resolve));
+    
+    await gapi.client.init({
+      clientId: GOOGLE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/contacts.readonly',
+      discoveryDocs: ['https://people.googleapis.com/$discovery/rest?version=v1'],
+    });
+    
+    const auth = gapi.auth2.getAuthInstance();
+    if (!auth.isSignedIn.get()) {
+      await auth.signIn();
+    }
+  };
+
+  const fetchGoogleContacts = async (): Promise<GoogleContact[]> => {
+    const gapi = (window as any).gapi;
+    const response = await gapi.client.people.people.connections.list({
+      resourceName: 'people/me',
+      pageSize: 500,
+      personFields: 'names,phoneNumbers,emailAddresses',
+    });
+    
+    const connections = response.result.connections || [];
+    return connections
+      .filter((person: any) => person.phoneNumbers?.length > 0 || person.emailAddresses?.length > 0)
+      .map((person: any) => ({
+        name: person.names?.[0]?.displayName || '',
+        phone: person.phoneNumbers?.[0]?.value?.replace(/[^\d+]/g, '') || '',
+        email: person.emailAddresses?.[0]?.value || '',
+      }));
+  };
+
+  const importSelectedGoogleContacts = async () => {
+    const selected = googleContacts.filter((_, i) => selectedGoogleContacts.has(i));
+    if (selected.length === 0) return;
+    
+    setImporting(true);
+    try {
+      const contactsToImport = selected.map(c => ({
+        name: c.name,
+        phone: c.phone.startsWith('+') ? c.phone : `+${c.phone}`,
+        email: c.email || undefined,
+        optInWhatsApp: true,
+      }));
+      
+      const result = await api.importContacts(contactsToImport);
+      setImportResult(result);
+      if (result.created > 0 || result.updated > 0) {
+        onImportComplete?.();
+      }
+      setGoogleContacts([]);
+      setSelectedGoogleContacts(new Set());
+    } catch (err) {
+      console.error('Import failed:', err);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+
+  // Manual contact entry
+  const handleManualAdd = async () => {
+    if (!manualPhone && !manualEmail) {
+      alert('Phone or email is required');
+      return;
+    }
+    
+    setManualSaving(true);
+    try {
+      const result = await api.createContact({
+        name: manualName,
+        phone: manualPhone.startsWith('+') ? manualPhone : `+${manualPhone}`,
+        email: manualEmail || undefined,
+        optInWhatsApp: manualOptInWA,
+      });
+      
+      if (result) {
+        setManualName('');
+        setManualPhone('');
+        setManualEmail('');
+        setManualOptInWA(true);
+        onImportComplete?.();
+        setImportResult({ total: 1, created: 1, updated: 0, failed: 0, errors: [] });
+      }
+    } catch (err) {
+      console.error('Manual add failed:', err);
+    } finally {
+      setManualSaving(false);
+    }
+  };
+
+  const toggleGoogleContact = (index: number) => {
+    setSelectedGoogleContacts(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  const selectAllGoogle = () => {
+    if (selectedGoogleContacts.size === googleContacts.length) {
+      setSelectedGoogleContacts(new Set());
+    } else {
+      setSelectedGoogleContacts(new Set(googleContacts.map((_, i) => i)));
+    }
+  };
+
   return (
     <div className="import-export-section">
       <div className="section-header">
-        <h3>Import / Export Contacts</h3>
+        <h3>⊕ Add Contacts</h3>
         <button className="export-btn" onClick={handleExport}>
           ⬇️ Export CSV ({contacts.length})
         </button>
       </div>
 
-      <div 
-        className={`import-zone ${dragOver ? 'dragging' : ''}`}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv"
-          style={{ display: 'none' }}
-          onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-        />
-        <div className="import-zone-icon">📁</div>
-        <div className="import-zone-text">
-          Drop CSV file here or click to browse
-        </div>
-        <div className="import-zone-hint">
-          Required columns: name, phone. Optional: email, whatsapp_opt_in, sms_opt_in
-        </div>
+      {/* Import Method Tabs */}
+      <div className="import-tabs">
+        <button 
+          className={`import-tab ${activeTab === 'manual' ? 'active' : ''}`}
+          onClick={() => setActiveTab('manual')}
+        >
+          ✎ Manual
+        </button>
+        <button 
+          className={`import-tab ${activeTab === 'csv' ? 'active' : ''}`}
+          onClick={() => setActiveTab('csv')}
+        >
+          📁 CSV/VCF
+        </button>
+        <button 
+          className={`import-tab ${activeTab === 'google' ? 'active' : ''}`}
+          onClick={() => setActiveTab('google')}
+        >
+          G Google
+        </button>
       </div>
 
-      {previewData.length > 0 && (
-        <div className="import-preview">
-          <div className="preview-header">
-            <h4>Preview ({previewData.length} contacts)</h4>
-            <button className="clear-btn" onClick={clearPreview}>Clear</button>
-          </div>
-          
-          <div className="preview-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Phone</th>
-                  <th>Email</th>
-                  <th>WhatsApp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {previewData.slice(0, 5).map((contact, i) => (
-                  <tr key={i}>
-                    <td>{contact.name || '-'}</td>
-                    <td>{contact.phone}</td>
-                    <td>{contact.email || '-'}</td>
-                    <td>{contact.optInWhatsApp ? '✓' : '-'}</td>
-                  </tr>
-                ))}
-                {previewData.length > 5 && (
-                  <tr>
-                    <td colSpan={4} className="more-rows">
-                      ... and {previewData.length - 5} more
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
 
+      {/* Manual Entry Tab */}
+      {activeTab === 'manual' && (
+        <div className="manual-entry">
+          <div className="form-row">
+            <div className="form-field">
+              <label>Name</label>
+              <input 
+                type="text" 
+                value={manualName} 
+                onChange={(e) => setManualName(e.target.value)}
+                placeholder="Contact name"
+              />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label>Phone *</label>
+              <input 
+                type="tel" 
+                value={manualPhone} 
+                onChange={(e) => setManualPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+              />
+            </div>
+            <div className="form-field">
+              <label>Email</label>
+              <input 
+                type="email" 
+                value={manualEmail} 
+                onChange={(e) => setManualEmail(e.target.value)}
+                placeholder="email@example.com"
+              />
+            </div>
+          </div>
+          <div className="form-row">
+            <label className="checkbox-inline">
+              <input 
+                type="checkbox" 
+                checked={manualOptInWA} 
+                onChange={(e) => setManualOptInWA(e.target.checked)}
+              />
+              <span>WhatsApp Opt-In</span>
+            </label>
+          </div>
           <button 
             className="import-btn"
-            onClick={handleImport}
-            disabled={importing}
+            onClick={handleManualAdd}
+            disabled={(!manualPhone && !manualEmail) || manualSaving}
           >
-            {importing ? 'Importing...' : `Import ${previewData.length} Contacts`}
+            {manualSaving ? 'Adding...' : '+ Add Contact'}
           </button>
         </div>
       )}
 
+      {/* CSV/VCF Import Tab */}
+      {activeTab === 'csv' && (
+        <>
+          <div 
+            className={`import-zone ${dragOver ? 'dragging' : ''}`}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.vcf"
+              style={{ display: 'none' }}
+              onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+            />
+            <div className="import-zone-icon">📁</div>
+            <div className="import-zone-text">
+              Drop CSV or VCF file here or click to browse
+            </div>
+            <div className="import-zone-hint">
+              CSV: name, phone columns | VCF: Google Contacts export format
+            </div>
+          </div>
+
+          {previewData.length > 0 && (
+            <div className="import-preview">
+              <div className="preview-header">
+                <h4>Preview ({previewData.length} contacts)</h4>
+                <button className="clear-btn" onClick={clearPreview}>Clear</button>
+              </div>
+              
+              <div className="preview-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Phone</th>
+                      <th>Email</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.slice(0, 5).map((contact, i) => (
+                      <tr key={i}>
+                        <td>{contact.name || '-'}</td>
+                        <td>{contact.phone}</td>
+                        <td>{contact.email || '-'}</td>
+                      </tr>
+                    ))}
+                    {previewData.length > 5 && (
+                      <tr>
+                        <td colSpan={3} className="more-rows">
+                          ... and {previewData.length - 5} more
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <button 
+                className="import-btn"
+                onClick={handleImport}
+                disabled={importing}
+              >
+                {importing ? 'Importing...' : `Import ${previewData.length} Contacts`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+
+      {/* Google Contacts Tab */}
+      {activeTab === 'google' && (
+        <div className="google-import">
+          {googleContacts.length === 0 ? (
+            <>
+              <div className="google-info">
+                <p>Import contacts directly from your Google account, or export from Google Contacts as VCF/CSV.</p>
+                <div className="google-options">
+                  <button 
+                    className="google-btn"
+                    onClick={handleGoogleImport}
+                    disabled={googleLoading}
+                  >
+                    {googleLoading ? 'Connecting...' : 'G Connect Google Account'}
+                  </button>
+                  <span className="or-divider">or</span>
+                  <a 
+                    href="https://contacts.google.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="google-link"
+                  >
+                    Export from Google Contacts →
+                  </a>
+                </div>
+                {googleError && <div className="google-error">{googleError}</div>}
+                <div className="google-hint">
+                  <strong>To export from Google:</strong>
+                  <ol>
+                    <li>Go to contacts.google.com</li>
+                    <li>Select contacts or "All contacts"</li>
+                    <li>Click ⋮ → Export → Google CSV or vCard</li>
+                    <li>Use CSV/VCF tab to import the file</li>
+                  </ol>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="google-contacts-list">
+              <div className="preview-header">
+                <h4>{googleContacts.length} contacts found</h4>
+                <button className="clear-btn" onClick={selectAllGoogle}>
+                  {selectedGoogleContacts.size === googleContacts.length ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+              
+              <div className="google-contacts-scroll">
+                {googleContacts.map((contact, i) => (
+                  <label key={i} className="google-contact-row">
+                    <input 
+                      type="checkbox"
+                      checked={selectedGoogleContacts.has(i)}
+                      onChange={() => toggleGoogleContact(i)}
+                    />
+                    <div className="google-contact-info">
+                      <span className="google-contact-name">{contact.name || 'No name'}</span>
+                      <span className="google-contact-details">
+                        {contact.phone} {contact.email && `• ${contact.email}`}
+                      </span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              
+              <button 
+                className="import-btn"
+                onClick={importSelectedGoogleContacts}
+                disabled={importing || selectedGoogleContacts.size === 0}
+              >
+                {importing ? 'Importing...' : `Import ${selectedGoogleContacts.size} Contacts`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+
+      {/* Import Result */}
       {importResult && (
         <div className={`import-result ${importResult.failed > 0 ? 'has-errors' : 'success'}`}>
           <div className="import-stats">
@@ -185,6 +569,7 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
           border-radius: 12px;
           padding: 20px;
           border: 1px solid #e5e7eb;
+          margin-bottom: 20px;
         }
         .section-header {
           display: flex;
@@ -196,6 +581,125 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
           font-size: 16px;
           font-weight: 600;
           margin: 0;
+        }
+        .export-btn {
+          background: #f3f4f6;
+          border: 1px solid #e5e7eb;
+          padding: 8px 14px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 13px;
+          transition: all 0.2s;
+        }
+        .export-btn:hover {
+          background: #e5e7eb;
+        }
+        
+        /* Tabs */
+        .import-tabs {
+          display: flex;
+          gap: 4px;
+          margin-bottom: 16px;
+          background: #f3f4f6;
+          padding: 4px;
+          border-radius: 10px;
+        }
+        .import-tab {
+          flex: 1;
+          padding: 10px 16px;
+          border: none;
+          background: transparent;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 500;
+          color: #6b7280;
+          transition: all 0.2s;
+        }
+        .import-tab:hover {
+          color: #374151;
+        }
+        .import-tab.active {
+          background: #fff;
+          color: #25d366;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        /* Manual Entry */
+        .manual-entry {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .form-row {
+          display: flex;
+          gap: 12px;
+        }
+        .form-field {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .form-field label {
+          font-size: 12px;
+          font-weight: 500;
+          color: #6b7280;
+        }
+        .form-field input {
+          padding: 10px 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          font-size: 14px;
+        }
+        .form-field input:focus {
+          outline: none;
+          border-color: #25d366;
+        }
+        .checkbox-inline {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          font-size: 13px;
+        }
+        .checkbox-inline input {
+          width: 16px;
+          height: 16px;
+        }
+
+        
+        /* Import Zone */
+        .import-zone {
+          border: 2px dashed #e5e7eb;
+          border-radius: 12px;
+          padding: 32px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .import-zone:hover, .import-zone.dragging {
+          border-color: #25d366;
+          background: #f0fdf4;
+        }
+        .import-zone-icon {
+          font-size: 32px;
+          margin-bottom: 8px;
+        }
+        .import-zone-text {
+          font-size: 14px;
+          font-weight: 500;
+          color: #374151;
+          margin-bottom: 4px;
+        }
+        .import-zone-hint {
+          font-size: 12px;
+          color: #9ca3af;
+        }
+        
+        /* Preview */
+        .import-preview {
+          margin-top: 16px;
         }
         .preview-header {
           display: flex;
@@ -244,6 +748,8 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
           color: #9ca3af;
           font-style: italic;
         }
+        
+        /* Import Button */
         .import-btn {
           width: 100%;
           padding: 12px;
@@ -263,6 +769,136 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
           background: #9ca3af;
           cursor: not-allowed;
         }
+
+        
+        /* Google Import */
+        .google-import {
+          padding: 8px 0;
+        }
+        .google-info {
+          text-align: center;
+        }
+        .google-info p {
+          font-size: 14px;
+          color: #6b7280;
+          margin-bottom: 16px;
+        }
+        .google-options {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+        .google-btn {
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          padding: 12px 20px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: all 0.2s;
+        }
+        .google-btn:hover:not(:disabled) {
+          border-color: #4285f4;
+          background: #f8faff;
+        }
+        .google-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .or-divider {
+          color: #9ca3af;
+          font-size: 13px;
+        }
+        .google-link {
+          color: #4285f4;
+          font-size: 13px;
+          text-decoration: none;
+        }
+        .google-link:hover {
+          text-decoration: underline;
+        }
+        .google-error {
+          background: #fef2f2;
+          color: #dc2626;
+          padding: 10px 14px;
+          border-radius: 8px;
+          font-size: 13px;
+          margin-bottom: 16px;
+        }
+        .google-hint {
+          text-align: left;
+          background: #f9fafb;
+          padding: 16px;
+          border-radius: 8px;
+          font-size: 13px;
+          color: #6b7280;
+        }
+        .google-hint strong {
+          display: block;
+          margin-bottom: 8px;
+          color: #374151;
+        }
+        .google-hint ol {
+          margin: 0;
+          padding-left: 20px;
+        }
+        .google-hint li {
+          margin-bottom: 4px;
+        }
+        
+        /* Google Contacts List */
+        .google-contacts-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .google-contacts-scroll {
+          max-height: 300px;
+          overflow-y: auto;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+        }
+        .google-contact-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          cursor: pointer;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .google-contact-row:hover {
+          background: #f9fafb;
+        }
+        .google-contact-row:last-child {
+          border-bottom: none;
+        }
+        .google-contact-row input {
+          width: 16px;
+          height: 16px;
+        }
+        .google-contact-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .google-contact-name {
+          font-size: 14px;
+          font-weight: 500;
+        }
+        .google-contact-details {
+          font-size: 12px;
+          color: #6b7280;
+        }
+
+        
+        /* Import Result */
         .import-result {
           margin-top: 16px;
           padding: 16px;
@@ -273,6 +909,26 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
         .import-result.has-errors {
           background: #fef3c7;
           border-color: #fcd34d;
+        }
+        .import-stats {
+          display: flex;
+          gap: 24px;
+          justify-content: center;
+        }
+        .import-stat {
+          text-align: center;
+        }
+        .import-stat-value {
+          font-size: 24px;
+          font-weight: 700;
+          color: #166534;
+        }
+        .import-result.has-errors .import-stat-value {
+          color: #92400e;
+        }
+        .import-stat-label {
+          font-size: 12px;
+          color: #6b7280;
         }
         .import-errors {
           margin-top: 12px;
@@ -285,6 +941,18 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
         }
         .import-errors li {
           margin-bottom: 4px;
+        }
+        
+        @media (max-width: 640px) {
+          .form-row {
+            flex-direction: column;
+          }
+          .google-options {
+            flex-direction: column;
+          }
+          .import-tabs {
+            flex-wrap: wrap;
+          }
         }
       `}</style>
     </div>
