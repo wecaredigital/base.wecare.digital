@@ -7,12 +7,6 @@
  * 
  * Public pages: /, /access
  * Protected pages: /dashboard/*, /pay/*, /dm/*, etc.
- * 
- * Auth Flow:
- * 1. User visits /access to login
- * 2. After login, redirected to /dashboard
- * 3. All protected pages use Authenticator to verify session
- * 4. If session exists, page renders; if not, shows login
  */
 
 import type { AppProps } from 'next/app';
@@ -85,8 +79,8 @@ const LoadingScreen = () => (
   </div>
 );
 
-// Protected page wrapper - uses Authenticator context
-function ProtectedPage({ Component, pageProps }: { Component: any; pageProps: any }) {
+// Inner app component that uses auth context
+function AppContent({ Component, pageProps, isPublicPage }: { Component: any; pageProps: any; isPublicPage: boolean }) {
   const router = useRouter();
   const { user, signOut, authStatus } = useAuthenticator((context) => [context.user, context.authStatus]);
 
@@ -96,12 +90,17 @@ function ProtectedPage({ Component, pageProps }: { Component: any; pageProps: an
     router.push('/');
   };
 
+  // Public pages - render without auth check
+  if (isPublicPage) {
+    return <Component {...pageProps} />;
+  }
+
   // Show loading while checking auth
   if (authStatus === 'configuring') {
     return <LoadingScreen />;
   }
 
-  // If authenticated, render the page
+  // Authenticated - render protected page
   if (authStatus === 'authenticated' && user) {
     return (
       <>
@@ -111,7 +110,7 @@ function ProtectedPage({ Component, pageProps }: { Component: any; pageProps: an
     );
   }
 
-  // Not authenticated - Authenticator will show login form
+  // Not authenticated - show nothing (Authenticator will show login)
   return null;
 }
 
@@ -140,7 +139,7 @@ export default function App({ Component, pageProps }: AppProps) {
   }
 
   return (
-    <>
+    <Authenticator.Provider>
       <Head>
         <title>WECARE.DIGITAL</title>
         <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
@@ -149,31 +148,29 @@ export default function App({ Component, pageProps }: AppProps) {
       </Head>
       
       {isPublicPage ? (
-        // Public pages - no auth required
-        <Component {...pageProps} />
+        // Public pages - just render
+        <AppContent Component={Component} pageProps={pageProps} isPublicPage={true} />
       ) : (
-        // Protected pages - wrapped in Authenticator
-        <Authenticator.Provider>
-          <Authenticator
-            hideSignUp={true}
-            components={{
-              Header() {
-                return (
-                  <div style={{ textAlign: 'center', padding: '20px' }}>
-                    <h1 style={{ fontSize: '24px', fontWeight: 300, color: '#1a1a1a', fontFamily: "'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
-                      WECARE.DIGITAL
-                    </h1>
-                    <p style={{ color: '#666', fontSize: '14px' }}>Admin Platform</p>
-                  </div>
-                );
-              }
-            }}
-          >
-            <ProtectedPage Component={Component} pageProps={pageProps} />
-          </Authenticator>
-        </Authenticator.Provider>
+        // Protected pages - wrap in Authenticator for login UI
+        <Authenticator
+          hideSignUp={true}
+          components={{
+            Header() {
+              return (
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  <h1 style={{ fontSize: '24px', fontWeight: 300, color: '#1a1a1a', fontFamily: "'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+                    WECARE.DIGITAL
+                  </h1>
+                  <p style={{ color: '#666', fontSize: '14px' }}>Admin Platform</p>
+                </div>
+              );
+            }
+          }}
+        >
+          <AppContent Component={Component} pageProps={pageProps} isPublicPage={false} />
+        </Authenticator>
       )}
-    </>
+    </Authenticator.Provider>
   );
 }
 
