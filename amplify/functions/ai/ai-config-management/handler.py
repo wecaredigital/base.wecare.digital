@@ -88,8 +88,23 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     - GET /ai/stats - Get AI usage statistics
     """
     request_id = context.aws_request_id if context else 'local'
-    http_method = event.get('httpMethod', 'GET')
-    path = event.get('path', '')
+    
+    # Handle both API Gateway v1 (REST) and v2 (HTTP) event formats
+    request_context = event.get('requestContext', {})
+    
+    # API Gateway v2 (HTTP API) format
+    if 'http' in request_context:
+        http_method = request_context.get('http', {}).get('method', 'GET')
+        path = request_context.get('http', {}).get('path', '')
+    else:
+        # API Gateway v1 (REST API) format
+        http_method = event.get('httpMethod', 'GET')
+        path = event.get('path', '')
+    
+    # Also check rawPath for HTTP API
+    if not path:
+        path = event.get('rawPath', '')
+    
     path_params = event.get('pathParameters') or {}
     query_params = event.get('queryStringParameters') or {}
     
@@ -97,6 +112,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         'event': 'ai_config_request',
         'method': http_method,
         'path': path,
+        'rawPath': event.get('rawPath', ''),
         'requestId': request_id
     }))
     
