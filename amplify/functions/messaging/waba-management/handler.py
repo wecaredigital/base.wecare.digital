@@ -18,6 +18,7 @@ import logging
 import boto3
 from typing import Dict, Any, List, Optional
 from decimal import Decimal
+from datetime import datetime
 
 # Configure logging
 logger = logging.getLogger()
@@ -37,6 +38,28 @@ CORS_HEADERS = {
     'Access-Control-Allow-Headers': 'Content-Type,Authorization',
     'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
 }
+
+
+def _serialize_value(val):
+    """Convert datetime and other non-JSON-serializable types to strings."""
+    if isinstance(val, datetime):
+        return val.isoformat()
+    if isinstance(val, Decimal):
+        return float(val)
+    return val
+
+
+def _serialize_dict(d: Dict) -> Dict:
+    """Recursively serialize a dictionary for JSON."""
+    result = {}
+    for k, v in d.items():
+        if isinstance(v, dict):
+            result[k] = _serialize_dict(v)
+        elif isinstance(v, list):
+            result[k] = [_serialize_dict(i) if isinstance(i, dict) else _serialize_value(i) for i in v]
+        else:
+            result[k] = _serialize_value(v)
+    return result
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -134,13 +157,14 @@ def _list_wabas(request_id: str) -> Dict[str, Any]:
             response = social_messaging.list_linked_whatsapp_business_accounts(**params)
             
             for account in response.get('linkedAccounts', []):
+                link_date = account.get('linkDate')
                 wabas.append({
                     'id': account.get('id', ''),
                     'wabaId': account.get('wabaId', ''),
                     'wabaName': account.get('wabaName', ''),
                     'arn': account.get('arn', ''),
                     'registrationStatus': account.get('registrationStatus', ''),
-                    'linkDate': account.get('linkDate'),
+                    'linkDate': link_date.isoformat() if isinstance(link_date, datetime) else link_date,
                     'enableSending': account.get('enableSending', False),
                     'enableReceiving': account.get('enableReceiving', False),
                     'eventDestinations': account.get('eventDestinations', [])
@@ -206,13 +230,14 @@ def _get_waba_details(waba_id: str, request_id: str) -> Dict[str, Any]:
                 'arn': phone.get('arn', '')
             })
         
+        link_date = account.get('linkDate')
         waba_details = {
             'id': account.get('id', ''),
             'wabaId': account.get('wabaId', ''),
             'wabaName': account.get('wabaName', ''),
             'arn': account.get('arn', ''),
             'registrationStatus': account.get('registrationStatus', ''),
-            'linkDate': account.get('linkDate'),
+            'linkDate': link_date.isoformat() if isinstance(link_date, datetime) else link_date,
             'enableSending': account.get('enableSending', False),
             'enableReceiving': account.get('enableReceiving', False),
             'eventDestinations': account.get('eventDestinations', []),
