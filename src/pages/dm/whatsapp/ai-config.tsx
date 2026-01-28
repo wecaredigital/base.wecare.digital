@@ -1,11 +1,18 @@
 /**
- * Bedrock AI Configuration Page
+ * External AI Configuration Page (WhatsApp Auto-Reply)
  * 
- * Control AI auto-reply settings for WhatsApp messages:
+ * Control AI auto-reply settings for WhatsApp messages (customer-facing):
  * - Enable/disable AI responses
  * - Configure which message types trigger AI
  * - Set language-specific prompts and fallbacks
  * - View AI interaction logs and statistics
+ * 
+ * External Agent/KB (Customer-Facing):
+ * - Agent ID: JDXIOU2UR9
+ * - Agent Alias: AQVQPGYXRR
+ * - KB ID: CTH8DH3RXY
+ * 
+ * Note: For Internal AI (FloatingAgent admin tasks), go to Dashboard → AI
  */
 
 import { useState, useEffect } from 'react';
@@ -125,11 +132,22 @@ export default function AIConfigPage() {
       <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <span style={{ padding: '0.25rem 0.5rem', background: '#dcfce7', color: '#166534', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 600 }}>
+              EXTERNAL
+            </span>
+            <span style={{ padding: '0.25rem 0.5rem', background: '#dbeafe', color: '#1e40af', borderRadius: '0.25rem', fontSize: '0.75rem' }}>
+              Customer-Facing
+            </span>
+          </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-            🤖 Bedrock AI Configuration
+            🤖 WhatsApp AI Auto-Reply
           </h1>
           <p style={{ color: '#666', fontSize: '0.9rem' }}>
-            Control AI auto-reply settings for WhatsApp messages
+            Control AI auto-reply settings for WhatsApp messages (customer-facing)
+          </p>
+          <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+            Agent: JDXIOU2UR9 | KB: CTH8DH3RXY | For internal admin AI, go to Dashboard → AI
           </p>
         </div>
 

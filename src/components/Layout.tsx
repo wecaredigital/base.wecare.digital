@@ -47,6 +47,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       { path: '/dashboard/payments', label: 'Payments' },
       { path: '/dashboard/data', label: 'Data' },
       { path: '/dashboard/billing', label: 'Billing' },
+      { path: '/dashboard/ai', label: 'AI Assistant' },
     ]},
     { path: '/pay', label: 'Pay', icon: '₹', subItems: [
       { path: '/pay/wa', label: 'WhatsApp' },

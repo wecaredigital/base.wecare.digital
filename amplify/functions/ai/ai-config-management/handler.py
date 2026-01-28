@@ -111,7 +111,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Route handling
         if http_method == 'GET':
-            if '/ai/config' in path:
+            # Internal AI config (FloatingAgent - admin tasks)
+            if '/ai/internal/config' in path:
+                return _get_internal_config(request_id)
+            # External AI config (WhatsApp auto-reply)
+            elif '/ai/config' in path:
                 return _get_config(request_id)
             elif '/ai/prompts' in path:
                 lang = path_params.get('lang')
@@ -127,7 +131,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return _get_languages(request_id)
         
         elif http_method == 'PUT':
-            if '/ai/config' in path:
+            # Internal AI config
+            if '/ai/internal/config' in path:
+                return _update_internal_config(body, request_id)
+            # External AI config
+            elif '/ai/config' in path:
                 return _update_config(body, request_id)
             elif '/ai/prompts' in path:
                 lang = path_params.get('lang') or body.get('language')
@@ -500,3 +508,96 @@ def _error_response(status_code: int, message: str) -> Dict[str, Any]:
         'headers': CORS_HEADERS,
         'body': json.dumps({'error': message})
     }
+
+
+# ============================================================================
+# INTERNAL AI CONFIG (FloatingAgent - Admin Tasks)
+# ============================================================================
+
+# Default Internal AI configuration
+DEFAULT_INTERNAL_AI_CONFIG = {
+    'enabled': True,
+    'agentId': 'TJAZR473IJ',
+    'agentAlias': 'O4U1HF2MSX',
+    'knowledgeBaseId': '7IWHVB0ZXQ',
+    'modelId': 'amazon.nova-lite-v1:0',
+    'maxTokens': 1024,
+    'temperature': 0.7,
+    'systemPrompt': '''You are WECARE.DIGITAL's internal admin assistant.
+Help operators with:
+- Sending WhatsApp messages
+- Finding and managing contacts
+- Checking message statistics
+- Answering questions about the platform''',
+}
+
+
+def _get_internal_config(request_id: str) -> Dict[str, Any]:
+    """Get Internal AI configuration (FloatingAgent)."""
+    try:
+        config_table = dynamodb.Table(SYSTEM_CONFIG_TABLE)
+        response = config_table.get_item(Key={'configKey': 'ai_internal_config'})
+        
+        if 'Item' in response:
+            config_value = response['Item'].get('configValue', '{}')
+            config = json.loads(config_value) if isinstance(config_value, str) else config_value
+        else:
+            config = DEFAULT_INTERNAL_AI_CONFIG.copy()
+            # Store default config
+            config_table.put_item(Item={
+                'configKey': 'ai_internal_config',
+                'configValue': json.dumps(config),
+                'updatedAt': Decimal(str(int(time.time())))
+            })
+        
+        return {
+            'statusCode': 200,
+            'headers': CORS_HEADERS,
+            'body': json.dumps({'config': config})
+        }
+    except Exception as e:
+        logger.error(f'Failed to get internal AI config: {str(e)}')
+        return {
+            'statusCode': 200,
+            'headers': CORS_HEADERS,
+            'body': json.dumps({'config': DEFAULT_INTERNAL_AI_CONFIG})
+        }
+
+
+def _update_internal_config(body: Dict, request_id: str) -> Dict[str, Any]:
+    """Update Internal AI configuration (FloatingAgent)."""
+    try:
+        config_table = dynamodb.Table(SYSTEM_CONFIG_TABLE)
+        
+        # Get existing config
+        response = config_table.get_item(Key={'configKey': 'ai_internal_config'})
+        if 'Item' in response:
+            existing = json.loads(response['Item'].get('configValue', '{}'))
+        else:
+            existing = DEFAULT_INTERNAL_AI_CONFIG.copy()
+        
+        # Merge updates
+        for key, value in body.items():
+            if key in DEFAULT_INTERNAL_AI_CONFIG:
+                existing[key] = value
+        
+        # Save updated config
+        config_table.put_item(Item={
+            'configKey': 'ai_internal_config',
+            'configValue': json.dumps(existing),
+            'updatedAt': Decimal(str(int(time.time())))
+        })
+        
+        logger.info(json.dumps({
+            'event': 'internal_ai_config_updated',
+            'enabled': existing.get('enabled'),
+            'requestId': request_id
+        }))
+        
+        return {
+            'statusCode': 200,
+            'headers': CORS_HEADERS,
+            'body': json.dumps({'success': True, 'config': existing})
+        }
+    except Exception as e:
+        return _error_response(500, f'Failed to update internal config: {str(e)}')
