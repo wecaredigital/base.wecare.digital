@@ -485,15 +485,18 @@ def _handle_interactive_send(message_id: str, contact_id: str, recipient_phone: 
                               phone_number_id: str, interactive_type: str,
                               interactive_data: Dict, request_id: str) -> Dict[str, Any]:
     """
-    Send interactive messages (list, buttons, location request).
+    Send interactive messages (list, buttons, location request, CTA URL).
     
     Interactive Types:
     - list: Up to 10 sections with rows (max 10 rows total)
     - button: Up to 3 quick reply buttons
     - location_request: Request user's location
+    - cta_url: Call-to-action URL button
+    - flow: WhatsApp Flow trigger (if supported)
     
     Per WhatsApp Business API docs:
     https://developers.facebook.com/docs/whatsapp/guides/interactive-messages/
+    https://developers.facebook.com/docs/whatsapp/cloud-api/messages/interactive-cta-url-messages/
     """
     try:
         # Normalize phone number
@@ -613,6 +616,101 @@ def _handle_interactive_send(message_id: str, contact_id: str, recipient_phone: 
                 'body': {'text': body_text},
                 'action': {'name': 'send_location'}
             }
+            
+            payload['interactive'] = interactive_payload
+        
+        elif interactive_type == 'cta_url':
+            # Call-to-action URL button message
+            # Per Meta docs: https://developers.facebook.com/docs/whatsapp/cloud-api/messages/interactive-cta-url-messages/
+            header_text = interactive_data.get('header', '')
+            header_type = interactive_data.get('headerType', 'text')
+            body_text = interactive_data.get('body', 'Click the button below')
+            footer_text = interactive_data.get('footer', '')
+            button_text = interactive_data.get('buttonText', 'Visit')[:20]  # Max 20 chars
+            url = interactive_data.get('url', '')
+            
+            if not url:
+                return _error_response(400, 'url is required for cta_url type')
+            
+            interactive_payload = {
+                'type': 'cta_url',
+                'body': {'text': body_text},
+                'action': {
+                    'name': 'cta_url',
+                    'parameters': {
+                        'display_text': button_text,
+                        'url': url
+                    }
+                }
+            }
+            
+            # Add header if provided
+            if header_text:
+                if header_type == 'text':
+                    interactive_payload['header'] = {'type': 'text', 'text': header_text}
+                elif header_type == 'image':
+                    interactive_payload['header'] = {
+                        'type': 'image',
+                        'image': {'link': interactive_data.get('headerMedia', '')}
+                    }
+                elif header_type == 'video':
+                    interactive_payload['header'] = {
+                        'type': 'video',
+                        'video': {'link': interactive_data.get('headerMedia', '')}
+                    }
+            
+            # Add footer if provided
+            if footer_text:
+                interactive_payload['footer'] = {'text': footer_text}
+            
+            payload['interactive'] = interactive_payload
+        
+        elif interactive_type == 'flow':
+            # WhatsApp Flow trigger message
+            # Per Meta docs: https://developers.facebook.com/docs/whatsapp/flows/
+            header_text = interactive_data.get('header', '')
+            body_text = interactive_data.get('body', 'Start the flow')
+            footer_text = interactive_data.get('footer', '')
+            flow_id = interactive_data.get('flowId', '')
+            flow_cta = interactive_data.get('flowCta', 'Start')[:20]
+            flow_action = interactive_data.get('flowAction', 'navigate')  # navigate or data_exchange
+            flow_token = interactive_data.get('flowToken', str(uuid.uuid4()))
+            screen_id = interactive_data.get('screenId', '')  # First screen to show
+            flow_data = interactive_data.get('flowData', {})  # Data to pass to flow
+            
+            if not flow_id:
+                return _error_response(400, 'flowId is required for flow type')
+            
+            interactive_payload = {
+                'type': 'flow',
+                'body': {'text': body_text},
+                'action': {
+                    'name': 'flow',
+                    'parameters': {
+                        'flow_message_version': '3',
+                        'flow_token': flow_token,
+                        'flow_id': flow_id,
+                        'flow_cta': flow_cta,
+                        'flow_action': flow_action
+                    }
+                }
+            }
+            
+            # Add screen and data if provided
+            if screen_id:
+                interactive_payload['action']['parameters']['flow_action_payload'] = {
+                    'screen': screen_id
+                }
+                if flow_data:
+                    interactive_payload['action']['parameters']['flow_action_payload']['data'] = flow_data
+            
+            # Add header if provided
+            if header_text:
+                interactive_payload['header'] = {'type': 'text', 'text': header_text}
+            
+            # Add footer if provided
+            if footer_text:
+                interactive_payload['footer'] = {'text': footer_text}
             
             payload['interactive'] = interactive_payload
             

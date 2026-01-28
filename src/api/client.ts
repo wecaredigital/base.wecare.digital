@@ -326,7 +326,7 @@ export interface InteractiveButton {
 export interface SendInteractiveRequest {
   contactId: string;
   phoneNumberId?: string;
-  interactiveType: 'list' | 'button' | 'location_request';
+  interactiveType: 'list' | 'button' | 'location_request' | 'cta_url' | 'flow';
   interactiveData: {
     header?: string;
     headerType?: 'text' | 'image' | 'video' | 'document';
@@ -334,13 +334,22 @@ export interface SendInteractiveRequest {
     headerFilename?: string;
     body: string;
     footer?: string;
-    buttonText?: string;  // For list messages
+    buttonText?: string;  // For list messages, CTA URL, and Flow
     sections?: InteractiveListSection[];  // For list messages
     buttons?: InteractiveButton[];  // For button messages
+    url?: string;  // For CTA URL messages
+    // Flow-specific fields
+    flowId?: string;
+    flowCta?: string;
+    flowAction?: 'navigate' | 'data_exchange';
+    flowToken?: string;
+    flowScreen?: string;  // Initial screen to display
+    screenId?: string;
+    flowData?: Record<string, any>;
   };
 }
 
-// Send interactive WhatsApp message (list, buttons, location request)
+// Send interactive WhatsApp message (list, buttons, location request, CTA URL, flow)
 export async function sendWhatsAppInteractive(request: SendInteractiveRequest): Promise<{ messageId: string; status: string; interactiveType: string } | null> {
   return apiCall<{ messageId: string; status: string; interactiveType: string }>(`${API_BASE}/whatsapp/send`, {
     method: 'POST',
@@ -352,6 +361,74 @@ export async function sendWhatsAppInteractive(request: SendInteractiveRequest): 
       interactiveData: request.interactiveData,
     }),
   });
+}
+
+// ============================================================================
+// CAROUSEL TEMPLATE API
+// ============================================================================
+
+export interface CarouselCardButton {
+  type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER';
+  text: string;
+  url?: string;
+  phoneNumber?: string;
+}
+
+export interface CarouselCard {
+  headerHandle?: string;  // From uploadCarouselCardMedia
+  headerType?: 'image' | 'video';
+  bodyText: string;
+  buttons?: CarouselCardButton[];
+}
+
+export interface CreateCarouselTemplateRequest {
+  name: string;
+  language?: string;
+  category?: 'MARKETING' | 'UTILITY';
+  bodyText: string;
+  cards: CarouselCard[];
+  wabaId?: string;
+}
+
+// Upload media for carousel card header
+export async function uploadCarouselCardMedia(
+  mediaBase64: string,
+  contentType: string = 'image/jpeg',
+  cardIndex: number = 0,
+  wabaId?: string
+): Promise<{ headerHandle: string; s3Key: string; cardIndex: number } | null> {
+  const params = new URLSearchParams();
+  if (wabaId) params.append('wabaId', wabaId);
+  
+  return apiCall<{ headerHandle: string; s3Key: string; cardIndex: number }>(
+    `${API_BASE}/templates/carousel-media${params.toString() ? '?' + params : ''}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ mediaBase64, contentType, cardIndex }),
+    }
+  );
+}
+
+// Create carousel template
+export async function createCarouselTemplate(
+  request: CreateCarouselTemplateRequest
+): Promise<{ metaTemplateId: string; templateStatus: string; templateType: string; cardCount: number } | null> {
+  const params = new URLSearchParams();
+  if (request.wabaId) params.append('wabaId', request.wabaId);
+  
+  return apiCall<{ metaTemplateId: string; templateStatus: string; templateType: string; cardCount: number }>(
+    `${API_BASE}/templates/carousel${params.toString() ? '?' + params : ''}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        name: request.name,
+        language: request.language || 'en',
+        category: request.category || 'MARKETING',
+        bodyText: request.bodyText,
+        cards: request.cards,
+      }),
+    }
+  );
 }
 
 export async function sendSmsMessage(contactId: string, content: string): Promise<{ messageId: string; status: string } | null> {
@@ -1847,4 +1924,240 @@ export async function untagWABAResource(resourceArn: string, tagKeys: string[]):
     body: JSON.stringify({ resourceArn, tagKeys }),
   });
   return data?.success === true;
+}
+
+
+// ============================================================================
+// TEMPLATE ANALYTICS API
+// ============================================================================
+
+export interface TemplateAnalytics {
+  templateName: string;
+  language: string;
+  totalSent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+  deliveryRate: number;
+  readRate: number;
+  lastSent?: string;
+  buttonClicks?: Record<string, number>;
+}
+
+export interface TemplateAnalyticsSummary {
+  totalTemplatesSent: number;
+  avgDeliveryRate: number;
+  avgReadRate: number;
+  topTemplates: TemplateAnalytics[];
+  byCategory: Record<string, number>;
+}
+
+/**
+ * Get analytics for a specific template
+ * API: GET /templates/analytics/{templateName}
+ */
+export async function getTemplateAnalytics(templateName: string, wabaId?: string): Promise<TemplateAnalytics | null> {
+  let url = `${API_BASE}/templates/analytics/${templateName}`;
+  if (wabaId) url += `?wabaId=${wabaId}`;
+  
+  const data = await apiCall<any>(url);
+  if (data) {
+    return {
+      templateName: data.templateName || templateName,
+      language: data.language || 'en_US',
+      totalSent: data.totalSent || 0,
+      delivered: data.delivered || 0,
+      read: data.read || 0,
+      failed: data.failed || 0,
+      deliveryRate: data.deliveryRate || 0,
+      readRate: data.readRate || 0,
+      lastSent: data.lastSent,
+      buttonClicks: data.buttonClicks,
+    };
+  }
+  return null;
+}
+
+/**
+ * Get analytics summary for all templates
+ * API: GET /templates/analytics
+ */
+export async function getTemplateAnalyticsSummary(wabaId?: string): Promise<TemplateAnalyticsSummary> {
+  let url = `${API_BASE}/templates/analytics`;
+  if (wabaId) url += `?wabaId=${wabaId}`;
+  
+  const data = await apiCall<any>(url);
+  if (data) {
+    return {
+      totalTemplatesSent: data.totalTemplatesSent || 0,
+      avgDeliveryRate: data.avgDeliveryRate || 0,
+      avgReadRate: data.avgReadRate || 0,
+      topTemplates: data.topTemplates || [],
+      byCategory: data.byCategory || {},
+    };
+  }
+  return { totalTemplatesSent: 0, avgDeliveryRate: 0, avgReadRate: 0, topTemplates: [], byCategory: {} };
+}
+
+// ============================================================================
+// SCHEDULED MESSAGES API
+// ============================================================================
+
+export interface ScheduledMessage {
+  id: string;
+  scheduledId: string;
+  contactId: string;
+  contactName?: string;
+  contactPhone?: string;
+  templateName: string;
+  templateParams: string[];
+  phoneNumberId: string;
+  scheduledAt: string;  // ISO timestamp
+  status: 'PENDING' | 'SENT' | 'FAILED' | 'CANCELLED';
+  createdAt: string;
+  sentAt?: string;
+  errorMessage?: string;
+}
+
+/**
+ * Schedule a template message for later delivery
+ * API: POST /messages/scheduled
+ */
+export async function scheduleTemplateMessage(request: {
+  contactId: string;
+  templateName: string;
+  templateParams?: string[];
+  phoneNumberId?: string;
+  scheduledAt: string;  // ISO timestamp
+}): Promise<ScheduledMessage | null> {
+  const data = await apiCall<any>(`${API_BASE}/messages/scheduled`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+  if (data) {
+    return normalizeScheduledMessage(data);
+  }
+  return null;
+}
+
+/**
+ * List scheduled messages
+ * API: GET /messages/scheduled
+ */
+export async function listScheduledMessages(status?: string): Promise<ScheduledMessage[]> {
+  let url = `${API_BASE}/messages/scheduled`;
+  if (status) url += `?status=${status}`;
+  
+  const data = await apiCall<any>(url);
+  if (data && data.scheduledMessages) {
+    return data.scheduledMessages.map(normalizeScheduledMessage);
+  }
+  return [];
+}
+
+/**
+ * Cancel a scheduled message
+ * API: DELETE /messages/scheduled/{scheduledId}
+ */
+export async function cancelScheduledMessage(scheduledId: string): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/messages/scheduled/${scheduledId}`, {
+    method: 'DELETE',
+  });
+  return data?.success === true || data !== null;
+}
+
+/**
+ * Update a scheduled message
+ * API: PUT /messages/scheduled/{scheduledId}
+ */
+export async function updateScheduledMessage(scheduledId: string, updates: {
+  scheduledAt?: string;
+  templateParams?: string[];
+}): Promise<ScheduledMessage | null> {
+  const data = await apiCall<any>(`${API_BASE}/messages/scheduled/${scheduledId}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  });
+  if (data) {
+    return normalizeScheduledMessage(data);
+  }
+  return null;
+}
+
+function normalizeScheduledMessage(item: any): ScheduledMessage {
+  return {
+    id: item.id || item.scheduledId || '',
+    scheduledId: item.scheduledId || item.id || '',
+    contactId: item.contactId || '',
+    contactName: item.contactName,
+    contactPhone: item.contactPhone,
+    templateName: item.templateName || '',
+    templateParams: item.templateParams || [],
+    phoneNumberId: item.phoneNumberId || '',
+    scheduledAt: item.scheduledAt || '',
+    status: item.status || 'PENDING',
+    createdAt: item.createdAt || new Date().toISOString(),
+    sentAt: item.sentAt,
+    errorMessage: item.errorMessage,
+  };
+}
+
+// ============================================================================
+// SEND CAROUSEL TEMPLATE MESSAGE
+// ============================================================================
+
+/**
+ * Send a carousel template message to a contact
+ * Carousel templates have multiple cards with media and buttons
+ * 
+ * API: POST /whatsapp/send with isTemplate=true and carousel components
+ */
+export async function sendCarouselTemplateMessage(request: {
+  contactId: string;
+  templateName: string;
+  language?: string;
+  phoneNumberId?: string;
+  // Body text variables (for the main body above carousel)
+  bodyParams?: string[];
+  // Card-specific variables (array of arrays, one per card)
+  cardParams?: string[][];
+}): Promise<{ messageId: string; status: string } | null> {
+  // Build template components for carousel
+  const components: any[] = [];
+  
+  // Body component with variables
+  if (request.bodyParams && request.bodyParams.length > 0) {
+    components.push({
+      type: 'body',
+      parameters: request.bodyParams.map(text => ({ type: 'text', text }))
+    });
+  }
+  
+  // Carousel card components
+  if (request.cardParams && request.cardParams.length > 0) {
+    request.cardParams.forEach((cardVars, cardIndex) => {
+      if (cardVars && cardVars.length > 0) {
+        components.push({
+          type: 'carousel',
+          card_index: cardIndex,
+          components: [{
+            type: 'body',
+            parameters: cardVars.map(text => ({ type: 'text', text }))
+          }]
+        });
+      }
+    });
+  }
+  
+  return apiCall<{ messageId: string; status: string }>(`${API_BASE}/whatsapp/send`, {
+    method: 'POST',
+    body: JSON.stringify({
+      contactId: request.contactId,
+      isTemplate: true,
+      templateName: request.templateName,
+      templateParams: request.bodyParams || [],
+      phoneNumberId: request.phoneNumberId,
+      components: components.length > 0 ? components : undefined,
+    }),
+  });
 }

@@ -4,6 +4,7 @@
  * - List messages (up to 10 sections with rows)
  * - Reply buttons (up to 3 buttons)
  * - Location request
+ * - CTA URL button (call-to-action with link)
  */
 
 import React, { useState } from 'react';
@@ -33,7 +34,7 @@ interface Button {
   title: string;
 }
 
-type InteractiveType = 'list' | 'button' | 'location_request';
+type InteractiveType = 'list' | 'button' | 'location_request' | 'cta_url' | 'flow';
 
 const InteractiveMessageComposer: React.FC<InteractiveMessageComposerProps> = ({
   contactId,
@@ -60,6 +61,15 @@ const InteractiveMessageComposer: React.FC<InteractiveMessageComposerProps> = ({
   const [sections, setSections] = useState<ListSection[]>([
     { title: 'Options', rows: [{ id: 'row_1', title: '', description: '' }] },
   ]);
+
+  // CTA URL fields
+  const [ctaButtonText, setCtaButtonText] = useState('Visit');
+  const [ctaUrl, setCtaUrl] = useState('');
+
+  // Flow fields
+  const [flowId, setFlowId] = useState('');
+  const [flowButtonText, setFlowButtonText] = useState('Open Form');
+  const [flowScreen, setFlowScreen] = useState('');
 
   const addButton = () => {
     if (buttons.length >= 3) return;
@@ -130,6 +140,21 @@ const InteractiveMessageComposer: React.FC<InteractiveMessageComposerProps> = ({
       return;
     }
 
+    if (messageType === 'cta_url' && !ctaUrl.trim()) {
+      onError('URL is required for CTA button');
+      return;
+    }
+
+    if (messageType === 'cta_url' && !ctaUrl.startsWith('http')) {
+      onError('URL must start with http:// or https://');
+      return;
+    }
+
+    if (messageType === 'flow' && !flowId.trim()) {
+      onError('Flow ID is required');
+      return;
+    }
+
     setSending(true);
     try {
       const interactiveData: api.SendInteractiveRequest['interactiveData'] = {
@@ -153,6 +178,15 @@ const InteractiveMessageComposer: React.FC<InteractiveMessageComposerProps> = ({
             description: r.description.trim().substring(0, 72),
           })),
         })).filter(s => s.rows.length > 0);
+      } else if (messageType === 'cta_url') {
+        interactiveData.buttonText = ctaButtonText.trim().substring(0, 20) || 'Visit';
+        interactiveData.url = ctaUrl.trim();
+      } else if (messageType === 'flow') {
+        interactiveData.flowId = flowId.trim();
+        interactiveData.buttonText = flowButtonText.trim().substring(0, 20) || 'Open Form';
+        if (flowScreen.trim()) {
+          interactiveData.flowScreen = flowScreen.trim();
+        }
       }
 
       const result = await api.sendWhatsAppInteractive({
@@ -198,6 +232,18 @@ const InteractiveMessageComposer: React.FC<InteractiveMessageComposerProps> = ({
             📋 List
           </button>
           <button
+            className={`type-btn ${messageType === 'cta_url' ? 'active' : ''}`}
+            onClick={() => setMessageType('cta_url')}
+          >
+            🔗 CTA URL
+          </button>
+          <button
+            className={`type-btn ${messageType === 'flow' ? 'active' : ''}`}
+            onClick={() => setMessageType('flow')}
+          >
+            📝 Flow
+          </button>
+          <button
             className={`type-btn ${messageType === 'location_request' ? 'active' : ''}`}
             onClick={() => setMessageType('location_request')}
           >
@@ -222,7 +268,10 @@ const InteractiveMessageComposer: React.FC<InteractiveMessageComposerProps> = ({
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder={messageType === 'location_request' ? 'Please share your location' : 'Message body...'}
+            placeholder={messageType === 'location_request' ? 'Please share your location' : 
+                        messageType === 'cta_url' ? 'Click the button below to visit our website' :
+                        messageType === 'flow' ? 'Please fill out the form below' :
+                        'Message body...'}
             rows={3}
             maxLength={1024}
           />
@@ -322,6 +371,75 @@ const InteractiveMessageComposer: React.FC<InteractiveMessageComposerProps> = ({
           </div>
         )}
 
+        {/* CTA URL Fields */}
+        {messageType === 'cta_url' && (
+          <div className="cta-section">
+            <div className="form-group">
+              <label>Button Text *</label>
+              <input
+                type="text"
+                value={ctaButtonText}
+                onChange={(e) => setCtaButtonText(e.target.value)}
+                placeholder="Visit Website"
+                maxLength={20}
+              />
+            </div>
+            <div className="form-group">
+              <label>URL *</label>
+              <input
+                type="url"
+                value={ctaUrl}
+                onChange={(e) => setCtaUrl(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
+            <div className="info-box">
+              <span className="info-icon">💡</span>
+              <span>CTA URL buttons let you share a clickable link without showing the raw URL in the message.</span>
+            </div>
+          </div>
+        )}
+
+        {/* Flow Fields */}
+        {messageType === 'flow' && (
+          <div className="flow-section">
+            <div className="form-group">
+              <label>Flow ID *</label>
+              <input
+                type="text"
+                value={flowId}
+                onChange={(e) => setFlowId(e.target.value)}
+                placeholder="Enter your WhatsApp Flow ID"
+              />
+              <small>Get this from Meta Business Suite → WhatsApp → Flows</small>
+            </div>
+            <div className="form-group">
+              <label>Button Text</label>
+              <input
+                type="text"
+                value={flowButtonText}
+                onChange={(e) => setFlowButtonText(e.target.value)}
+                placeholder="Open Form"
+                maxLength={20}
+              />
+            </div>
+            <div className="form-group">
+              <label>Initial Screen (optional)</label>
+              <input
+                type="text"
+                value={flowScreen}
+                onChange={(e) => setFlowScreen(e.target.value)}
+                placeholder="SCREEN_NAME"
+              />
+              <small>Leave empty to start from the first screen</small>
+            </div>
+            <div className="info-box">
+              <span className="info-icon">📝</span>
+              <span>WhatsApp Flows let you create interactive forms and surveys. Create flows in Meta Business Suite first.</span>
+            </div>
+          </div>
+        )}
+
         {/* Location Request Info */}
         {messageType === 'location_request' && (
           <div className="info-box">
@@ -343,7 +461,7 @@ const InteractiveMessageComposer: React.FC<InteractiveMessageComposerProps> = ({
           position: fixed;
           bottom: 80px;
           right: 20px;
-          width: 380px;
+          width: 400px;
           max-height: 80vh;
           background: white;
           border-radius: 12px;
@@ -377,17 +495,19 @@ const InteractiveMessageComposer: React.FC<InteractiveMessageComposerProps> = ({
         }
         .type-selector {
           display: flex;
-          gap: 8px;
+          gap: 6px;
           margin-bottom: 16px;
+          flex-wrap: wrap;
         }
         .type-btn {
           flex: 1;
-          padding: 10px 8px;
+          min-width: 80px;
+          padding: 10px 6px;
           border: 1px solid #ddd;
           background: #f9f9f9;
           border-radius: 8px;
           cursor: pointer;
-          font-size: 12px;
+          font-size: 11px;
           transition: all 0.2s;
         }
         .type-btn:hover {
@@ -422,7 +542,9 @@ const InteractiveMessageComposer: React.FC<InteractiveMessageComposerProps> = ({
           border-color: #25D366;
         }
         .buttons-section,
-        .list-section {
+        .list-section,
+        .cta-section,
+        .flow-section {
           margin-top: 16px;
         }
         .buttons-section > label,

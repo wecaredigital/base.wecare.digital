@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import Layout from '../../../components/Layout';
 import RichTextEditor from '../../../components/RichTextEditor';
 import InteractiveMessageComposer from '../../../components/InteractiveMessageComposer';
+import TemplateSender from '../../../components/TemplateSender';
 import * as api from '../../../api/client';
 
 interface PageProps {
@@ -36,6 +37,7 @@ interface Contact {
   phone: string;
   hasName: boolean;  // Track if contact has a real name vs using phone as display
   windowOpen: boolean;
+  windowExpiresAt: number;  // Timestamp when window expires
   unread: number;
   lastMessage?: string;
 }
@@ -70,6 +72,12 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
   
   // Interactive message composer state
   const [showInteractiveComposer, setShowInteractiveComposer] = useState(false);
+
+  // Template sender state
+  const [showTemplateSender, setShowTemplateSender] = useState(false);
+
+  // Window countdown state
+  const [windowCountdown, setWindowCountdown] = useState<string>('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -110,6 +118,7 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
             phone: c.phone,
             hasName: !!displayName,  // Track if contact has a real name
             windowOpen: Date.now() < windowEnd,
+            windowExpiresAt: windowEnd,
             unread: contactMsgs.filter(m => m.direction === 'INBOUND' && m.status === 'received').length,
             lastMessage: lastMsg?.content?.substring(0, 40) || '',
           };
@@ -141,6 +150,37 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, [loadData]);
+
+  // Window countdown timer
+  useEffect(() => {
+    if (!selectedContact?.windowOpen || !selectedContact?.windowExpiresAt) {
+      setWindowCountdown('');
+      return;
+    }
+
+    const updateCountdown = () => {
+      const now = Date.now();
+      const remaining = selectedContact.windowExpiresAt - now;
+      
+      if (remaining <= 0) {
+        setWindowCountdown('Expired');
+        return;
+      }
+
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (hours > 0) {
+        setWindowCountdown(`${hours}h ${minutes}m`);
+      } else {
+        setWindowCountdown(`${minutes}m`);
+      }
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, [selectedContact?.windowOpen, selectedContact?.windowExpiresAt]);
 
   const filteredMessages = messages.filter(m => selectedContact && m.contactId === selectedContact.id);
 
@@ -812,7 +852,9 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                     </div>
                   </div>
                   <div className={`window-badge ${selectedContact.windowOpen ? 'open' : 'closed'}`}>
-                    {selectedContact.windowOpen ? '● 24h Window Open' : '○ Window Closed'}
+                    {selectedContact.windowOpen 
+                      ? `● Window Open ${windowCountdown ? `(${windowCountdown})` : ''}` 
+                      : '○ Window Closed - Use Template'}
                   </div>
                 </div>
 
@@ -848,6 +890,20 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                 </div>
 
                 <div className="compose-area">
+                  {/* Window Closed Warning */}
+                  {!selectedContact.windowOpen && (
+                    <div className="window-closed-warning">
+                      <span className="warning-icon">⚠️</span>
+                      <span className="warning-text">24-hour window closed. You can only send template messages.</span>
+                      <button 
+                        className="template-btn"
+                        onClick={() => setShowTemplateSender(true)}
+                      >
+                        📝 Send Template
+                      </button>
+                    </div>
+                  )}
+                  
                   {/* Voice Note Recording UI */}
                   {isRecording ? (
                     <div className="voice-recording">
@@ -883,6 +939,7 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                         className="voice-btn" 
                         onClick={startRecording}
                         title="Record Voice Note"
+                        disabled={!selectedContact.windowOpen}
                       >
                         🎤
                       </button>
@@ -894,15 +951,22 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                       >
                         📋
                       </button>
+                      <button 
+                        className="template-send-btn" 
+                        onClick={() => setShowTemplateSender(true)}
+                        title="Send Template Message"
+                      >
+                        📝
+                      </button>
                       <div className="compose-input">
                         <RichTextEditor
                           value={messageText}
                           onChange={setMessageText}
-                          placeholder="Type a message..."
+                          placeholder={selectedContact.windowOpen ? "Type a message..." : "Window closed - use template"}
                           channel="whatsapp"
                           showAISuggestions={true}
                           onSend={handleSend}
-                          disabled={sending}
+                          disabled={sending || !selectedContact.windowOpen}
                           contactContext={selectedContact.name}
                         />
                       </div>
@@ -915,6 +979,18 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                       contactId={selectedContact.id}
                       phoneNumberId={waId as string}
                       onClose={() => setShowInteractiveComposer(false)}
+                      onSent={() => loadData()}
+                      onError={(msg) => setError(msg)}
+                    />
+                  )}
+                  
+                  {/* Template Sender */}
+                  {showTemplateSender && selectedContact && (
+                    <TemplateSender
+                      contactId={selectedContact.id}
+                      contactName={selectedContact.name}
+                      phoneNumberId={waId as string}
+                      onClose={() => setShowTemplateSender(false)}
                       onSent={() => loadData()}
                       onError={(msg) => setError(msg)}
                     />
@@ -1131,13 +1207,21 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         
         /* Compose area */
         .compose-area { padding: 12px 16px; background: #f0f0f0; }
+        .window-closed-warning { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #fef3c7; border-radius: 8px; margin-bottom: 10px; }
+        .warning-icon { font-size: 16px; }
+        .warning-text { flex: 1; font-size: 13px; color: #92400e; }
+        .template-btn { background: #f59e0b; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; }
+        .template-btn:hover { background: #d97706; }
         .compose-row { display: flex; align-items: flex-end; gap: 8px; }
         .compose-input { flex: 1; }
         .voice-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: #25D366; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
-        .voice-btn:hover { background: #128C7E; transform: scale(1.05); }
+        .voice-btn:hover:not(:disabled) { background: #128C7E; transform: scale(1.05); }
+        .voice-btn:disabled { background: #9ca3af; cursor: not-allowed; opacity: 0.6; }
         .interactive-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: #3b82f6; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
         .interactive-btn:hover:not(:disabled) { background: #2563eb; transform: scale(1.05); }
         .interactive-btn:disabled { background: #9ca3af; cursor: not-allowed; opacity: 0.6; }
+        .template-send-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: #f59e0b; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+        .template-send-btn:hover { background: #d97706; transform: scale(1.05); }
         .voice-recording { display: flex; align-items: center; gap: 12px; background: #fff; padding: 12px 16px; border-radius: 24px; }
         .cancel-record-btn { width: 32px; height: 32px; border-radius: 50%; border: none; background: #ef4444; color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .cancel-record-btn:hover { background: #dc2626; }

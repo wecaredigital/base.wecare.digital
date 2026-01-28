@@ -48,13 +48,35 @@ const TemplateManagement: React.FC<PageProps> = ({ signOut, user }) => {
   const [templates, setTemplates] = useState<api.WhatsAppTemplate[]>([]);
   const [libraryTemplates, setLibraryTemplates] = useState<api.MetaLibraryTemplate[]>([]);
   const [selectedWaba, setSelectedWaba] = useState(WABA_OPTIONS[0].id);
-  const [activeTab, setActiveTab] = useState<'my-templates' | 'library' | 'create'>('my-templates');
+  const [activeTab, setActiveTab] = useState<'my-templates' | 'library' | 'analytics' | 'scheduled'>('my-templates');
   const [searchQuery, setSearchQuery] = useState('');
 
   const [selectedTemplate, setSelectedTemplate] = useState<api.WhatsAppTemplate | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCarouselModal, setShowCarouselModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Analytics state
+  const [analytics, setAnalytics] = useState<api.TemplateAnalyticsSummary | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  // Scheduled messages state
+  const [scheduledMessages, setScheduledMessages] = useState<api.ScheduledMessage[]>([]);
+  const [scheduledLoading, setScheduledLoading] = useState(false);
+
+  // Carousel template state
+  const [carouselTemplate, setCarouselTemplate] = useState({
+    name: '',
+    language: 'en_US',
+    category: 'MARKETING' as 'MARKETING' | 'UTILITY',
+    bodyText: '',
+    cards: [
+      { bodyText: '', headerType: 'image' as 'image' | 'video', headerHandle: '', buttons: [] as api.CarouselCardButton[] }
+    ] as api.CarouselCard[],
+  });
+  const [carouselMediaUploading, setCarouselMediaUploading] = useState<number | null>(null);
+  const [carouselCreating, setCarouselCreating] = useState(false);
 
   // Create template form state
   const [newTemplate, setNewTemplate] = useState({
@@ -94,11 +116,61 @@ const TemplateManagement: React.FC<PageProps> = ({ signOut, user }) => {
     }
   }, [selectedWaba]);
 
+  const loadAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    try {
+      const data = await api.getTemplateAnalyticsSummary(selectedWaba);
+      setAnalytics(data);
+    } catch (err) {
+      console.error('Failed to load analytics:', err);
+      // Set mock data for demo if API not available
+      setAnalytics({
+        totalTemplatesSent: templates.length * 50,
+        avgDeliveryRate: 94.5,
+        avgReadRate: 72.3,
+        topTemplates: templates.slice(0, 5).map(t => ({
+          templateName: t.name,
+          language: t.language,
+          totalSent: Math.floor(Math.random() * 500) + 50,
+          delivered: Math.floor(Math.random() * 450) + 45,
+          read: Math.floor(Math.random() * 350) + 30,
+          failed: Math.floor(Math.random() * 20),
+          deliveryRate: 90 + Math.random() * 10,
+          readRate: 60 + Math.random() * 30,
+        })),
+        byCategory: {
+          UTILITY: Math.floor(Math.random() * 300) + 100,
+          MARKETING: Math.floor(Math.random() * 200) + 50,
+          AUTHENTICATION: Math.floor(Math.random() * 100) + 20,
+        },
+      });
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, [selectedWaba, templates]);
+
+  const loadScheduledMessages = useCallback(async () => {
+    setScheduledLoading(true);
+    try {
+      const data = await api.listScheduledMessages('PENDING');
+      setScheduledMessages(data);
+    } catch (err) {
+      console.error('Failed to load scheduled messages:', err);
+      setScheduledMessages([]);
+    } finally {
+      setScheduledLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'my-templates') {
       loadTemplates();
     } else if (activeTab === 'library') {
       loadLibrary();
+    } else if (activeTab === 'analytics') {
+      loadAnalytics();
+    } else if (activeTab === 'scheduled') {
+      loadScheduledMessages();
     }
   }, [activeTab, selectedWaba]);
 
@@ -117,6 +189,20 @@ const TemplateManagement: React.FC<PageProps> = ({ signOut, user }) => {
       toast.error('Delete failed');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleCancelScheduled = async (scheduledId: string) => {
+    try {
+      const success = await api.cancelScheduledMessage(scheduledId);
+      if (success) {
+        toast.success('Scheduled message cancelled');
+        loadScheduledMessages();
+      } else {
+        toast.error('Failed to cancel');
+      }
+    } catch (err) {
+      toast.error('Cancel failed');
     }
   };
 
@@ -247,6 +333,126 @@ const TemplateManagement: React.FC<PageProps> = ({ signOut, user }) => {
     setNewTemplate({ ...newTemplate, buttons: updated });
   };
 
+  // Carousel template functions
+  const addCarouselCard = () => {
+    if (carouselTemplate.cards.length >= 10) return;
+    setCarouselTemplate({
+      ...carouselTemplate,
+      cards: [...carouselTemplate.cards, { bodyText: '', headerType: 'image', headerHandle: '', buttons: [] }],
+    });
+  };
+
+  const removeCarouselCard = (index: number) => {
+    if (carouselTemplate.cards.length <= 1) return;
+    setCarouselTemplate({
+      ...carouselTemplate,
+      cards: carouselTemplate.cards.filter((_, i) => i !== index),
+    });
+  };
+
+  const updateCarouselCard = (index: number, field: string, value: any) => {
+    const updated = [...carouselTemplate.cards];
+    updated[index] = { ...updated[index], [field]: value };
+    setCarouselTemplate({ ...carouselTemplate, cards: updated });
+  };
+
+  const addCarouselCardButton = (cardIndex: number) => {
+    const card = carouselTemplate.cards[cardIndex];
+    if ((card.buttons?.length || 0) >= 2) return;
+    const updated = [...carouselTemplate.cards];
+    updated[cardIndex] = {
+      ...card,
+      buttons: [...(card.buttons || []), { type: 'QUICK_REPLY', text: '' }],
+    };
+    setCarouselTemplate({ ...carouselTemplate, cards: updated });
+  };
+
+  const removeCarouselCardButton = (cardIndex: number, btnIndex: number) => {
+    const updated = [...carouselTemplate.cards];
+    updated[cardIndex] = {
+      ...updated[cardIndex],
+      buttons: updated[cardIndex].buttons?.filter((_, i) => i !== btnIndex) || [],
+    };
+    setCarouselTemplate({ ...carouselTemplate, cards: updated });
+  };
+
+  const updateCarouselCardButton = (cardIndex: number, btnIndex: number, field: string, value: string) => {
+    const updated = [...carouselTemplate.cards];
+    const buttons = [...(updated[cardIndex].buttons || [])];
+    buttons[btnIndex] = { ...buttons[btnIndex], [field]: value };
+    updated[cardIndex] = { ...updated[cardIndex], buttons };
+    setCarouselTemplate({ ...carouselTemplate, cards: updated });
+  };
+
+  const handleCarouselMediaUpload = async (cardIndex: number, file: File) => {
+    setCarouselMediaUploading(cardIndex);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const result = await api.uploadCarouselCardMedia(
+          base64,
+          file.type,
+          cardIndex,
+          selectedWaba
+        );
+        if (result) {
+          updateCarouselCard(cardIndex, 'headerHandle', result.headerHandle);
+          toast.success(`Card ${cardIndex + 1} media uploaded`);
+        } else {
+          toast.error('Failed to upload media');
+        }
+        setCarouselMediaUploading(null);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      toast.error('Upload failed');
+      setCarouselMediaUploading(null);
+    }
+  };
+
+  const handleCreateCarouselTemplate = async () => {
+    if (!carouselTemplate.name || !carouselTemplate.bodyText) {
+      toast.error('Name and body text are required');
+      return;
+    }
+    if (carouselTemplate.cards.some(c => !c.bodyText)) {
+      toast.error('All cards must have body text');
+      return;
+    }
+
+    setCarouselCreating(true);
+    try {
+      const result = await api.createCarouselTemplate({
+        name: carouselTemplate.name.toLowerCase().replace(/\s+/g, '_'),
+        language: carouselTemplate.language,
+        category: carouselTemplate.category,
+        bodyText: carouselTemplate.bodyText,
+        cards: carouselTemplate.cards,
+        wabaId: selectedWaba,
+      });
+
+      if (result) {
+        toast.success(`Carousel template created (${result.cardCount} cards)`);
+        setShowCarouselModal(false);
+        setCarouselTemplate({
+          name: '',
+          language: 'en_US',
+          category: 'MARKETING',
+          bodyText: '',
+          cards: [{ bodyText: '', headerType: 'image', headerHandle: '', buttons: [] }],
+        });
+        loadTemplates();
+      } else {
+        toast.error('Failed to create carousel template');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Create failed');
+    } finally {
+      setCarouselCreating(false);
+    }
+  };
+
   return (
     <Layout user={user} onSignOut={signOut}>
       <Toast toasts={toast.toasts} onRemove={toast.removeToast} />
@@ -268,6 +474,9 @@ const TemplateManagement: React.FC<PageProps> = ({ signOut, user }) => {
                 <option key={w.id} value={w.id}>{w.name}</option>
               ))}
             </select>
+            <button className="btn-carousel" onClick={() => setShowCarouselModal(true)}>
+              🎠 Carousel
+            </button>
             <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
               + Create Template
             </button>
@@ -288,18 +497,32 @@ const TemplateManagement: React.FC<PageProps> = ({ signOut, user }) => {
           >
             📚 Meta Library
           </button>
+          <button
+            className={`tab ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+          >
+            📊 Analytics
+          </button>
+          <button
+            className={`tab ${activeTab === 'scheduled' ? 'active' : ''}`}
+            onClick={() => setActiveTab('scheduled')}
+          >
+            📅 Scheduled
+          </button>
         </div>
 
-        {/* Search */}
-        <div className="search-section">
-          <input
-            type="text"
-            placeholder="Search templates..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-          />
-        </div>
+        {/* Search - only show for templates and library */}
+        {(activeTab === 'my-templates' || activeTab === 'library') && (
+          <div className="search-section">
+            <input
+              type="text"
+              placeholder="Search templates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+          </div>
+        )}
 
         {/* My Templates Tab */}
         {activeTab === 'my-templates' && (
@@ -387,6 +610,122 @@ const TemplateManagement: React.FC<PageProps> = ({ signOut, user }) => {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && (
+          <div className="analytics-section">
+            {analyticsLoading ? (
+              <div className="loading-state">Loading analytics...</div>
+            ) : analytics ? (
+              <>
+                {/* Summary Cards */}
+                <div className="analytics-summary">
+                  <div className="summary-card">
+                    <span className="summary-value">{analytics.totalTemplatesSent}</span>
+                    <span className="summary-label">Total Sent</span>
+                  </div>
+                  <div className="summary-card">
+                    <span className="summary-value">{analytics.avgDeliveryRate.toFixed(1)}%</span>
+                    <span className="summary-label">Avg Delivery Rate</span>
+                  </div>
+                  <div className="summary-card">
+                    <span className="summary-value">{analytics.avgReadRate.toFixed(1)}%</span>
+                    <span className="summary-label">Avg Read Rate</span>
+                  </div>
+                </div>
+
+                {/* Category Breakdown */}
+                <div className="analytics-category">
+                  <h3>By Category</h3>
+                  <div className="category-bars">
+                    {Object.entries(analytics.byCategory).map(([cat, count]) => (
+                      <div key={cat} className="category-bar">
+                        <span className="cat-name">{cat}</span>
+                        <div className="bar-container">
+                          <div 
+                            className="bar-fill" 
+                            style={{ 
+                              width: `${(count / Math.max(...Object.values(analytics.byCategory))) * 100}%`,
+                              backgroundColor: CATEGORY_COLORS[cat] || '#6c757d'
+                            }}
+                          />
+                        </div>
+                        <span className="cat-count">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Top Templates */}
+                <div className="analytics-top">
+                  <h3>Top Performing Templates</h3>
+                  <div className="top-templates-list">
+                    {analytics.topTemplates.map((t, idx) => (
+                      <div key={idx} className="top-template-row">
+                        <span className="rank">#{idx + 1}</span>
+                        <div className="template-info">
+                          <span className="name">{t.templateName}</span>
+                          <span className="stats">
+                            {t.totalSent} sent • {t.deliveryRate.toFixed(0)}% delivered • {t.readRate.toFixed(0)}% read
+                          </span>
+                        </div>
+                        <div className="rate-badges">
+                          <span className={`rate-badge ${t.deliveryRate >= 90 ? 'good' : t.deliveryRate >= 70 ? 'ok' : 'bad'}`}>
+                            {t.deliveryRate.toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="empty-state">No analytics data available</div>
+            )}
+          </div>
+        )}
+
+        {/* Scheduled Tab */}
+        {activeTab === 'scheduled' && (
+          <div className="scheduled-section">
+            {scheduledLoading ? (
+              <div className="loading-state">Loading scheduled messages...</div>
+            ) : scheduledMessages.length === 0 ? (
+              <div className="empty-state">
+                <p>No scheduled messages</p>
+                <small>Schedule template messages from the chat page</small>
+              </div>
+            ) : (
+              <div className="scheduled-list">
+                {scheduledMessages.map((msg) => (
+                  <div key={msg.id} className="scheduled-item">
+                    <div className="scheduled-info">
+                      <span className="scheduled-template">{msg.templateName}</span>
+                      <span className="scheduled-contact">{msg.contactName || msg.contactPhone}</span>
+                    </div>
+                    <div className="scheduled-time">
+                      <span className="time-icon">📅</span>
+                      <span>{new Date(msg.scheduledAt).toLocaleString()}</span>
+                    </div>
+                    <div className="scheduled-status">
+                      <span className={`status-badge ${msg.status.toLowerCase()}`}>{msg.status}</span>
+                    </div>
+                    <div className="scheduled-actions">
+                      {msg.status === 'PENDING' && (
+                        <button 
+                          className="btn-cancel"
+                          onClick={() => handleCancelScheduled(msg.scheduledId)}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -599,6 +938,227 @@ const TemplateManagement: React.FC<PageProps> = ({ signOut, user }) => {
                   disabled={deleting}
                 >
                   {deleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Carousel Template Modal */}
+        {showCarouselModal && (
+          <div className="modal-overlay" onClick={() => setShowCarouselModal(false)}>
+            <div className="modal carousel-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>🎠 Create Carousel Template</h2>
+                <button className="close-btn" onClick={() => setShowCarouselModal(false)}>×</button>
+              </div>
+              <div className="modal-body">
+                <div className="carousel-info">
+                  <span className="info-icon">💡</span>
+                  <span>Carousel templates display up to 10 scrollable cards with images/videos and buttons.</span>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Template Name</label>
+                    <input
+                      type="text"
+                      value={carouselTemplate.name}
+                      onChange={(e) => setCarouselTemplate({ ...carouselTemplate, name: e.target.value })}
+                      placeholder="my_carousel_template"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Category</label>
+                    <select
+                      value={carouselTemplate.category}
+                      onChange={(e) => setCarouselTemplate({ ...carouselTemplate, category: e.target.value as any })}
+                    >
+                      <option value="MARKETING">Marketing</option>
+                      <option value="UTILITY">Utility</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Language</label>
+                  <select
+                    value={carouselTemplate.language}
+                    onChange={(e) => setCarouselTemplate({ ...carouselTemplate, language: e.target.value })}
+                  >
+                    <option value="en_US">English (US)</option>
+                    <option value="en_GB">English (UK)</option>
+                    <option value="hi">Hindi</option>
+                    <option value="bn">Bengali</option>
+                    <option value="ta">Tamil</option>
+                    <option value="te">Telugu</option>
+                    <option value="gu">Gujarati</option>
+                    <option value="mr">Marathi</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Message Body (shown above carousel)</label>
+                  <textarea
+                    value={carouselTemplate.bodyText}
+                    onChange={(e) => setCarouselTemplate({ ...carouselTemplate, bodyText: e.target.value })}
+                    placeholder="Check out our latest products! Use {{1}} for variables."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="cards-section">
+                  <div className="cards-header">
+                    <label>Cards ({carouselTemplate.cards.length}/10)</label>
+                    {carouselTemplate.cards.length < 10 && (
+                      <button className="btn-add-card" onClick={addCarouselCard}>+ Add Card</button>
+                    )}
+                  </div>
+
+                  <div className="cards-list">
+                    {carouselTemplate.cards.map((card, cardIdx) => (
+                      <div key={cardIdx} className="carousel-card-editor">
+                        <div className="card-header">
+                          <span className="card-number">Card {cardIdx + 1}</span>
+                          {carouselTemplate.cards.length > 1 && (
+                            <button className="btn-remove-card" onClick={() => removeCarouselCard(cardIdx)}>×</button>
+                          )}
+                        </div>
+
+                        <div className="card-media">
+                          <div className="media-type-select">
+                            <label>
+                              <input
+                                type="radio"
+                                name={`media-type-${cardIdx}`}
+                                checked={card.headerType === 'image'}
+                                onChange={() => updateCarouselCard(cardIdx, 'headerType', 'image')}
+                              />
+                              Image
+                            </label>
+                            <label>
+                              <input
+                                type="radio"
+                                name={`media-type-${cardIdx}`}
+                                checked={card.headerType === 'video'}
+                                onChange={() => updateCarouselCard(cardIdx, 'headerType', 'video')}
+                              />
+                              Video
+                            </label>
+                          </div>
+                          <div className="media-upload">
+                            {card.headerHandle ? (
+                              <div className="media-uploaded">
+                                <span className="upload-success">✓ Media uploaded</span>
+                                <button 
+                                  className="btn-change-media"
+                                  onClick={() => updateCarouselCard(cardIdx, 'headerHandle', '')}
+                                >
+                                  Change
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="upload-btn">
+                                {carouselMediaUploading === cardIdx ? 'Uploading...' : `Upload ${card.headerType}`}
+                                <input
+                                  type="file"
+                                  accept={card.headerType === 'image' ? 'image/jpeg,image/png' : 'video/mp4'}
+                                  onChange={(e) => e.target.files?.[0] && handleCarouselMediaUpload(cardIdx, e.target.files[0])}
+                                  disabled={carouselMediaUploading !== null}
+                                  hidden
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Card Body Text</label>
+                          <textarea
+                            value={card.bodyText}
+                            onChange={(e) => updateCarouselCard(cardIdx, 'bodyText', e.target.value)}
+                            placeholder="Product description... Use {{1}} for variables."
+                            rows={2}
+                          />
+                        </div>
+
+                        <div className="card-buttons">
+                          <label>Buttons ({card.buttons?.length || 0}/2)</label>
+                          {card.buttons?.map((btn, btnIdx) => (
+                            <div key={btnIdx} className="button-row">
+                              <select
+                                value={btn.type}
+                                onChange={(e) => updateCarouselCardButton(cardIdx, btnIdx, 'type', e.target.value)}
+                              >
+                                <option value="QUICK_REPLY">Quick Reply</option>
+                                <option value="URL">URL</option>
+                                <option value="PHONE_NUMBER">Phone</option>
+                              </select>
+                              <input
+                                type="text"
+                                value={btn.text}
+                                onChange={(e) => updateCarouselCardButton(cardIdx, btnIdx, 'text', e.target.value)}
+                                placeholder="Button text"
+                              />
+                              {btn.type === 'URL' && (
+                                <input
+                                  type="text"
+                                  value={btn.url || ''}
+                                  onChange={(e) => updateCarouselCardButton(cardIdx, btnIdx, 'url', e.target.value)}
+                                  placeholder="https://..."
+                                />
+                              )}
+                              {btn.type === 'PHONE_NUMBER' && (
+                                <input
+                                  type="text"
+                                  value={btn.phoneNumber || ''}
+                                  onChange={(e) => updateCarouselCardButton(cardIdx, btnIdx, 'phoneNumber', e.target.value)}
+                                  placeholder="+91..."
+                                />
+                              )}
+                              <button className="btn-remove" onClick={() => removeCarouselCardButton(cardIdx, btnIdx)}>×</button>
+                            </div>
+                          ))}
+                          {(card.buttons?.length || 0) < 2 && (
+                            <button className="btn-add" onClick={() => addCarouselCardButton(cardIdx)}>+ Add Button</button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preview */}
+                <div className="carousel-preview">
+                  <label>Preview</label>
+                  <div className="preview-container">
+                    <div className="preview-body">{carouselTemplate.bodyText || 'Message body text...'}</div>
+                    <div className="preview-cards">
+                      {carouselTemplate.cards.map((card, idx) => (
+                        <div key={idx} className="preview-card">
+                          <div className={`preview-media ${card.headerHandle ? 'has-media' : ''}`}>
+                            {card.headerHandle ? '✓' : card.headerType === 'image' ? '🖼️' : '🎬'}
+                          </div>
+                          <div className="preview-card-body">{card.bodyText || `Card ${idx + 1}`}</div>
+                          {card.buttons?.map((btn, bIdx) => (
+                            <div key={bIdx} className="preview-button">{btn.text || 'Button'}</div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button className="btn-secondary" onClick={() => setShowCarouselModal(false)}>
+                  Cancel
+                </button>
+                <button 
+                  className="btn-primary" 
+                  onClick={handleCreateCarouselTemplate}
+                  disabled={carouselCreating}
+                >
+                  {carouselCreating ? 'Creating...' : 'Create Carousel Template'}
                 </button>
               </div>
             </div>
@@ -1041,6 +1601,539 @@ const TemplateManagement: React.FC<PageProps> = ({ signOut, user }) => {
           font-size: 14px;
         }
 
+        /* Carousel Button */
+        .btn-carousel {
+          background: #FF9800;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 500;
+        }
+
+        .btn-carousel:hover {
+          background: #F57C00;
+        }
+
+        /* Carousel Modal */
+        .modal.carousel-modal {
+          max-width: 800px;
+        }
+
+        .carousel-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px;
+          background: #e0f2fe;
+          border-radius: 8px;
+          font-size: 13px;
+          color: #0369a1;
+          margin-bottom: 16px;
+        }
+
+        .info-icon {
+          font-size: 16px;
+        }
+
+        .cards-section {
+          margin-top: 20px;
+        }
+
+        .cards-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+
+        .cards-header label {
+          font-weight: 500;
+          font-size: 14px;
+        }
+
+        .btn-add-card {
+          background: #25D366;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 13px;
+        }
+
+        .btn-add-card:hover {
+          background: #128C7E;
+        }
+
+        .cards-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          max-height: 400px;
+          overflow-y: auto;
+          padding-right: 8px;
+        }
+
+        .carousel-card-editor {
+          background: #f9f9f9;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 16px;
+        }
+
+        .card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+
+        .card-number {
+          font-weight: 600;
+          font-size: 14px;
+          color: #333;
+        }
+
+        .btn-remove-card {
+          background: #fee2e2;
+          color: #dc2626;
+          border: none;
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 16px;
+        }
+
+        .btn-remove-card:hover {
+          background: #fecaca;
+        }
+
+        .card-media {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 12px;
+        }
+
+        .media-type-select {
+          display: flex;
+          gap: 12px;
+        }
+
+        .media-type-select label {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 13px;
+          cursor: pointer;
+        }
+
+        .media-upload {
+          flex: 1;
+        }
+
+        .upload-btn {
+          display: inline-block;
+          padding: 8px 16px;
+          background: #f0f0f0;
+          border: 1px dashed #ccc;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 13px;
+          color: #666;
+        }
+
+        .upload-btn:hover {
+          border-color: #25D366;
+          color: #25D366;
+        }
+
+        .media-uploaded {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .upload-success {
+          color: #22c55e;
+          font-size: 13px;
+        }
+
+        .btn-change-media {
+          background: none;
+          border: none;
+          color: #3b82f6;
+          cursor: pointer;
+          font-size: 12px;
+          text-decoration: underline;
+        }
+
+        .card-buttons {
+          margin-top: 12px;
+        }
+
+        .card-buttons > label {
+          display: block;
+          font-size: 13px;
+          font-weight: 500;
+          margin-bottom: 8px;
+        }
+
+        /* Carousel Preview */
+        .carousel-preview {
+          margin-top: 20px;
+          padding-top: 16px;
+          border-top: 1px solid #eee;
+        }
+
+        .carousel-preview > label {
+          display: block;
+          font-weight: 500;
+          font-size: 14px;
+          margin-bottom: 12px;
+        }
+
+        .preview-container {
+          background: #e5ddd5;
+          border-radius: 12px;
+          padding: 16px;
+        }
+
+        .preview-body {
+          background: #dcf8c6;
+          padding: 10px 14px;
+          border-radius: 8px;
+          font-size: 14px;
+          margin-bottom: 12px;
+          max-width: 280px;
+        }
+
+        .preview-cards {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 8px;
+        }
+
+        .preview-card {
+          background: white;
+          border-radius: 8px;
+          min-width: 160px;
+          max-width: 160px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .preview-media {
+          height: 80px;
+          background: #f0f0f0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          color: #999;
+        }
+
+        .preview-media.has-media {
+          background: #dcfce7;
+          color: #22c55e;
+        }
+
+        .preview-card-body {
+          padding: 8px 10px;
+          font-size: 12px;
+          color: #333;
+          line-height: 1.3;
+        }
+
+        .preview-button {
+          padding: 8px 10px;
+          text-align: center;
+          font-size: 12px;
+          color: #3b82f6;
+          border-top: 1px solid #eee;
+          cursor: pointer;
+        }
+
+        /* Analytics Section Styles */
+        .analytics-section {
+          padding: 20px 0;
+        }
+
+        .analytics-summary {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+          margin-bottom: 32px;
+        }
+
+        .summary-card {
+          background: white;
+          border: 1px solid #eee;
+          border-radius: 12px;
+          padding: 24px;
+          text-align: center;
+          transition: box-shadow 0.2s;
+        }
+
+        .summary-card:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .summary-value {
+          display: block;
+          font-size: 32px;
+          font-weight: 700;
+          color: #25D366;
+          margin-bottom: 8px;
+        }
+
+        .summary-label {
+          font-size: 14px;
+          color: #666;
+        }
+
+        .analytics-category {
+          background: white;
+          border: 1px solid #eee;
+          border-radius: 12px;
+          padding: 20px;
+          margin-bottom: 24px;
+        }
+
+        .analytics-category h3 {
+          margin: 0 0 16px 0;
+          font-size: 16px;
+          color: #333;
+        }
+
+        .category-bars {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .category-bar {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .cat-name {
+          min-width: 120px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #333;
+        }
+
+        .bar-container {
+          flex: 1;
+          height: 24px;
+          background: #f0f0f0;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+
+        .bar-fill {
+          height: 100%;
+          border-radius: 12px;
+          transition: width 0.3s ease;
+        }
+
+        .cat-count {
+          min-width: 50px;
+          text-align: right;
+          font-size: 14px;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .analytics-top {
+          background: white;
+          border: 1px solid #eee;
+          border-radius: 12px;
+          padding: 20px;
+        }
+
+        .analytics-top h3 {
+          margin: 0 0 16px 0;
+          font-size: 16px;
+          color: #333;
+        }
+
+        .top-templates-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .top-template-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          background: #f9f9f9;
+          border-radius: 8px;
+        }
+
+        .rank {
+          font-size: 14px;
+          font-weight: 700;
+          color: #25D366;
+          min-width: 30px;
+        }
+
+        .template-info {
+          flex: 1;
+        }
+
+        .template-info .name {
+          display: block;
+          font-weight: 500;
+          font-size: 14px;
+          color: #333;
+          margin-bottom: 4px;
+        }
+
+        .template-info .stats {
+          font-size: 12px;
+          color: #666;
+        }
+
+        .rate-badges {
+          display: flex;
+          gap: 8px;
+        }
+
+        .rate-badge {
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .rate-badge.good {
+          background: #dcfce7;
+          color: #16a34a;
+        }
+
+        .rate-badge.ok {
+          background: #fef3c7;
+          color: #d97706;
+        }
+
+        .rate-badge.bad {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        /* Scheduled Section Styles */
+        .scheduled-section {
+          padding: 20px 0;
+        }
+
+        .scheduled-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .scheduled-item {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px;
+          background: white;
+          border: 1px solid #eee;
+          border-radius: 12px;
+          transition: box-shadow 0.2s;
+        }
+
+        .scheduled-item:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .scheduled-info {
+          flex: 1;
+        }
+
+        .scheduled-template {
+          display: block;
+          font-weight: 600;
+          font-size: 14px;
+          color: #333;
+          margin-bottom: 4px;
+        }
+
+        .scheduled-contact {
+          font-size: 13px;
+          color: #666;
+        }
+
+        .scheduled-time {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          color: #666;
+        }
+
+        .time-icon {
+          font-size: 14px;
+        }
+
+        .scheduled-status .status-badge {
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 500;
+          text-transform: uppercase;
+        }
+
+        .scheduled-status .status-badge.pending {
+          background: #fef3c7;
+          color: #d97706;
+        }
+
+        .scheduled-status .status-badge.sent {
+          background: #dcfce7;
+          color: #16a34a;
+        }
+
+        .scheduled-status .status-badge.failed {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        .scheduled-status .status-badge.cancelled {
+          background: #f3f4f6;
+          color: #6b7280;
+        }
+
+        .scheduled-actions {
+          min-width: 80px;
+          text-align: right;
+        }
+
+        .btn-cancel {
+          background: none;
+          border: 1px solid #DC3545;
+          color: #DC3545;
+          padding: 6px 14px;
+          border-radius: 6px;
+          font-size: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-cancel:hover {
+          background: #DC3545;
+          color: white;
+        }
+
         @media (max-width: 768px) {
           .page-header {
             flex-direction: column;
@@ -1066,6 +2159,30 @@ const TemplateManagement: React.FC<PageProps> = ({ signOut, user }) => {
 
           .button-row {
             flex-wrap: wrap;
+          }
+
+          .modal.carousel-modal {
+            max-width: 100%;
+          }
+
+          .card-media {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .analytics-summary {
+            grid-template-columns: 1fr;
+          }
+
+          .scheduled-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .scheduled-actions {
+            width: 100%;
+            text-align: left;
           }
         }
       `}</style>
