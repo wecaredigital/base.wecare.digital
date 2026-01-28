@@ -2161,3 +2161,358 @@ export async function sendCarouselTemplateMessage(request: {
     }),
   });
 }
+
+
+// ============================================================================
+// CONTACT TAGS & GROUPS API
+// ============================================================================
+
+export interface ContactTag {
+  id: string;
+  name: string;
+  color: string;
+  contactCount: number;
+}
+
+/**
+ * Get all contact tags
+ */
+export async function listContactTags(): Promise<ContactTag[]> {
+  // Tags are stored in localStorage for now (can be moved to DynamoDB later)
+  const stored = localStorage.getItem('contactTags');
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+/**
+ * Create a new contact tag
+ */
+export async function createContactTag(name: string, color: string = '#25d366'): Promise<ContactTag> {
+  const tags = await listContactTags();
+  const newTag: ContactTag = {
+    id: `tag_${Date.now()}`,
+    name,
+    color,
+    contactCount: 0,
+  };
+  tags.push(newTag);
+  localStorage.setItem('contactTags', JSON.stringify(tags));
+  return newTag;
+}
+
+/**
+ * Delete a contact tag
+ */
+export async function deleteContactTag(tagId: string): Promise<boolean> {
+  const tags = await listContactTags();
+  const filtered = tags.filter(t => t.id !== tagId);
+  localStorage.setItem('contactTags', JSON.stringify(filtered));
+  return true;
+}
+
+/**
+ * Get tags for a specific contact
+ */
+export async function getContactTags(contactId: string): Promise<string[]> {
+  const stored = localStorage.getItem(`contact_tags_${contactId}`);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+/**
+ * Set tags for a contact
+ */
+export async function setContactTags(contactId: string, tagIds: string[]): Promise<boolean> {
+  localStorage.setItem(`contact_tags_${contactId}`, JSON.stringify(tagIds));
+  return true;
+}
+
+// ============================================================================
+// STARRED MESSAGES API
+// ============================================================================
+
+/**
+ * Get starred message IDs
+ */
+export function getStarredMessages(): string[] {
+  const stored = localStorage.getItem('starredMessages');
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+/**
+ * Toggle star on a message
+ */
+export function toggleStarMessage(messageId: string): boolean {
+  const starred = getStarredMessages();
+  const index = starred.indexOf(messageId);
+  if (index > -1) {
+    starred.splice(index, 1);
+  } else {
+    starred.push(messageId);
+  }
+  localStorage.setItem('starredMessages', JSON.stringify(starred));
+  return index === -1; // Returns true if now starred
+}
+
+/**
+ * Check if message is starred
+ */
+export function isMessageStarred(messageId: string): boolean {
+  return getStarredMessages().includes(messageId);
+}
+
+// ============================================================================
+// EXPORT FUNCTIONS
+// ============================================================================
+
+/**
+ * Export contacts to CSV
+ */
+export function exportContactsToCSV(contacts: Contact[]): string {
+  const headers = ['Name', 'Phone', 'Email', 'WhatsApp Opt-In', 'SMS Opt-In', 'Email Opt-In', 'Created At'];
+  const rows = contacts.map(c => [
+    c.name || '',
+    c.phone || '',
+    c.email || '',
+    c.optInWhatsApp ? 'Yes' : 'No',
+    c.optInSms ? 'Yes' : 'No',
+    c.optInEmail ? 'Yes' : 'No',
+    c.createdAt || '',
+  ]);
+  
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+  ].join('\n');
+  
+  return csvContent;
+}
+
+/**
+ * Export messages to CSV
+ */
+export function exportMessagesToCSV(messages: Message[]): string {
+  const headers = ['Direction', 'Contact', 'Content', 'Status', 'Timestamp', 'Channel'];
+  const rows = messages.map(m => [
+    m.direction,
+    m.contactId,
+    m.content?.substring(0, 200) || '',
+    m.status,
+    m.timestamp,
+    m.channel,
+  ]);
+  
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+  ].join('\n');
+  
+  return csvContent;
+}
+
+/**
+ * Export chat to text format
+ */
+export function exportChatToText(messages: Message[], contactName: string): string {
+  const lines = [
+    `Chat Export - ${contactName}`,
+    `Exported: ${new Date().toLocaleString()}`,
+    '---',
+    '',
+  ];
+  
+  messages.forEach(m => {
+    const time = new Date(m.timestamp).toLocaleString();
+    const sender = m.direction === 'INBOUND' ? contactName : 'You';
+    lines.push(`[${time}] ${sender}: ${m.content || '[Media]'}`);
+  });
+  
+  return lines.join('\n');
+}
+
+/**
+ * Download file helper
+ */
+export function downloadFile(content: string, filename: string, mimeType: string = 'text/csv') {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================================
+// BULK CONTACT IMPORT
+// ============================================================================
+
+export interface ImportResult {
+  total: number;
+  created: number;
+  updated: number;
+  failed: number;
+  errors: string[];
+}
+
+/**
+ * Parse CSV content to contact objects
+ */
+export function parseContactsCSV(csvContent: string): Partial<Contact>[] {
+  const lines = csvContent.split('\n').filter(line => line.trim());
+  if (lines.length < 2) return [];
+  
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+  const contacts: Partial<Contact>[] = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].match(/(".*?"|[^,]+)/g)?.map(v => v.replace(/^"|"$/g, '').trim()) || [];
+    const contact: Partial<Contact> = {};
+    
+    headers.forEach((header, index) => {
+      const value = values[index] || '';
+      if (header === 'name') contact.name = value;
+      else if (header === 'phone') contact.phone = value.startsWith('+') ? value : `+${value}`;
+      else if (header === 'email') contact.email = value;
+      else if (header.includes('whatsapp')) contact.optInWhatsApp = value.toLowerCase() === 'yes' || value === '1' || value.toLowerCase() === 'true';
+      else if (header.includes('sms')) contact.optInSms = value.toLowerCase() === 'yes' || value === '1' || value.toLowerCase() === 'true';
+      else if (header.includes('email') && header.includes('opt')) contact.optInEmail = value.toLowerCase() === 'yes' || value === '1' || value.toLowerCase() === 'true';
+    });
+    
+    if (contact.phone) {
+      contacts.push(contact);
+    }
+  }
+  
+  return contacts;
+}
+
+/**
+ * Import contacts from parsed CSV data
+ */
+export async function importContacts(contacts: Partial<Contact>[]): Promise<ImportResult> {
+  const result: ImportResult = {
+    total: contacts.length,
+    created: 0,
+    updated: 0,
+    failed: 0,
+    errors: [],
+  };
+  
+  for (const contact of contacts) {
+    try {
+      // Check if contact exists by phone
+      const existing = await listContacts();
+      const found = existing.find(c => c.phone === contact.phone);
+      
+      if (found) {
+        // Update existing
+        const updated = await updateContact(found.contactId, contact);
+        if (updated) {
+          result.updated++;
+        } else {
+          result.failed++;
+          result.errors.push(`Failed to update: ${contact.phone}`);
+        }
+      } else {
+        // Create new
+        const created = await createContact(contact);
+        if (created) {
+          result.created++;
+        } else {
+          result.failed++;
+          result.errors.push(`Failed to create: ${contact.phone}`);
+        }
+      }
+    } catch (err: any) {
+      result.failed++;
+      result.errors.push(`Error with ${contact.phone}: ${err.message}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================================================
+// AUTO-REPLY PER CONTACT
+// ============================================================================
+
+/**
+ * Get auto-reply setting for a contact
+ */
+export function getContactAutoReply(contactId: string): boolean {
+  const stored = localStorage.getItem(`autoReply_${contactId}`);
+  return stored === 'true';
+}
+
+/**
+ * Set auto-reply setting for a contact
+ */
+export function setContactAutoReply(contactId: string, enabled: boolean): void {
+  localStorage.setItem(`autoReply_${contactId}`, String(enabled));
+}
+
+/**
+ * Get all contacts with auto-reply enabled
+ */
+export function getAutoReplyContacts(): string[] {
+  const contacts: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith('autoReply_') && localStorage.getItem(key) === 'true') {
+      contacts.push(key.replace('autoReply_', ''));
+    }
+  }
+  return contacts;
+}
+
+// ============================================================================
+// AI FEEDBACK
+// ============================================================================
+
+export interface AIFeedback {
+  interactionId: string;
+  messageId: string;
+  rating: 'good' | 'bad';
+  comment?: string;
+  timestamp: number;
+}
+
+/**
+ * Submit feedback for an AI response
+ */
+export function submitAIFeedback(feedback: Omit<AIFeedback, 'timestamp'>): void {
+  const stored = localStorage.getItem('aiFeedback');
+  const feedbacks: AIFeedback[] = stored ? JSON.parse(stored) : [];
+  feedbacks.push({ ...feedback, timestamp: Date.now() });
+  localStorage.setItem('aiFeedback', JSON.stringify(feedbacks));
+}
+
+/**
+ * Get AI feedback history
+ */
+export function getAIFeedbackHistory(): AIFeedback[] {
+  const stored = localStorage.getItem('aiFeedback');
+  return stored ? JSON.parse(stored) : [];
+}
