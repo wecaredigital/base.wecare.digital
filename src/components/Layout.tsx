@@ -8,6 +8,7 @@
 
 import React, { ReactNode, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import FloatingAgent from './FloatingAgent';
 import SearchModal from './SearchModal';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
@@ -177,25 +178,25 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
                     {expandedMenus.includes(item.path) && (
                       <div className="nav-subitems">
                         {item.subItems.map(sub => (
-                          <button
+                          <Link
                             key={sub.path}
-                            onClick={() => router.push(sub.path)}
+                            href={sub.path}
                             className={`nav-subitem ${router.pathname === sub.path ? 'nav-subitem-active' : ''}`}
                           >
                             {sub.label}
-                          </button>
+                          </Link>
                         ))}
                       </div>
                     )}
                   </>
                 ) : (
-                  <button
-                    onClick={() => router.push(item.path)}
+                  <Link
+                    href={item.path}
                     className={`nav-item ${isActive(item) ? 'nav-item-active' : ''}`}
                   >
                     <span className="nav-icon">{item.icon}</span>
                     <span className="nav-label">{item.label}</span>
-                  </button>
+                  </Link>
                 )}
               </div>
             ))}

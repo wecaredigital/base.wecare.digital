@@ -488,6 +488,8 @@ input, textarea, select {
   border-radius: 10px;
   font-size: 14px;
   transition: all 0.2s ease;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .nav-subitem:hover {

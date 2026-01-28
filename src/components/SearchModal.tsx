@@ -34,10 +34,12 @@ const NAVIGATION_ITEMS: SearchResult[] = [
   { id: 'nav-ai', type: 'page', title: 'AI Config', subtitle: 'Bedrock settings', icon: '◇', path: '/dm/whatsapp/ai-config' },
 ];
 
+const DEFAULT_RESULTS = NAVIGATION_ITEMS.slice(0, 6);
+
 const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, contacts = [], messages = [] }) => {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<SearchResult[]>(DEFAULT_RESULTS);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -46,15 +48,15 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, contacts = [
     if (isOpen) {
       setQuery('');
       setSelectedIndex(0);
+      setResults(DEFAULT_RESULTS);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
 
-  // Search logic
+  // Search logic - only run when query changes
   useEffect(() => {
     if (!query.trim()) {
-      setResults(NAVIGATION_ITEMS.slice(0, 6));
-      return;
+      return; // Keep default results
     }
 
     const q = query.toLowerCase();
