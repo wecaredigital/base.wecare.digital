@@ -13,6 +13,11 @@
 import { useState, useEffect } from 'react';
 import Layout from '../../../components/Layout';
 
+interface PageProps {
+  signOut?: () => void;
+  user?: any;
+}
+
 interface InternalAIConfig {
   enabled: boolean;
   agentId: string;
@@ -42,7 +47,7 @@ Help operators with:
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
 
-export default function InternalAIConfigPage() {
+export default function InternalAIConfigPage({ signOut, user }: PageProps) {
   const [config, setConfig] = useState<InternalAIConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -118,7 +123,7 @@ export default function InternalAIConfigPage() {
 
   if (loading) {
     return (
-      <Layout>
+      <Layout user={user} onSignOut={signOut}>
         <div style={{ padding: '2rem', textAlign: 'center' }}>
           <div className="spinner" />
           <p>Loading Internal AI configuration...</p>
@@ -128,7 +133,7 @@ export default function InternalAIConfigPage() {
   }
 
   return (
-    <Layout>
+    <Layout user={user} onSignOut={signOut}>
       <div style={{ padding: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{ marginBottom: '1.5rem' }}>

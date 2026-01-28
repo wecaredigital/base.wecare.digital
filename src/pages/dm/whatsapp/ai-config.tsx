@@ -34,7 +34,12 @@ import {
   SupportedLanguages,
 } from '../../../api/client';
 
-export default function AIConfigPage() {
+interface PageProps {
+  signOut?: () => void;
+  user?: any;
+}
+
+export default function AIConfigPage({ signOut, user }: PageProps) {
   const [config, setConfig] = useState<BedrockAIConfig | null>(null);
   const [prompts, setPrompts] = useState<Record<string, string>>({});
   const [fallbacks, setFallbacks] = useState<Record<string, string>>({});
@@ -118,7 +123,7 @@ export default function AIConfigPage() {
 
   if (loading) {
     return (
-      <Layout>
+      <Layout user={user} onSignOut={signOut}>
         <div style={{ padding: '2rem', textAlign: 'center' }}>
           <div className="spinner" />
           <p>Loading AI configuration...</p>
@@ -128,7 +133,7 @@ export default function AIConfigPage() {
   }
 
   return (
-    <Layout>
+    <Layout user={user} onSignOut={signOut}>
       <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{ marginBottom: '1.5rem' }}>

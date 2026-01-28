@@ -147,13 +147,12 @@ API Gateway: `https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod`
 18. wecare-whatsapp-template-management
 19. wecare-bulk-job-control
 20. wecare-razorpay-webhook
-21. wecare-voice-calls-read
-22. wecare-dlq-replay
+21. wecare-dlq-replay
 
 ### New Functions (5 functions)
 1. wecare-outbound-sms - SMS sending via AWS SNS/Pinpoint or Airtel
 2. wecare-outbound-email - Email sending via Amazon SES
-3. wecare-voice-calls - Voice call management (make/list calls)
+3. wecare-voice-calls - Voice call management (make/list/get calls)
 4. wecare-bulk-job-create - Bulk job creation and listing
 5. wecare-payments-read - Payment records listing
 

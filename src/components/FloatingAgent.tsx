@@ -183,8 +183,39 @@ const FloatingAgent: React.FC = () => {
         return `I can help you with:\n\n• Send WhatsApp to +91... saying Hello\n• Find contact +91... or named John\n• Show today's stats\n• Check recent messages\n\nJust type naturally!`;
       }
       
-      // AI fallback - disabled until /ai/chat endpoint is created
-      // The agent can still handle local commands (send, find, stats, help)
+      // AI fallback - use /ai/generate endpoint for conversational AI
+      try {
+        const aiRes = await fetch(`${API_BASE}/ai/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messageContent: text,
+            context: 'internal',  // Use internal agent for admin tasks
+          }),
+        });
+        
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          // Handle Lambda proxy response format
+          if (aiData.body) {
+            try {
+              const parsed = typeof aiData.body === 'string' ? JSON.parse(aiData.body) : aiData.body;
+              if (parsed.suggestion || parsed.suggestedResponse) {
+                return parsed.suggestion || parsed.suggestedResponse;
+              }
+            } catch (e) {
+              // Continue to direct response check
+            }
+          }
+          // Direct response format
+          if (aiData.suggestion || aiData.suggestedResponse) {
+            return aiData.suggestion || aiData.suggestedResponse;
+          }
+        }
+      } catch (aiError) {
+        console.error('AI fallback error:', aiError);
+      }
+      
       return 'I can help you send messages, find contacts, or check stats. Try "help" for examples.';
       
     } catch (error: any) {

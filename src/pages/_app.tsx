@@ -14,6 +14,7 @@ import '../styles/Pages.css';
 import '../styles/Layout.css';
 import '../styles/Dashboard.css';
 import FloatingAgent from '../components/FloatingAgent';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // Configure Amplify
 Amplify.configure({
@@ -62,19 +63,19 @@ export default function App({ Component, pageProps }: AppProps) {
   // Public page
   if (isPublic) {
     return (
-      <>
+      <ErrorBoundary>
         <Head>
           <title>WECARE.DIGITAL</title>
           <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
         </Head>
         <Component {...pageProps} />
-      </>
+      </ErrorBoundary>
     );
   }
 
   // Protected pages
   return (
-    <>
+    <ErrorBoundary>
       <Head>
         <title>WECARE.DIGITAL</title>
         <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
@@ -82,11 +83,11 @@ export default function App({ Component, pageProps }: AppProps) {
       <Authenticator hideSignUp={true} components={{ Header: AuthHeader }}>
         {({ signOut, user }) => (
           <>
-            <Component {...pageProps} signOut={() => { signOut(); router.push('/'); }} user={user} />
+            <Component {...pageProps} signOut={() => { signOut?.(); router.push('/'); }} user={user} />
             <FloatingAgent />
           </>
         )}
       </Authenticator>
-    </>
+    </ErrorBoundary>
   );
 }
