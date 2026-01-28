@@ -1,6 +1,6 @@
 ﻿/**
  * WECARE.DIGITAL Admin Platform
- * Auth with Authenticator.Provider for persistent auth state across navigation
+ * Auth with Authenticator.Provider wrapping entire app for persistent auth state
  */
 
 import type { AppProps } from 'next/app';
@@ -54,12 +54,30 @@ const AuthHeader = () => (
   </div>
 );
 
-// Protected content wrapper - uses auth context from Provider
-function ProtectedContent({ Component, pageProps }: { Component: any; pageProps: any }) {
+// Inner app component that uses auth context
+function AppContent({ Component, pageProps }: { Component: any; pageProps: any }) {
   const router = useRouter();
   const { authStatus, user, signOut } = useAuthenticator((context) => [context.authStatus, context.user]);
+  const [isClient, setIsClient] = useState(false);
+  
+  // Public pages that don't require auth
+  const isPublic = router.pathname === '/';
 
-  // Show loading while checking auth
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Server-side render - show loading
+  if (!isClient) {
+    return <LoadingScreen />;
+  }
+
+  // Public page - render without auth check
+  if (isPublic) {
+    return <Component {...pageProps} />;
+  }
+
+  // Protected page - check auth status
   if (authStatus === 'configuring') {
     return <LoadingScreen />;
   }
@@ -71,7 +89,7 @@ function ProtectedContent({ Component, pageProps }: { Component: any; pageProps:
     );
   }
 
-  // Authenticated - render the page
+  // Authenticated - render the page with user props
   const handleSignOut = () => {
     signOut();
     router.push('/');
@@ -86,45 +104,6 @@ function ProtectedContent({ Component, pageProps }: { Component: any; pageProps:
 }
 
 export default function App({ Component, pageProps }: AppProps) {
-  const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
-  
-  // Only home page is public
-  const isPublic = router.pathname === '/';
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Server-side render - show loading
-  if (!isClient) {
-    return (
-      <>
-        <Head>
-          <title>WECARE.DIGITAL</title>
-          <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
-        </Head>
-        <LoadingScreen />
-      </>
-    );
-  }
-
-  // Public page (home only)
-  if (isPublic) {
-    return (
-      <>
-        <Head>
-          <title>WECARE.DIGITAL</title>
-          <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
-        </Head>
-        <Component {...pageProps} />
-      </>
-    );
-  }
-
-  // All protected pages - wrap in Authenticator.Provider for shared auth state
   return (
     <>
       <Head>
@@ -133,7 +112,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
       </Head>
       <Authenticator.Provider>
-        <ProtectedContent Component={Component} pageProps={pageProps} />
+        <AppContent Component={Component} pageProps={pageProps} />
       </Authenticator.Provider>
     </>
   );
