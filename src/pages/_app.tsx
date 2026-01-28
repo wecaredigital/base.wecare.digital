@@ -9,10 +9,10 @@
  * Protected pages: /dashboard/*, /pay/*, /dm/*, etc.
  * 
  * Auth Flow:
- * 1. User visits any protected page
- * 2. If not authenticated, redirect to /access
- * 3. After login on /access, redirect to /dashboard
- * 4. Session persists across all pages
+ * 1. User visits /access to login
+ * 2. After login, redirected to /dashboard
+ * 3. All protected pages use Authenticator to verify session
+ * 4. If session exists, page renders; if not, shows login
  */
 
 import type { AppProps } from 'next/app';
@@ -20,7 +20,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { Amplify } from 'aws-amplify';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import '../styles/Pages.css';
 import '../styles/Layout.css';
@@ -85,70 +85,54 @@ const LoadingScreen = () => (
   </div>
 );
 
+// Protected page wrapper - uses Authenticator context
+function ProtectedPage({ Component, pageProps }: { Component: any; pageProps: any }) {
+  const router = useRouter();
+  const { user, signOut, authStatus } = useAuthenticator((context) => [context.user, context.authStatus]);
+
+  // Handle sign out with redirect
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
+  };
+
+  // Show loading while checking auth
+  if (authStatus === 'configuring') {
+    return <LoadingScreen />;
+  }
+
+  // If authenticated, render the page
+  if (authStatus === 'authenticated' && user) {
+    return (
+      <>
+        <Component {...pageProps} signOut={handleSignOut} user={user} />
+        <FloatingAgent />
+      </>
+    );
+  }
+
+  // Not authenticated - Authenticator will show login form
+  return null;
+}
+
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
-  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
-  const [user, setUser] = useState<any>(null);
   const isPublicPage = isPublicPath(router.pathname);
 
-  // Check authentication status on client
+  // Ensure we're on the client
   useEffect(() => {
     setIsClient(true);
-    
-    const checkAuth = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-        setAuthState('authenticated');
-      } catch (err) {
-        // Not authenticated
-        setAuthState('unauthenticated');
-        
-        // Redirect to /access if on protected page
-        if (!isPublicPath(router.pathname)) {
-          router.replace('/access');
-        }
-      }
-    };
-    
-    checkAuth();
-  }, [router.pathname]);
+  }, []);
 
-  // Handle sign out
-  const handleSignOut = async () => {
-    try {
-      const { signOut } = await import('aws-amplify/auth');
-      await signOut();
-      setUser(null);
-      setAuthState('unauthenticated');
-      router.push('/');
-    } catch (err) {
-      console.error('Sign out error:', err);
-    }
-  };
-
-  // Show loading on server-side or during auth check
-  if (!isClient || (authState === 'loading' && !isPublicPage)) {
+  // Show loading on server-side
+  if (!isClient) {
     return (
       <>
         <Head>
           <title>WECARE.DIGITAL</title>
           <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
-        </Head>
-        <LoadingScreen />
-      </>
-    );
-  }
-
-  // Redirect to /access if not authenticated on protected page
-  if (!isPublicPage && authState === 'unauthenticated') {
-    return (
-      <>
-        <Head>
-          <title>WECARE.DIGITAL</title>
-          <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
         </Head>
         <LoadingScreen />
       </>
@@ -168,11 +152,26 @@ export default function App({ Component, pageProps }: AppProps) {
         // Public pages - no auth required
         <Component {...pageProps} />
       ) : (
-        // Protected pages - user is authenticated
-        <>
-          <Component {...pageProps} signOut={handleSignOut} user={user} />
-          <FloatingAgent />
-        </>
+        // Protected pages - wrapped in Authenticator
+        <Authenticator.Provider>
+          <Authenticator
+            hideSignUp={true}
+            components={{
+              Header() {
+                return (
+                  <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <h1 style={{ fontSize: '24px', fontWeight: 300, color: '#1a1a1a', fontFamily: "'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+                      WECARE.DIGITAL
+                    </h1>
+                    <p style={{ color: '#666', fontSize: '14px' }}>Admin Platform</p>
+                  </div>
+                );
+              }
+            }}
+          >
+            <ProtectedPage Component={Component} pageProps={pageProps} />
+          </Authenticator>
+        </Authenticator.Provider>
       )}
     </>
   );
