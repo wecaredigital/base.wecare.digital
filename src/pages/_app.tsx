@@ -1,6 +1,6 @@
 ﻿/**
  * WECARE.DIGITAL Admin Platform
- * Next.js App Component with Amplify Auth
+ * Simple auth: Authenticator wraps all protected pages
  */
 
 import type { AppProps } from 'next/app';
@@ -8,7 +8,6 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { Amplify } from 'aws-amplify';
-import { fetchAuthSession, getCurrentUser, signOut as amplifySignOut } from 'aws-amplify/auth';
 import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import '../styles/Pages.css';
@@ -38,12 +37,6 @@ Amplify.configure({
   }
 });
 
-// Only home page is public
-const isPublicPath = (pathname: string) => {
-  const path = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
-  return path === '/';
-};
-
 // Loading screen
 const LoadingScreen = () => (
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f5f5f5' }}>
@@ -53,86 +46,26 @@ const LoadingScreen = () => (
   </div>
 );
 
-// Login screen using Authenticator
-const LoginScreen = ({ onSuccess }: { onSuccess: () => void }) => (
-  <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5' }}>
-    <Authenticator
-      hideSignUp={true}
-      components={{
-        Header: () => (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 300, color: '#1a1a1a' }}>WECARE.DIGITAL</h1>
-            <p style={{ color: '#666', fontSize: '14px' }}>Admin Platform</p>
-          </div>
-        )
-      }}
-    >
-      {() => {
-        // Login successful, trigger callback
-        onSuccess();
-        return <LoadingScreen />;
-      }}
-    </Authenticator>
+// Auth header
+const AuthHeader = () => (
+  <div style={{ textAlign: 'center', padding: '20px' }}>
+    <h1 style={{ fontSize: '24px', fontWeight: 300, color: '#1a1a1a' }}>WECARE.DIGITAL</h1>
+    <p style={{ color: '#666', fontSize: '14px' }}>Admin Platform</p>
   </div>
 );
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
-  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
-  const [user, setUser] = useState<any>(null);
   
-  const isPublic = isPublicPath(router.pathname);
+  // Only home page is public
+  const isPublic = router.pathname === '/';
 
-  // Check auth on mount and when route changes
   useEffect(() => {
     setIsClient(true);
-    checkAuth();
   }, []);
 
-  // Re-check auth when navigating (but don't reset to loading if already authenticated)
-  useEffect(() => {
-    if (authState === 'authenticated') {
-      // Already authenticated, just verify session is still valid
-      checkAuth(true);
-    }
-  }, [router.pathname]);
-
-  const checkAuth = async (silent = false) => {
-    if (!silent) {
-      setAuthState('loading');
-    }
-    try {
-      const currentUser = await getCurrentUser();
-      const session = await fetchAuthSession();
-      if (session.tokens) {
-        setUser(currentUser);
-        setAuthState('authenticated');
-      } else {
-        throw new Error('No tokens');
-      }
-    } catch (err) {
-      setUser(null);
-      setAuthState('unauthenticated');
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await amplifySignOut();
-      setUser(null);
-      setAuthState('unauthenticated');
-      router.push('/');
-    } catch (err) {
-      console.error('Sign out error:', err);
-    }
-  };
-
-  const handleLoginSuccess = () => {
-    checkAuth();
-  };
-
-  // Server-side or initial load
+  // Server-side render - show loading
   if (!isClient) {
     return (
       <>
@@ -146,7 +79,7 @@ export default function App({ Component, pageProps }: AppProps) {
     );
   }
 
-  // Public pages - render without auth
+  // Public page (home only)
   if (isPublic) {
     return (
       <>
@@ -160,7 +93,7 @@ export default function App({ Component, pageProps }: AppProps) {
     );
   }
 
-  // Protected pages - check auth state
+  // All other pages - protected with Authenticator
   return (
     <>
       <Head>
@@ -168,17 +101,14 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
       </Head>
-      
-      {authState === 'loading' && <LoadingScreen />}
-      
-      {authState === 'unauthenticated' && <LoginScreen onSuccess={handleLoginSuccess} />}
-      
-      {authState === 'authenticated' && user && (
-        <>
-          <Component {...pageProps} signOut={handleSignOut} user={user} />
-          <FloatingAgent />
-        </>
-      )}
+      <Authenticator hideSignUp={true} components={{ Header: AuthHeader }}>
+        {({ signOut, user }) => (
+          <>
+            <Component {...pageProps} signOut={() => { signOut(); router.push('/'); }} user={user} />
+            <FloatingAgent />
+          </>
+        )}
+      </Authenticator>
     </>
   );
 }
