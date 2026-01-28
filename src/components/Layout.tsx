@@ -71,8 +71,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
     ]},
     { path: '/dm', label: 'Messages', icon: '◈', subItems: [
       { path: '/dm/whatsapp', label: 'WhatsApp' },
-      { path: '/dm/whatsapp/dashboard', label: 'WA Dashboard' },
+      { path: '/dm/whatsapp/waba-dashboard', label: 'WA Dashboard' },
       { path: '/dm/whatsapp/templates', label: 'WA Templates' },
+      { path: '/dm/whatsapp/ai-config', label: 'AI Config' },
       { path: '/dm/sms', label: 'SMS' },
       { path: '/dm/ses', label: 'Email' },
       { path: '/dm/voice', label: 'Voice' },
