@@ -21,31 +21,40 @@ import '../styles/Layout.css';
 import '../styles/Dashboard.css';
 import FloatingAgent from '../components/FloatingAgent';
 
-// Amplify configuration
-const amplifyConfig = {
+// Configure Amplify with Cognito settings
+// Using the format expected by Amplify v6
+Amplify.configure({
   Auth: {
     Cognito: {
       userPoolId: 'us-east-1_CC9u1fYh6',
       userPoolClientId: '5na5ba2pbpanm36138jdcd9gck',
-    }
-  },
-  Storage: {
-    S3: {
-      bucket: 'auth.wecare.digital',
-      region: 'us-east-1'
+      identityPoolId: 'us-east-1:ef6b783a-f0c5-4d2f-925d-9460e6a733ce',
+      loginWith: {
+        oauth: {
+          domain: 'sso.wecare.digital',
+          scopes: ['openid', 'email', 'profile'],
+          redirectSignIn: ['https://base.wecare.digital/', 'http://localhost:3000/'],
+          redirectSignOut: ['https://base.wecare.digital/', 'http://localhost:3000/'],
+          responseType: 'code' as const
+        },
+        username: true,
+        email: true
+      }
     }
   }
-};
-
-// Configure Amplify (safe to call multiple times)
-try {
-  Amplify.configure(amplifyConfig);
-} catch (e) {
-  // Already configured
-}
+});
 
 // Public pages that don't require authentication
-const PUBLIC_PAGES = ['/', '/access'];
+const PUBLIC_PAGES = ['/', '/access', '/access/'];
+
+// Check if current path is a public page
+const isPublicPath = (pathname: string) => {
+  const normalizedPath = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+  return PUBLIC_PAGES.some(p => {
+    const normalizedPublic = p.endsWith('/') ? p.slice(0, -1) : p;
+    return normalizedPath === normalizedPublic || normalizedPath === '';
+  });
+};
 
 // Loading component
 const LoadingScreen = () => (
@@ -75,19 +84,15 @@ const LoadingScreen = () => (
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
-  const isPublicPage = PUBLIC_PAGES.includes(router.pathname);
+  const isPublicPage = isPublicPath(router.pathname);
 
-  // Ensure we're on the client and Amplify is configured
+  // Ensure we're on the client
   useEffect(() => {
     setIsClient(true);
-    // Give Amplify a moment to initialize
-    const timer = setTimeout(() => setAuthReady(true), 100);
-    return () => clearTimeout(timer);
   }, []);
 
   // Show loading on server-side or during hydration
-  if (!isClient || (!isPublicPage && !authReady)) {
+  if (!isClient) {
     return (
       <>
         <Head>
