@@ -371,12 +371,15 @@ def _process_message(
             request_id=request_id
         )
     
-    # Process AI automation if enabled (text messages only)
-    if msg_type == 'text' and content:
+    # Process AI automation for supported message types
+    # Text messages, interactive replies (button/list), and location
+    ai_eligible_types = ['text', 'interactive', 'button', 'location']
+    if msg_type in ai_eligible_types and content:
         _process_ai_automation(
             message_id=message_id,
             contact_id=contact_id,
             content=content,
+            message_type=msg_type,
             phone_number_id=aws_phone_number_id,
             request_id=request_id
         )
@@ -1354,42 +1357,101 @@ def _send_read_receipt(whatsapp_message_id: str, phone_number_id: str, request_i
 # AI AUTOMATION INTEGRATION
 # ============================================================================
 
+# Default AI configuration
+DEFAULT_AI_CONFIG = {
+    'enabled': False,
+    'autoReplyEnabled': False,
+    'respondToInteractive': True,
+    'respondToText': True,
+    'respondToMedia': False,
+    'respondToLocation': True,
+    'maxResponseLength': 500,
+    'responseDelay': 0,
+    'supportedLanguages': ['en', 'hi', 'hi-Latn', 'bn', 'ta', 'te', 'gu', 'mr'],
+    'defaultLanguage': 'en',
+    'agentId': 'JDXIOU2UR9',
+    'agentAlias': 'AQVQPGYXRR',
+    'knowledgeBaseId': 'CTH8DH3RXY',
+    'modelId': 'amazon.nova-lite-v1:0',
+}
+
+
+def _get_ai_config() -> Dict[str, Any]:
+    """
+    Get AI configuration from SystemConfig table.
+    Returns default config if not found or on error.
+    """
+    try:
+        config_table = dynamodb.Table(SYSTEM_CONFIG_TABLE)
+        response = config_table.get_item(Key={'configKey': 'ai_config'})
+        
+        if 'Item' in response:
+            config_value = response['Item'].get('configValue', '{}')
+            config = json.loads(config_value) if isinstance(config_value, str) else config_value
+            # Merge with defaults to ensure all keys exist
+            merged = DEFAULT_AI_CONFIG.copy()
+            merged.update(config)
+            return merged
+        
+        return DEFAULT_AI_CONFIG.copy()
+    except Exception as e:
+        logger.warning(f"Failed to get AI config: {str(e)}")
+        return DEFAULT_AI_CONFIG.copy()
+
+
 def _is_ai_enabled() -> bool:
     """
     Check if AI automation is enabled in SystemConfig.
     Returns False silently if table doesn't exist (AI not configured).
     """
-    try:
-        config_table = dynamodb.Table(SYSTEM_CONFIG_TABLE)
-        response = config_table.get_item(Key={'configKey': 'ai_automation_enabled'})
-        item = response.get('Item', {})
-        return item.get('configValue', 'false').lower() == 'true'
-    except dynamodb.meta.client.exceptions.ResourceNotFoundException:
-        # SystemConfig table doesn't exist - AI not configured, this is expected
-        return False
-    except Exception:
-        # Any other error - silently disable AI (not critical for message processing)
-        return False
+    config = _get_ai_config()
+    return config.get('enabled', False) and config.get('autoReplyEnabled', False)
 
 
-def _process_ai_automation(message_id: str, contact_id: str, content: str, phone_number_id: str, request_id: str) -> Optional[Dict]:
-    """Process AI automation for inbound message and send auto-reply."""
-    ai_enabled = _is_ai_enabled()
+def _process_ai_automation(message_id: str, contact_id: str, content: str, message_type: str, phone_number_id: str, request_id: str) -> Optional[Dict]:
+    """
+    Process AI automation for inbound message and send auto-reply.
+    
+    Supports multiple message types:
+    - text: Regular text messages
+    - interactive: Button/list replies
+    - button: Quick reply buttons
+    - location: Location sharing
+    
+    Uses AI config from SystemConfigTable to determine behavior.
+    """
+    # Get AI config from SystemConfig table
+    ai_config = _get_ai_config()
+    ai_enabled = ai_config.get('enabled', False) and ai_config.get('autoReplyEnabled', False)
+    
+    # Check if this message type should trigger AI
+    type_config_map = {
+        'text': 'respondToText',
+        'interactive': 'respondToInteractive',
+        'button': 'respondToInteractive',
+        'location': 'respondToLocation',
+    }
+    config_key = type_config_map.get(message_type, 'respondToText')
+    should_respond = ai_config.get(config_key, True)
+    
     logger.info(json.dumps({
         'event': 'ai_automation_check',
         'aiEnabled': ai_enabled,
+        'messageType': message_type,
+        'shouldRespond': should_respond,
         'messageId': message_id,
         'contentLength': len(content) if content else 0,
         'requestId': request_id
     }))
     
-    if not ai_enabled:
+    if not ai_enabled or not should_respond:
         return None
     
     try:
         logger.info(json.dumps({
             'event': 'ai_query_kb_start',
             'messageId': message_id,
+            'messageType': message_type,
             'query': content[:100] if content else '',
             'requestId': request_id
         }))
@@ -1406,7 +1468,17 @@ def _process_ai_automation(message_id: str, contact_id: str, content: str, phone
         # Send auto-reply if we got a valid AI response
         if ai_response and ai_response.get('suggestion'):
             suggestion = ai_response.get('suggestion', '')
+            max_length = ai_config.get('maxResponseLength', 500)
             if suggestion and len(suggestion) > 5:  # Only send if meaningful response
+                # Truncate if needed
+                if len(suggestion) > max_length:
+                    suggestion = suggestion[:max_length] + '...'
+                
+                # Apply response delay if configured
+                response_delay = ai_config.get('responseDelay', 0)
+                if response_delay > 0:
+                    time.sleep(min(response_delay, 5))  # Max 5 second delay
+                
                 _send_ai_auto_reply(
                     contact_id=contact_id,
                     content=suggestion,
@@ -1419,6 +1491,7 @@ def _process_ai_automation(message_id: str, contact_id: str, content: str, phone
         logger.error(json.dumps({
             'event': 'ai_automation_error',
             'messageId': message_id,
+            'messageType': message_type,
             'error': str(e),
             'requestId': request_id
         }))

@@ -1543,3 +1543,211 @@ export async function uploadTemplateMedia(request: {
     body: JSON.stringify(request),
   });
 }
+
+
+// ============================================================================
+// AI CONFIG MANAGEMENT API (Bedrock Control)
+// ============================================================================
+
+export interface BedrockAIConfig {
+  enabled: boolean;
+  autoReplyEnabled: boolean;
+  respondToInteractive: boolean;
+  respondToText: boolean;
+  respondToMedia: boolean;
+  respondToLocation: boolean;
+  maxResponseLength: number;
+  responseDelay: number;
+  supportedLanguages: string[];
+  defaultLanguage: string;
+  agentId: string;
+  agentAlias: string;
+  knowledgeBaseId: string;
+  modelId: string;
+}
+
+export interface AIInteraction {
+  interactionId: string;
+  messageId: string;
+  query: string;
+  response: string;
+  detectedLanguage?: string;
+  approved: boolean;
+  timestamp: number;
+}
+
+export interface AIStats {
+  totalInteractions: number;
+  approvedResponses: number;
+  approvalRate: number;
+  byLanguage: Record<string, number>;
+}
+
+export interface SupportedLanguages {
+  [code: string]: string;
+}
+
+/**
+ * Get Bedrock AI configuration
+ * API: GET /ai/config
+ */
+export async function getBedrockAIConfig(): Promise<BedrockAIConfig> {
+  const data = await apiCall<any>(`${API_BASE}/ai/config`);
+  if (data && data.config) {
+    return data.config;
+  }
+  // Return defaults if API fails
+  return {
+    enabled: false,
+    autoReplyEnabled: false,
+    respondToInteractive: true,
+    respondToText: true,
+    respondToMedia: false,
+    respondToLocation: true,
+    maxResponseLength: 500,
+    responseDelay: 0,
+    supportedLanguages: ['en', 'hi', 'hi-Latn', 'bn', 'ta', 'te', 'gu', 'mr'],
+    defaultLanguage: 'en',
+    agentId: 'JDXIOU2UR9',
+    agentAlias: 'AQVQPGYXRR',
+    knowledgeBaseId: 'CTH8DH3RXY',
+    modelId: 'amazon.nova-lite-v1:0',
+  };
+}
+
+/**
+ * Update Bedrock AI configuration
+ * API: PUT /ai/config
+ */
+export async function updateBedrockAIConfig(updates: Partial<BedrockAIConfig>): Promise<BedrockAIConfig | null> {
+  const data = await apiCall<any>(`${API_BASE}/ai/config`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  });
+  if (data && data.config) {
+    return data.config;
+  }
+  return null;
+}
+
+/**
+ * Get language-specific prompts
+ * API: GET /ai/prompts or GET /ai/prompts/{lang}
+ */
+export async function getAIPrompts(lang?: string): Promise<Record<string, string> | string> {
+  const url = lang ? `${API_BASE}/ai/prompts/${lang}` : `${API_BASE}/ai/prompts`;
+  const data = await apiCall<any>(url);
+  if (data) {
+    return lang ? (data.prompt || '') : (data.prompts || {});
+  }
+  return lang ? '' : {};
+}
+
+/**
+ * Update language-specific prompt
+ * API: PUT /ai/prompts/{lang}
+ */
+export async function updateAIPrompt(lang: string, prompt: string): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/ai/prompts/${lang}`, {
+    method: 'PUT',
+    body: JSON.stringify({ language: lang, prompt }),
+  });
+  return data?.success === true;
+}
+
+/**
+ * Get language-specific fallback messages
+ * API: GET /ai/fallbacks or GET /ai/fallbacks/{lang}
+ */
+export async function getAIFallbacks(lang?: string): Promise<Record<string, string> | string> {
+  const url = lang ? `${API_BASE}/ai/fallbacks/${lang}` : `${API_BASE}/ai/fallbacks`;
+  const data = await apiCall<any>(url);
+  if (data) {
+    return lang ? (data.fallback || '') : (data.fallbacks || {});
+  }
+  return lang ? '' : {};
+}
+
+/**
+ * Update language-specific fallback message
+ * API: PUT /ai/fallbacks/{lang}
+ */
+export async function updateAIFallback(lang: string, fallback: string): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/ai/fallbacks/${lang}`, {
+    method: 'PUT',
+    body: JSON.stringify({ language: lang, fallback }),
+  });
+  return data?.success === true;
+}
+
+/**
+ * Get AI interaction logs
+ * API: GET /ai/interactions
+ */
+export async function getAIInteractions(limit?: number): Promise<AIInteraction[]> {
+  let url = `${API_BASE}/ai/interactions`;
+  if (limit) url += `?limit=${limit}`;
+  
+  const data = await apiCall<any>(url);
+  if (data && data.interactions) {
+    return data.interactions;
+  }
+  return [];
+}
+
+/**
+ * Get AI usage statistics
+ * API: GET /ai/stats
+ */
+export async function getAIStats(): Promise<AIStats> {
+  const data = await apiCall<any>(`${API_BASE}/ai/stats`);
+  if (data) {
+    return {
+      totalInteractions: data.totalInteractions || 0,
+      approvedResponses: data.approvedResponses || 0,
+      approvalRate: data.approvalRate || 0,
+      byLanguage: data.byLanguage || {},
+    };
+  }
+  return { totalInteractions: 0, approvedResponses: 0, approvalRate: 0, byLanguage: {} };
+}
+
+/**
+ * Get supported languages
+ * API: GET /ai/languages
+ */
+export async function getSupportedLanguages(): Promise<SupportedLanguages> {
+  const data = await apiCall<any>(`${API_BASE}/ai/languages`);
+  if (data && data.languages) {
+    return data.languages;
+  }
+  return {
+    'en': 'English',
+    'hi': 'Hindi',
+    'hi-Latn': 'Hinglish',
+    'bn': 'Bengali',
+    'ta': 'Tamil',
+    'te': 'Telugu',
+    'gu': 'Gujarati',
+    'mr': 'Marathi',
+  };
+}
+
+/**
+ * Test AI response generation
+ * API: POST /ai/test
+ */
+export async function testBedrockAIResponse(message: string): Promise<{ message: string; response: string; detectedLanguage: string }> {
+  const data = await apiCall<any>(`${API_BASE}/ai/test`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+  if (data) {
+    return {
+      message: data.message || message,
+      response: data.response || 'AI test response would appear here',
+      detectedLanguage: data.detectedLanguage || 'en',
+    };
+  }
+  return { message, response: 'AI service unavailable', detectedLanguage: 'en' };
+}
