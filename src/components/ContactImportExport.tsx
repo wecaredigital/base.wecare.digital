@@ -281,10 +281,10 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
 
   // Download CSV template
   const downloadTemplate = () => {
-    const template = `name,phone,email,whatsapp_opt_in,sms_opt_in,email_opt_in
-John Doe,+919876543210,john@example.com,yes,no,yes
-Jane Smith,+918765432109,jane@example.com,yes,yes,no
-Rahul Kumar,+917654321098,,yes,no,no`;
+    const template = `name,phone,email
+John Doe,+919876543210,john@example.com
+Jane Smith,+918765432109,
+Rahul Kumar,+917654321098,rahul@gmail.com`;
     
     api.downloadFile(template, 'contacts_template.csv', 'text/csv');
   };
@@ -398,7 +398,7 @@ Rahul Kumar,+917654321098,,yes,no,no`;
           {/* CSV Format Info */}
           <div className="csv-format-info">
             <div className="format-header">
-              <span>📋 CSV Format</span>
+              <span>📋 CSV Format (Simple)</span>
               <button className="template-download-btn" onClick={downloadTemplate}>
                 ⬇️ Download Template
               </button>
@@ -414,14 +414,11 @@ Rahul Kumar,+917654321098,,yes,no,no`;
                 </thead>
                 <tbody>
                   <tr><td>name</td><td>No</td><td>John Doe</td></tr>
-                  <tr><td>phone</td><td>Yes*</td><td>+919876543210</td></tr>
-                  <tr><td>email</td><td>Yes*</td><td>john@example.com</td></tr>
-                  <tr><td>whatsapp_opt_in</td><td>No</td><td>yes / no</td></tr>
-                  <tr><td>sms_opt_in</td><td>No</td><td>yes / no</td></tr>
-                  <tr><td>email_opt_in</td><td>No</td><td>yes / no</td></tr>
+                  <tr><td>phone</td><td>Yes</td><td>+919876543210</td></tr>
+                  <tr><td>email</td><td>No</td><td>john@example.com</td></tr>
                 </tbody>
               </table>
-              <div className="format-note">* At least phone or email is required</div>
+              <div className="format-note">All contacts auto opt-in to WhatsApp by default</div>
             </div>
           </div>
 

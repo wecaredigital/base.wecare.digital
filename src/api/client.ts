@@ -2378,6 +2378,7 @@ export interface ImportResult {
 
 /**
  * Parse CSV content to contact objects
+ * All contacts auto opt-in to WhatsApp by default
  */
 export function parseContactsCSV(csvContent: string): Partial<Contact>[] {
   const lines = csvContent.split('\n').filter(line => line.trim());
@@ -2388,16 +2389,17 @@ export function parseContactsCSV(csvContent: string): Partial<Contact>[] {
   
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].match(/(".*?"|[^,]+)/g)?.map(v => v.replace(/^"|"$/g, '').trim()) || [];
-    const contact: Partial<Contact> = {};
+    const contact: Partial<Contact> = {
+      // Auto opt-in all contacts by default
+      optInWhatsApp: true,
+      allowlistWhatsApp: true,
+    };
     
     headers.forEach((header, index) => {
       const value = values[index] || '';
       if (header === 'name') contact.name = value;
       else if (header === 'phone') contact.phone = value.startsWith('+') ? value : `+${value}`;
       else if (header === 'email') contact.email = value;
-      else if (header.includes('whatsapp')) contact.optInWhatsApp = value.toLowerCase() === 'yes' || value === '1' || value.toLowerCase() === 'true';
-      else if (header.includes('sms')) contact.optInSms = value.toLowerCase() === 'yes' || value === '1' || value.toLowerCase() === 'true';
-      else if (header.includes('email') && header.includes('opt')) contact.optInEmail = value.toLowerCase() === 'yes' || value === '1' || value.toLowerCase() === 'true';
     });
     
     if (contact.phone) {
@@ -2410,6 +2412,7 @@ export function parseContactsCSV(csvContent: string): Partial<Contact>[] {
 
 /**
  * Import contacts from parsed CSV data
+ * All contacts auto opt-in to WhatsApp by default
  */
 export async function importContacts(contacts: Partial<Contact>[]): Promise<ImportResult> {
   const result: ImportResult = {
@@ -2422,13 +2425,20 @@ export async function importContacts(contacts: Partial<Contact>[]): Promise<Impo
   
   for (const contact of contacts) {
     try {
+      // Ensure all contacts have WhatsApp opt-in enabled
+      const contactWithOptIn = {
+        ...contact,
+        optInWhatsApp: true,
+        allowlistWhatsApp: true,
+      };
+      
       // Check if contact exists by phone
       const existing = await listContacts();
       const found = existing.find(c => c.phone === contact.phone);
       
       if (found) {
         // Update existing
-        const updated = await updateContact(found.contactId, contact);
+        const updated = await updateContact(found.contactId, contactWithOptIn);
         if (updated) {
           result.updated++;
         } else {
@@ -2437,7 +2447,7 @@ export async function importContacts(contacts: Partial<Contact>[]): Promise<Impo
         }
       } else {
         // Create new
-        const created = await createContact(contact);
+        const created = await createContact(contactWithOptIn);
         if (created) {
           result.created++;
         } else {
