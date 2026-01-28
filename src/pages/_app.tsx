@@ -1,6 +1,6 @@
 ﻿/**
  * WECARE.DIGITAL Admin Platform
- * Auth with all page URLs configured for Cognito redirect
+ * Using Authenticator.Provider for persistent auth state across client-side navigation
  */
 
 import type { AppProps } from 'next/app';
@@ -8,7 +8,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { Amplify } from 'aws-amplify';
-import { Authenticator } from '@aws-amplify/ui-react';
+import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import '../styles/Pages.css';
 import '../styles/Layout.css';
@@ -62,13 +62,6 @@ const CALLBACK_URLS = [
   'https://base.wecare.digital/access/',
 ];
 
-const LOGOUT_URLS = [
-  'http://localhost:3000/',
-  'https://base.wecare.digital/',
-  'https://base.wecare.digital/dashboard/',
-  'https://base.wecare.digital/dm/whatsapp/',
-];
-
 // Configure Amplify
 Amplify.configure({
   Auth: {
@@ -81,7 +74,7 @@ Amplify.configure({
           domain: 'sso.wecare.digital',
           scopes: ['openid', 'email', 'profile'],
           redirectSignIn: CALLBACK_URLS,
-          redirectSignOut: LOGOUT_URLS,
+          redirectSignOut: ['http://localhost:3000/', 'https://base.wecare.digital/'],
           responseType: 'code' as const
         },
         username: true,
@@ -108,18 +101,55 @@ const AuthHeader = () => (
   </div>
 );
 
+// Protected content - uses useAuthenticator hook
+function ProtectedPage({ Component, pageProps }: { Component: any; pageProps: any }) {
+  const router = useRouter();
+  const { authStatus, user, signOut } = useAuthenticator(context => [context.authStatus]);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+
+  // Track when auth check completes
+  useEffect(() => {
+    if (authStatus !== 'configuring') {
+      setHasCheckedAuth(true);
+    }
+  }, [authStatus]);
+
+  // First load - show loading while checking auth
+  if (!hasCheckedAuth && authStatus === 'configuring') {
+    return <LoadingScreen />;
+  }
+
+  // Not authenticated - show login
+  if (authStatus === 'unauthenticated') {
+    return <Authenticator hideSignUp={true} components={{ Header: AuthHeader }} />;
+  }
+
+  // Authenticated OR still configuring after first check - render page
+  // This prevents flashing loading screen during navigation
+  const handleSignOut = () => {
+    signOut();
+    router.push('/');
+  };
+
+  return (
+    <>
+      <Component {...pageProps} signOut={handleSignOut} user={user} />
+      <FloatingAgent />
+    </>
+  );
+}
+
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   
-  // Only home page is public
   const isPublic = router.pathname === '/';
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Server-side render - show loading
+  // SSR - show loading
   if (!isClient) {
     return (
       <>
@@ -133,7 +163,7 @@ export default function App({ Component, pageProps }: AppProps) {
     );
   }
 
-  // Public page (home only)
+  // Public page
   if (isPublic) {
     return (
       <>
@@ -147,7 +177,7 @@ export default function App({ Component, pageProps }: AppProps) {
     );
   }
 
-  // All other pages - protected with Authenticator
+  // Protected pages - wrap in Provider for shared auth state
   return (
     <>
       <Head>
@@ -155,21 +185,9 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
       </Head>
-      <Authenticator hideSignUp={true} components={{ Header: AuthHeader }}>
-        {({ signOut, user }) => (
-          <>
-            <Component 
-              {...pageProps} 
-              signOut={() => { 
-                signOut(); 
-                router.push('/'); 
-              }} 
-              user={user} 
-            />
-            <FloatingAgent />
-          </>
-        )}
-      </Authenticator>
+      <Authenticator.Provider>
+        <ProtectedPage Component={Component} pageProps={pageProps} />
+      </Authenticator.Provider>
     </>
   );
 }
