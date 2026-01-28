@@ -1,19 +1,15 @@
 ﻿/**
  * WECARE.DIGITAL Admin Platform
  * Next.js App Component with Amplify Auth
- * 
- * Auth Flow:
- * - Public pages (/, /access): No auth required
- * - Protected pages: Require authentication
- * - Session persists across all page navigations
  */
 
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Amplify } from 'aws-amplify';
-import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
+import { fetchAuthSession, getCurrentUser, signOut as amplifySignOut } from 'aws-amplify/auth';
+import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import '../styles/Pages.css';
 import '../styles/Layout.css';
@@ -42,12 +38,10 @@ Amplify.configure({
   }
 });
 
-// Public pages - only home page is truly public
-const PUBLIC_PAGES = ['/'];
-
+// Only home page is public
 const isPublicPath = (pathname: string) => {
   const path = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
-  return PUBLIC_PAGES.includes(path);
+  return path === '/';
 };
 
 // Loading screen
@@ -59,66 +53,86 @@ const LoadingScreen = () => (
   </div>
 );
 
-// Auth header component
-const AuthHeader = () => (
-  <div style={{ textAlign: 'center', padding: '20px' }}>
-    <h1 style={{ fontSize: '24px', fontWeight: 300, color: '#1a1a1a' }}>WECARE.DIGITAL</h1>
-    <p style={{ color: '#666', fontSize: '14px' }}>Admin Platform</p>
+// Login screen using Authenticator
+const LoginScreen = ({ onSuccess }: { onSuccess: () => void }) => (
+  <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5' }}>
+    <Authenticator
+      hideSignUp={true}
+      components={{
+        Header: () => (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 300, color: '#1a1a1a' }}>WECARE.DIGITAL</h1>
+            <p style={{ color: '#666', fontSize: '14px' }}>Admin Platform</p>
+          </div>
+        )
+      }}
+    >
+      {() => {
+        // Login successful, trigger callback
+        onSuccess();
+        return <LoadingScreen />;
+      }}
+    </Authenticator>
   </div>
 );
 
-// Main content wrapper - handles auth state
-function AuthenticatedApp({ Component, pageProps }: { Component: any; pageProps: any }) {
-  const router = useRouter();
-  const { user, signOut, authStatus } = useAuthenticator();
-  const isPublic = isPublicPath(router.pathname);
-  const wasAuthenticated = useRef(false);
-
-  // Track if user was ever authenticated in this session
-  useEffect(() => {
-    if (authStatus === 'authenticated') {
-      wasAuthenticated.current = true;
-    }
-  }, [authStatus]);
-
-  const handleSignOut = async () => {
-    wasAuthenticated.current = false;
-    await signOut();
-    router.push('/');
-  };
-
-  // Public pages - always render
-  if (isPublic) {
-    return <Component {...pageProps} />;
-  }
-
-  // Protected pages
-  // If authenticated, show the page
-  if (authStatus === 'authenticated' && user) {
-    return (
-      <>
-        <Component {...pageProps} signOut={handleSignOut} user={user} />
-        <FloatingAgent />
-      </>
-    );
-  }
-
-  // If configuring but was previously authenticated, show loading (not login)
-  if (authStatus === 'configuring' && wasAuthenticated.current) {
-    return <LoadingScreen />;
-  }
-
-  // Not authenticated - return null, Authenticator will show login
-  return null;
-}
-
 export default function App({ Component, pageProps }: AppProps) {
+  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
+  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
+  const [user, setUser] = useState<any>(null);
+  
+  const isPublic = isPublicPath(router.pathname);
 
+  // Check auth on mount and when route changes
   useEffect(() => {
     setIsClient(true);
+    checkAuth();
   }, []);
 
+  // Re-check auth when navigating (but don't reset to loading if already authenticated)
+  useEffect(() => {
+    if (authState === 'authenticated') {
+      // Already authenticated, just verify session is still valid
+      checkAuth(true);
+    }
+  }, [router.pathname]);
+
+  const checkAuth = async (silent = false) => {
+    if (!silent) {
+      setAuthState('loading');
+    }
+    try {
+      const currentUser = await getCurrentUser();
+      const session = await fetchAuthSession();
+      if (session.tokens) {
+        setUser(currentUser);
+        setAuthState('authenticated');
+      } else {
+        throw new Error('No tokens');
+      }
+    } catch (err) {
+      setUser(null);
+      setAuthState('unauthenticated');
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await amplifySignOut();
+      setUser(null);
+      setAuthState('unauthenticated');
+      router.push('/');
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+  };
+
+  const handleLoginSuccess = () => {
+    checkAuth();
+  };
+
+  // Server-side or initial load
   if (!isClient) {
     return (
       <>
@@ -132,16 +146,39 @@ export default function App({ Component, pageProps }: AppProps) {
     );
   }
 
+  // Public pages - render without auth
+  if (isPublic) {
+    return (
+      <>
+        <Head>
+          <title>WECARE.DIGITAL</title>
+          <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
+        </Head>
+        <Component {...pageProps} />
+      </>
+    );
+  }
+
+  // Protected pages - check auth state
   return (
-    <Authenticator.Provider>
+    <>
       <Head>
         <title>WECARE.DIGITAL</title>
         <link rel="icon" href="https://auth.wecare.digital/stream/media/m/wecare-digital.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
       </Head>
-      <Authenticator hideSignUp={true} components={{ Header: AuthHeader }}>
-        <AuthenticatedApp Component={Component} pageProps={pageProps} />
-      </Authenticator>
-    </Authenticator.Provider>
+      
+      {authState === 'loading' && <LoadingScreen />}
+      
+      {authState === 'unauthenticated' && <LoginScreen onSuccess={handleLoginSuccess} />}
+      
+      {authState === 'authenticated' && user && (
+        <>
+          <Component {...pageProps} signOut={handleSignOut} user={user} />
+          <FloatingAgent />
+        </>
+      )}
+    </>
   );
 }
