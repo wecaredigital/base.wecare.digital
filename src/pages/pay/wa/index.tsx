@@ -163,7 +163,7 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
     <Layout user={user} onSignOut={signOut}>
       <div className="pay-page">
         <div className="pay-header">
-          <h1>💬 Pay WA - WhatsApp Payment</h1>
+          <h1>💬 WhatsApp Pay</h1>
           <p>Send payment requests via WhatsApp UPI (India only)</p>
         </div>
 

@@ -53,7 +53,7 @@ body {
 
 /* Buttons - Modern Style */
 .btn-primary {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
   color: #ffffff;
   border: none;
   padding: 12px 24px;
@@ -66,12 +66,12 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.3);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.35);
+  box-shadow: 0 8px 25px rgba(37, 211, 102, 0.4);
 }
 
 .btn-primary:active {
@@ -199,7 +199,7 @@ body {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #0f172a 0%, #334155 100%);
+  background: linear-gradient(90deg, #25d366 0%, #128c7e 100%);
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -302,9 +302,9 @@ body {
 
 .quick-action-card:hover {
   background: #ffffff;
-  border-color: #0f172a;
+  border-color: #25d366;
   transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 30px rgba(37, 211, 102, 0.15);
 }
 
 .qa-icon {
@@ -451,8 +451,8 @@ body {
 
 .tab.active {
   background: #ffffff;
-  color: #0f172a;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: #25d366;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.15);
 }
 
 /* Form Styles */
@@ -1147,7 +1147,7 @@ body {
 
 .contact-item.selected {
   background: #f1f5f9;
-  border-left: 3px solid #0f172a;
+  border-left: 3px solid #25d366;
 }
 
 .contact-avatar {
@@ -1215,7 +1215,7 @@ body {
 }
 
 .unread-badge {
-  background: #0f172a;
+  background: #25d366;
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -1601,7 +1601,7 @@ body {
 }
 
 .input-wrapper:focus-within {
-  border-color: #0f172a;
+  border-color: #25d366;
   background: #ffffff;
 }
 
@@ -1635,7 +1635,7 @@ body {
 }
 
 .send-btn {
-  background: #0f172a;
+  background: #25d366;
   border: none;
   color: #fff;
   width: 40px;
@@ -1656,7 +1656,7 @@ body {
 
 .send-btn:hover:not(:disabled) {
   transform: scale(1.05);
-  background: #1e293b;
+  background: #128c7e;
 }
 
 /* Empty Chat State */

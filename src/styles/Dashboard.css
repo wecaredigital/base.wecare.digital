@@ -942,7 +942,7 @@
 }
 
 .btn-primary:hover {
-  background: var(--wa-teal-light);
+  background: var(--wa-green);
   transform: translateY(-1px);
 }
 

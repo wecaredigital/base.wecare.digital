@@ -39,9 +39,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   
-  // Navigation items - Unicode symbols (matching dashboard)
+  // Navigation items - WhatsApp themed icons
   const menuItems: MenuItem[] = [
-    { path: '/dashboard', label: 'Dashboard', icon: '⊞', subItems: [
+    { path: '/dashboard', label: 'Dashboard', icon: '📊', subItems: [
       { path: '/dashboard', label: 'Overview' },
       { path: '/dashboard/messages', label: 'Messages' },
       { path: '/dashboard/payments', label: 'Payments' },
@@ -49,29 +49,29 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       { path: '/dashboard/billing', label: 'Billing' },
       { path: '/dashboard/ai', label: 'AI Assistant' },
     ]},
-    { path: '/pay', label: 'Pay', icon: '₹', subItems: [
-      { path: '/pay/wa', label: 'WhatsApp' },
-      { path: '/pay/link', label: 'Link' },
+    { path: '/pay', label: 'Pay', icon: '💳', subItems: [
+      { path: '/pay/wa', label: 'WhatsApp Pay' },
+      { path: '/pay/link', label: 'Pay Link' },
       { path: '/pay/logs', label: 'Logs' },
     ]},
-    { path: '/link', label: 'Link', icon: '⟁', subItems: [
+    { path: '/link', label: 'Link', icon: '🔗', subItems: [
       { path: '/link/create', label: 'Create' },
       { path: '/link/logs', label: 'Logs' },
     ]},
-    { path: '/forms', label: 'Forms', icon: '☐', subItems: [
+    { path: '/forms', label: 'Forms', icon: '📝', subItems: [
       { path: '/forms/create', label: 'Create' },
       { path: '/forms/logs', label: 'Logs' },
     ]},
-    { path: '/docs', label: 'Docs', icon: '⎙', subItems: [
+    { path: '/docs', label: 'Docs', icon: '📄', subItems: [
       { path: '/docs/create', label: 'Create' },
       { path: '/docs/logs', label: 'Logs' },
     ]},
-    { path: '/invoice', label: 'Invoice', icon: '⧉', subItems: [
+    { path: '/invoice', label: 'Invoice', icon: '🧾', subItems: [
       { path: '/invoice/create', label: 'Create' },
       { path: '/invoice/logs', label: 'Logs' },
     ]},
-    { path: '/dm', label: 'Messages', icon: '◈', subItems: [
-      { path: '/dm/whatsapp', label: 'WhatsApp' },
+    { path: '/dm', label: 'Messages', icon: '💬', subItems: [
+      { path: '/dm/whatsapp', label: 'WhatsApp Inbox' },
       { path: '/dm/whatsapp/waba-dashboard', label: 'WA Dashboard' },
       { path: '/dm/whatsapp/templates', label: 'WA Templates' },
       { path: '/dm/whatsapp/ai-config', label: 'AI Config' },
@@ -81,8 +81,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       { path: '/dm/rcs', label: 'RCS' },
       { path: '/dm/logs', label: 'Logs' },
     ]},
-    { path: '/contacts', label: 'Contacts', icon: '⊕' },
-    { path: '/bulk', label: 'Bulk', icon: '⫶', subItems: [
+    { path: '/contacts', label: 'Contacts', icon: '👥' },
+    { path: '/bulk', label: 'Bulk', icon: '📤', subItems: [
       { path: '/bulk/whatsapp', label: 'WhatsApp' },
       { path: '/bulk/sms', label: 'SMS' },
       { path: '/bulk/ses', label: 'Email' },

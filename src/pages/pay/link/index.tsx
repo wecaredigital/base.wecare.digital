@@ -49,7 +49,7 @@ const PayLinkPage: React.FC<PageProps> = ({ signOut, user }) => {
     <Layout user={user} onSignOut={signOut}>
       <div className="pay-link-page">
         <div className="page-header">
-          <h1>🔗 Pay Link - Payment Link Generator</h1>
+          <h1>🔗 Pay Link</h1>
           <p>Generate shareable payment links for any channel</p>
         </div>
 

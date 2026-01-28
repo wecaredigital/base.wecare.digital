@@ -24,7 +24,7 @@ const PayHubPage: React.FC<PageProps> = ({ signOut, user }) => {
           <Link href="/pay/wa" className="pay-option whatsapp">
             <div className="option-icon">💬</div>
             <div className="option-info">
-              <h3>Pay WA</h3>
+              <h3>WhatsApp Pay</h3>
               <p>WhatsApp Interactive Payment</p>
               <span className="option-desc">Send UPI payment requests via WhatsApp (India only)</span>
             </div>
