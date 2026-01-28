@@ -85,7 +85,7 @@ input, textarea, select {
 }
 
 .app-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: 0.5px;
   color: #0f172a;
@@ -108,7 +108,7 @@ input, textarea, select {
   border-radius: 12px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-weight: 500;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .nav-item:hover {
@@ -131,13 +131,13 @@ input, textarea, select {
 
 .nav-icon {
   margin-right: 14px;
-  font-size: 18px;
-  width: 22px;
+  font-size: 20px;
+  width: 24px;
   text-align: center;
 }
 
 .nav-label {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -486,7 +486,7 @@ input, textarea, select {
   text-decoration: none;
   color: #666666;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 14px;
   transition: all 0.2s ease;
 }
 

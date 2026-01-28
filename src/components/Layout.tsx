@@ -81,7 +81,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       { path: '/dm/rcs', label: 'RCS' },
       { path: '/dm/logs', label: 'Logs' },
     ]},
-    { path: '/contacts', label: 'Contacts', icon: '⊕' },
+    { path: '/contacts', label: 'Contacts', icon: '⊕', subItems: [
+      { path: '/contacts', label: 'All Contacts' },
+    ]},
     { path: '/bulk', label: 'Bulk', icon: '⫶', subItems: [
       { path: '/bulk/whatsapp', label: 'WhatsApp' },
       { path: '/bulk/sms', label: 'SMS' },

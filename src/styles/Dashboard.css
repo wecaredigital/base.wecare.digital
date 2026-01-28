@@ -70,7 +70,7 @@
 }
 
 .dash-brand h1 {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--notion-text);
   margin: 0;
@@ -146,7 +146,7 @@
   border: none;
   background: transparent;
   border-radius: var(--radius-md);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--notion-text-secondary);
   cursor: pointer;
@@ -206,14 +206,14 @@
 }
 
 .stat-card .stat-value {
-  font-size: 36px;
+  font-size: 40px;
   font-weight: 700;
   color: var(--notion-text);
   line-height: 1;
 }
 
 .stat-card .stat-label {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--notion-text-secondary);
   margin-top: var(--space-sm);
   font-weight: 500;
@@ -248,7 +248,7 @@
 }
 
 .section h3 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--notion-text);
   margin: 0 0 var(--space-md) 0;
@@ -308,12 +308,12 @@
 }
 
 .action-card .icon {
-  font-size: 28px;
+  font-size: 32px;
   margin-bottom: var(--space-sm);
 }
 
 .action-card span:last-child {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -382,14 +382,14 @@
 
 .msg-item .name {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--notion-text);
   min-width: 120px;
 }
 
 .msg-item .content {
   flex: 1;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--notion-text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -397,13 +397,13 @@
 }
 
 .msg-item .time {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--notion-text-light);
   white-space: nowrap;
 }
 
 .msg-item .status {
-  font-size: 11px;
+  font-size: 12px;
   padding: 2px 8px;
   background: var(--notion-bg);
   border-radius: var(--radius-sm);
