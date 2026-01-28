@@ -1,6 +1,6 @@
 ﻿/**
  * WECARE.DIGITAL Admin Platform
- * Simple Authenticator wrapper - works reliably with static export
+ * Auth with all page URLs configured for Cognito redirect
  */
 
 import type { AppProps } from 'next/app';
@@ -15,6 +15,60 @@ import '../styles/Layout.css';
 import '../styles/Dashboard.css';
 import FloatingAgent from '../components/FloatingAgent';
 
+// All callback URLs for Cognito
+const CALLBACK_URLS = [
+  'http://localhost:3000/',
+  'https://base.wecare.digital/',
+  'https://base.wecare.digital/dashboard/',
+  'https://base.wecare.digital/dashboard/messages/',
+  'https://base.wecare.digital/dashboard/payments/',
+  'https://base.wecare.digital/dashboard/data/',
+  'https://base.wecare.digital/dashboard/billing/',
+  'https://base.wecare.digital/dashboard/ai/',
+  'https://base.wecare.digital/dm/',
+  'https://base.wecare.digital/dm/whatsapp/',
+  'https://base.wecare.digital/dm/whatsapp/waba-dashboard/',
+  'https://base.wecare.digital/dm/whatsapp/templates/',
+  'https://base.wecare.digital/dm/whatsapp/ai-config/',
+  'https://base.wecare.digital/dm/sms/',
+  'https://base.wecare.digital/dm/ses/',
+  'https://base.wecare.digital/dm/voice/',
+  'https://base.wecare.digital/dm/rcs/',
+  'https://base.wecare.digital/dm/logs/',
+  'https://base.wecare.digital/contacts/',
+  'https://base.wecare.digital/bulk/',
+  'https://base.wecare.digital/bulk/whatsapp/',
+  'https://base.wecare.digital/bulk/sms/',
+  'https://base.wecare.digital/bulk/ses/',
+  'https://base.wecare.digital/bulk/voice/',
+  'https://base.wecare.digital/bulk/rcs/',
+  'https://base.wecare.digital/bulk/logs/',
+  'https://base.wecare.digital/pay/',
+  'https://base.wecare.digital/pay/wa/',
+  'https://base.wecare.digital/pay/link/',
+  'https://base.wecare.digital/pay/logs/',
+  'https://base.wecare.digital/link/',
+  'https://base.wecare.digital/link/create/',
+  'https://base.wecare.digital/link/logs/',
+  'https://base.wecare.digital/forms/',
+  'https://base.wecare.digital/forms/create/',
+  'https://base.wecare.digital/forms/logs/',
+  'https://base.wecare.digital/docs/',
+  'https://base.wecare.digital/docs/create/',
+  'https://base.wecare.digital/docs/logs/',
+  'https://base.wecare.digital/invoice/',
+  'https://base.wecare.digital/invoice/create/',
+  'https://base.wecare.digital/invoice/logs/',
+  'https://base.wecare.digital/access/',
+];
+
+const LOGOUT_URLS = [
+  'http://localhost:3000/',
+  'https://base.wecare.digital/',
+  'https://base.wecare.digital/dashboard/',
+  'https://base.wecare.digital/dm/whatsapp/',
+];
+
 // Configure Amplify
 Amplify.configure({
   Auth: {
@@ -26,8 +80,8 @@ Amplify.configure({
         oauth: {
           domain: 'sso.wecare.digital',
           scopes: ['openid', 'email', 'profile'],
-          redirectSignIn: ['https://base.wecare.digital/', 'http://localhost:3000/'],
-          redirectSignOut: ['https://base.wecare.digital/', 'http://localhost:3000/'],
+          redirectSignIn: CALLBACK_URLS,
+          redirectSignOut: LOGOUT_URLS,
           responseType: 'code' as const
         },
         username: true,
