@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../../components/Layout';
+import ContactImportExport from '../../components/ContactImportExport';
 import * as api from '../../api/client';
 
 interface PageProps {
@@ -213,6 +214,12 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
             <div className="stat-label">Email Opt-In</div>
           </div>
         </div>
+
+        {/* Import/Export Section */}
+        <ContactImportExport 
+          contacts={contacts} 
+          onImportComplete={loadContacts} 
+        />
 
         <div className="search-bar">
           <input

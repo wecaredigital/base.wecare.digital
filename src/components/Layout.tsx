@@ -10,10 +10,12 @@
  * - WebView compatible (Android WebView + iOS WKWebView)
  */
 
-import React, { ReactNode, useState, useEffect } from 'react';
+import React, { ReactNode, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import FloatingAgent from './FloatingAgent';
+import SearchModal from './SearchModal';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
 interface SubItem {
   path: string;
@@ -38,6 +40,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Global keyboard shortcuts
+  useKeyboardShortcuts([
+    { key: 'k', ctrl: true, action: () => setSearchOpen(true), description: 'Open search' },
+    { key: '/', action: () => setSearchOpen(true), description: 'Open search' },
+  ]);
   
   // Navigation items - Notion-style Unicode symbols
   const menuItems: MenuItem[] = [
@@ -225,6 +234,12 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
         
         {/* Floating Agent Chatbot */}
         <FloatingAgent />
+        
+        {/* Global Search Modal (Ctrl+K) */}
+        <SearchModal 
+          isOpen={searchOpen} 
+          onClose={() => setSearchOpen(false)} 
+        />
       </div>
     </>
   );

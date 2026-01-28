@@ -34,8 +34,7 @@ export const SkeletonText: React.FC<{ lines?: number; className?: string }> = ({
       <Skeleton 
         key={i} 
         width={i === lines - 1 ? '60%' : '100%'} 
-        height={14} 
-        style={{ marginBottom: i < lines - 1 ? 8 : 0 }}
+        height={14}
       />
     ))}
   </div>

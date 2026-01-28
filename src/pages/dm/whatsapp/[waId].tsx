@@ -10,6 +10,8 @@ import RichTextEditor from '../../../components/RichTextEditor';
 import InteractiveMessageComposer from '../../../components/InteractiveMessageComposer';
 import TemplateSender from '../../../components/TemplateSender';
 import * as api from '../../../api/client';
+import { useChatShortcuts } from '../../../hooks/useKeyboardShortcuts';
+import { useNotificationSound } from '../../../hooks/useNotificationSound';
 
 interface PageProps {
   signOut?: () => void;
@@ -79,6 +81,33 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
   // Window countdown state
   const [windowCountdown, setWindowCountdown] = useState<string>('');
 
+  // Message search state
+  const [messageSearchQuery, setMessageSearchQuery] = useState('');
+  const [showMessageSearch, setShowMessageSearch] = useState(false);
+  
+  // Contact search state
+  const [contactSearchQuery, setContactSearchQuery] = useState('');
+  
+  // Starred messages
+  const [starredMessages, setStarredMessages] = useState<string[]>([]);
+  
+  // Notification sounds
+  const { playMessageSound } = useNotificationSound();
+  const prevMessageCount = useRef(0);
+
+  // Chat keyboard shortcuts
+  useChatShortcuts({
+    onSend: () => handleSend(),
+    onSearch: () => setShowMessageSearch(true),
+    onTemplate: () => setShowTemplateSender(true),
+    onInteractive: () => setShowInteractiveComposer(true),
+    onEscape: () => {
+      setShowMessageSearch(false);
+      setShowTemplateSender(false);
+      setShowInteractiveComposer(false);
+    },
+  });
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -86,6 +115,20 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load starred messages from localStorage
+  useEffect(() => {
+    setStarredMessages(api.getStarredMessages());
+  }, []);
+
+  // Play sound on new inbound message
+  useEffect(() => {
+    const inboundCount = messages.filter(m => m.direction === 'inbound').length;
+    if (prevMessageCount.current > 0 && inboundCount > prevMessageCount.current) {
+      playMessageSound();
+    }
+    prevMessageCount.current = inboundCount;
+  }, [messages, playMessageSound]);
 
   const loadData = useCallback(async () => {
     if (!waId) return;
@@ -182,7 +225,44 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
     return () => clearInterval(timer);
   }, [selectedContact?.windowOpen, selectedContact?.windowExpiresAt]);
 
-  const filteredMessages = messages.filter(m => selectedContact && m.contactId === selectedContact.id);
+  const filteredMessages = messages.filter(m => {
+    // Filter by selected contact
+    if (!selectedContact || m.contactId !== selectedContact.id) return false;
+    // Filter by search query
+    if (messageSearchQuery.trim()) {
+      return m.content?.toLowerCase().includes(messageSearchQuery.toLowerCase());
+    }
+    return true;
+  });
+
+  // Filter contacts by search
+  const filteredContacts = contacts.filter(c => {
+    if (!contactSearchQuery.trim()) return true;
+    const q = contactSearchQuery.toLowerCase();
+    return c.name.toLowerCase().includes(q) || c.phone.includes(q);
+  });
+
+  // Toggle star on message
+  const toggleStar = (messageId: string) => {
+    const isNowStarred = api.toggleStarMessage(messageId);
+    setStarredMessages(api.getStarredMessages());
+  };
+
+  // Export chat
+  const exportChat = () => {
+    if (!selectedContact) return;
+    const chatMessages = messages.filter(m => m.contactId === selectedContact.id);
+    const text = api.exportChatToText(
+      chatMessages.map(m => ({
+        ...m,
+        direction: m.direction.toUpperCase() as 'INBOUND' | 'OUTBOUND',
+        channel: 'WHATSAPP' as const,
+        messageId: m.id,
+      })),
+      selectedContact.name
+    );
+    api.downloadFile(text, `chat_${selectedContact.name}_${new Date().toISOString().split('T')[0]}.txt`, 'text/plain');
+  };
 
   const handleSend = async () => {
     if (!selectedContact || !messageText.trim() || sending) return;
@@ -809,10 +889,15 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
           {/* Contacts Sidebar */}
           <div className="wa-sidebar">
             <div className="sidebar-search">
-              <input type="text" placeholder="Search contacts..." />
+              <input 
+                type="text" 
+                placeholder="Search contacts..." 
+                value={contactSearchQuery}
+                onChange={(e) => setContactSearchQuery(e.target.value)}
+              />
             </div>
             <div className="contacts-list">
-              {contacts.map(contact => (
+              {filteredContacts.map(contact => (
                 <div
                   key={contact.id}
                   className={`contact-row ${selectedContact?.id === contact.id ? 'active' : ''}`}
@@ -833,6 +918,11 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                   {contact.windowOpen && <span className="window-indicator">●</span>}
                 </div>
               ))}
+              {filteredContacts.length === 0 && (
+                <div className="no-contacts">
+                  {contactSearchQuery ? 'No contacts match search' : 'No conversations yet'}
+                </div>
+              )}
             </div>
           </div>
 
@@ -851,12 +941,47 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                       )}
                     </div>
                   </div>
-                  <div className={`window-badge ${selectedContact.windowOpen ? 'open' : 'closed'}`}>
-                    {selectedContact.windowOpen 
-                      ? `● Window Open ${windowCountdown ? `(${windowCountdown})` : ''}` 
-                      : '○ Window Closed - Use Template'}
+                  <div className="chat-header-actions">
+                    <button 
+                      className="chat-action-btn" 
+                      onClick={() => setShowMessageSearch(!showMessageSearch)}
+                      title="Search messages (Ctrl+F)"
+                    >
+                      🔍
+                    </button>
+                    <button 
+                      className="chat-action-btn" 
+                      onClick={exportChat}
+                      title="Export chat"
+                    >
+                      ⬇️
+                    </button>
+                    <div className={`window-badge ${selectedContact.windowOpen ? 'open' : 'closed'}`}>
+                      {selectedContact.windowOpen 
+                        ? `● Open ${windowCountdown ? `(${windowCountdown})` : ''}` 
+                        : '○ Closed'}
+                    </div>
                   </div>
                 </div>
+
+                {/* Message Search Bar */}
+                {showMessageSearch && (
+                  <div className="message-search-bar">
+                    <input
+                      type="text"
+                      placeholder="Search in conversation..."
+                      value={messageSearchQuery}
+                      onChange={(e) => setMessageSearchQuery(e.target.value)}
+                      autoFocus
+                    />
+                    {messageSearchQuery && (
+                      <span className="search-count">
+                        {filteredMessages.length} found
+                      </span>
+                    )}
+                    <button onClick={() => { setShowMessageSearch(false); setMessageSearchQuery(''); }}>✕</button>
+                  </div>
+                )}
 
                 <div className="messages-area">
                   {filteredMessages.map(msg => (
@@ -884,6 +1009,13 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
                           👍
                         </button>
                       )}
+                      <button 
+                        className={`star-btn ${starredMessages.includes(msg.id) ? 'starred' : ''}`}
+                        onClick={() => toggleStar(msg.id)}
+                        title={starredMessages.includes(msg.id) ? 'Unstar message' : 'Star message'}
+                      >
+                        {starredMessages.includes(msg.id) ? '★' : '☆'}
+                      </button>
                     </div>
                   ))}
                   <div ref={messagesEndRef} />
@@ -1239,6 +1371,27 @@ const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {
         .no-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #999; }
         .no-chat p { font-size: 24px; margin: 0; }
         .no-chat small { margin-top: 8px; }
+        
+        /* Chat header actions */
+        .chat-header-actions { display: flex; align-items: center; gap: 8px; }
+        .chat-action-btn { background: none; border: none; cursor: pointer; font-size: 18px; padding: 6px; border-radius: 6px; opacity: 0.7; transition: all 0.2s; }
+        .chat-action-btn:hover { opacity: 1; background: rgba(0,0,0,0.05); }
+        
+        /* Message search bar */
+        .message-search-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #fff; border-bottom: 1px solid #e5e5e5; }
+        .message-search-bar input { flex: 1; padding: 8px 12px; border: 1px solid #e5e5e5; border-radius: 20px; font-size: 14px; }
+        .message-search-bar input:focus { outline: none; border-color: #25D366; }
+        .message-search-bar .search-count { font-size: 12px; color: #666; }
+        .message-search-bar button { background: none; border: none; cursor: pointer; font-size: 16px; color: #999; padding: 4px; }
+        .message-search-bar button:hover { color: #333; }
+        
+        /* Star button */
+        .star-btn { background: none; border: none; cursor: pointer; font-size: 14px; opacity: 0.3; transition: all 0.2s; padding: 2px; }
+        .star-btn:hover { opacity: 0.7; }
+        .star-btn.starred { opacity: 1; color: #f59e0b; }
+        
+        /* No contacts message */
+        .no-contacts { padding: 20px; text-align: center; color: #999; font-size: 13px; }
       `}</style>
     </Layout>
   );
