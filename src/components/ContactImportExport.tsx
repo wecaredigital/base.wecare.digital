@@ -3,7 +3,7 @@
  * CSV import, Google Contacts import, and export functionality
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import * as api from '../api/client';
 
 // Google API Client ID - Replace with your own from Google Cloud Console
@@ -279,6 +279,16 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
     }
   };
 
+  // Download CSV template
+  const downloadTemplate = () => {
+    const template = `name,phone,email,whatsapp_opt_in,sms_opt_in,email_opt_in
+John Doe,+919876543210,john@example.com,yes,no,yes
+Jane Smith,+918765432109,jane@example.com,yes,yes,no
+Rahul Kumar,+917654321098,,yes,no,no`;
+    
+    api.downloadFile(template, 'contacts_template.csv', 'text/csv');
+  };
+
   const toggleGoogleContact = (index: number) => {
     setSelectedGoogleContacts(prev => {
       const next = new Set(prev);
@@ -385,6 +395,36 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
       {/* CSV/VCF Import Tab */}
       {activeTab === 'csv' && (
         <>
+          {/* CSV Format Info */}
+          <div className="csv-format-info">
+            <div className="format-header">
+              <span>📋 CSV Format</span>
+              <button className="template-download-btn" onClick={downloadTemplate}>
+                ⬇️ Download Template
+              </button>
+            </div>
+            <div className="format-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Column</th>
+                    <th>Required</th>
+                    <th>Example</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>name</td><td>No</td><td>John Doe</td></tr>
+                  <tr><td>phone</td><td>Yes*</td><td>+919876543210</td></tr>
+                  <tr><td>email</td><td>Yes*</td><td>john@example.com</td></tr>
+                  <tr><td>whatsapp_opt_in</td><td>No</td><td>yes / no</td></tr>
+                  <tr><td>sms_opt_in</td><td>No</td><td>yes / no</td></tr>
+                  <tr><td>email_opt_in</td><td>No</td><td>yes / no</td></tr>
+                </tbody>
+              </table>
+              <div className="format-note">* At least phone or email is required</div>
+            </div>
+          </div>
+
           <div 
             className={`import-zone ${dragOver ? 'dragging' : ''}`}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -404,7 +444,7 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
               Drop CSV or VCF file here or click to browse
             </div>
             <div className="import-zone-hint">
-              CSV: name, phone columns | VCF: Google Contacts export format
+              Supports: CSV (comma-separated) | VCF (vCard from Google)
             </div>
           </div>
 
@@ -666,6 +706,69 @@ const ContactImportExport: React.FC<ContactImportExportProps> = ({ contacts, onI
         .checkbox-inline input {
           width: 16px;
           height: 16px;
+        }
+
+        /* CSV Format Info */
+        .csv-format-info {
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          padding: 14px;
+          margin-bottom: 16px;
+        }
+        .format-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #374151;
+        }
+        .template-download-btn {
+          background: #25d366;
+          color: #fff;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .template-download-btn:hover {
+          background: #128c7e;
+        }
+        .format-table {
+          overflow-x: auto;
+        }
+        .format-table table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 12px;
+        }
+        .format-table th {
+          text-align: left;
+          padding: 6px 8px;
+          background: #e5e7eb;
+          font-weight: 600;
+          color: #374151;
+        }
+        .format-table td {
+          padding: 6px 8px;
+          border-bottom: 1px solid #e5e7eb;
+          color: #6b7280;
+        }
+        .format-table td:first-child {
+          font-family: monospace;
+          color: #059669;
+          font-weight: 500;
+        }
+        .format-note {
+          font-size: 11px;
+          color: #9ca3af;
+          margin-top: 8px;
+          font-style: italic;
         }
 
         
