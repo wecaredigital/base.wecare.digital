@@ -7,6 +7,12 @@ Implements:
 - GetLinkedWhatsAppBusinessAccountPhoneNumber - Get phone details
 - ListLinkedWhatsAppBusinessAccounts - List all WABAs
 - DeleteWhatsAppMessageMedia - Delete uploaded media
+- GetWhatsAppMessageMedia - Download media from WhatsApp
+- PostWhatsAppMessageMedia - Upload media to WhatsApp for sending
+- PutWhatsAppBusinessAccountEventDestinations - Configure SNS event destinations
+- ListTagsForResource - List tags on WABA/phone
+- TagResource - Add tags to resources
+- UntagResource - Remove tags from resources
 
 AWS EUM Social API Reference:
 https://docs.aws.amazon.com/social-messaging/latest/APIReference/Welcome.html
@@ -27,9 +33,11 @@ logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 # AWS clients
 social_messaging = boto3.client('socialmessaging', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+s3 = boto3.client('s3', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
 
 # Environment variables
 SYSTEM_CONFIG_TABLE = os.environ.get('SYSTEM_CONFIG_TABLE', 'base-wecare-digital-SystemConfigTable')
+MEDIA_BUCKET = os.environ.get('MEDIA_BUCKET', 'auth.wecare.digital')
 
 # CORS headers
 CORS_HEADERS = {
@@ -71,7 +79,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     - GET /waba/{wabaId} - Get WABA details
     - GET /waba/phone/{phoneNumberId} - Get phone number details
     - GET /waba/events - Get system events (template status, phone quality, account updates)
+    - GET /waba/media/{mediaId} - Download media from WhatsApp
+    - POST /waba/media - Upload media to WhatsApp for sending
     - DELETE /waba/media/{mediaId} - Delete WhatsApp media
+    - GET /waba/{wabaId}/tags - List tags for WABA
+    - POST /waba/{wabaId}/tags - Add tags to WABA
+    - DELETE /waba/{wabaId}/tags - Remove tags from WABA
+    - PUT /waba/{wabaId}/events - Configure event destinations
     """
     request_id = context.aws_request_id if context else 'local'
     
@@ -108,13 +122,24 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return {'statusCode': 200, 'headers': CORS_HEADERS, 'body': ''}
     
     try:
+        body = {}
+        if event.get('body'):
+            body = json.loads(event.get('body', '{}'))
+        
         # Route handling
         if http_method == 'GET':
             if '/waba/events' in path:
                 return _get_system_events(query_params, request_id)
+            elif '/waba/media/' in path:
+                media_id = path_params.get('mediaId') or path.split('/media/')[-1]
+                phone_id = query_params.get('phoneNumberId', '')
+                return _get_media(media_id, phone_id, query_params, request_id)
             elif '/waba/phone/' in path:
                 phone_id = path_params.get('phoneNumberId') or path.split('/phone/')[-1]
                 return _get_phone_number_details(phone_id, request_id)
+            elif '/tags' in path:
+                resource_arn = query_params.get('resourceArn', '')
+                return _list_tags(resource_arn, request_id)
             elif path_params.get('wabaId') or '/waba/' in path:
                 waba_id = path_params.get('wabaId') or path.split('/waba/')[-1].split('/')[0]
                 if waba_id and waba_id != 'waba':
@@ -122,14 +147,29 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Default: list all WABAs
             return _list_wabas(request_id)
         
+        elif http_method == 'POST':
+            if '/waba/media' in path:
+                return _post_media(body, request_id)
+            elif '/tags' in path:
+                return _tag_resource(body, request_id)
+        
+        elif http_method == 'PUT':
+            if '/events' in path:
+                waba_id = path_params.get('wabaId') or body.get('wabaId', '')
+                return _put_event_destinations(waba_id, body, request_id)
+        
         elif http_method == 'DELETE':
             if '/waba/media/' in path:
                 media_id = path_params.get('mediaId') or path.split('/media/')[-1]
                 phone_id = query_params.get('phoneNumberId', '')
                 return _delete_media(media_id, phone_id, request_id)
+            elif '/tags' in path:
+                return _untag_resource(body, request_id)
         
         return _error_response(400, 'Invalid request')
         
+    except json.JSONDecodeError:
+        return _error_response(400, 'Invalid JSON in request body')
     except Exception as e:
         logger.error(json.dumps({
             'event': 'waba_management_error',
@@ -466,3 +506,343 @@ def _error_response(status_code: int, message: str) -> Dict[str, Any]:
         'headers': CORS_HEADERS,
         'body': json.dumps({'error': message})
     }
+
+
+# ============================================================================
+# NEW APIs: Media, Tags, Event Destinations
+# ============================================================================
+
+def _get_media(media_id: str, phone_number_id: str, query_params: Dict, request_id: str) -> Dict[str, Any]:
+    """
+    Download media from WhatsApp.
+    API: GetWhatsAppMessageMedia
+    
+    Can either:
+    - Return metadata only (metadataOnly=true)
+    - Download to S3 (destinationS3File)
+    - Return presigned URL (destinationS3PresignedUrl)
+    """
+    try:
+        if not media_id:
+            return _error_response(400, 'mediaId is required')
+        if not phone_number_id:
+            return _error_response(400, 'phoneNumberId is required')
+        
+        # Ensure phone_number_id has correct format
+        if not phone_number_id.startswith('phone-number-id-'):
+            phone_number_id = f'phone-number-id-{phone_number_id}'
+        
+        metadata_only = query_params.get('metadataOnly', 'false').lower() == 'true'
+        
+        params = {
+            'mediaId': media_id,
+            'originationPhoneNumberId': phone_number_id,
+            'metadataOnly': metadata_only
+        }
+        
+        # If not metadata only, specify S3 destination
+        if not metadata_only:
+            s3_key = f'whatsapp-media/downloads/{media_id}'
+            params['destinationS3File'] = {
+                'bucketName': MEDIA_BUCKET,
+                'key': s3_key
+            }
+        
+        response = social_messaging.get_whatsapp_message_media(**params)
+        
+        result = {
+            'mediaId': media_id,
+            'mimeType': response.get('mimeType', ''),
+            'fileSize': response.get('fileSize', 0),
+        }
+        
+        if not metadata_only:
+            result['s3Key'] = s3_key
+            # Generate presigned URL for download
+            presigned_url = s3.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': MEDIA_BUCKET, 'Key': s3_key},
+                ExpiresIn=3600
+            )
+            result['downloadUrl'] = presigned_url
+        
+        logger.info(json.dumps({
+            'event': 'media_downloaded',
+            'mediaId': media_id,
+            'metadataOnly': metadata_only,
+            'requestId': request_id
+        }))
+        
+        return {
+            'statusCode': 200,
+            'headers': CORS_HEADERS,
+            'body': json.dumps(result)
+        }
+        
+    except social_messaging.exceptions.ResourceNotFoundException:
+        return _error_response(404, f'Media not found: {media_id}')
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'get_media_error',
+            'mediaId': media_id,
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return _error_response(500, f'Failed to get media: {str(e)}')
+
+
+def _post_media(body: Dict, request_id: str) -> Dict[str, Any]:
+    """
+    Upload media to WhatsApp for sending.
+    API: PostWhatsAppMessageMedia
+    
+    Uploads from S3 to WhatsApp servers for use in messages.
+    """
+    try:
+        phone_number_id = body.get('phoneNumberId', '')
+        s3_key = body.get('s3Key', '')
+        
+        if not phone_number_id:
+            return _error_response(400, 'phoneNumberId is required')
+        if not s3_key:
+            return _error_response(400, 's3Key is required')
+        
+        # Ensure phone_number_id has correct format
+        if not phone_number_id.startswith('phone-number-id-'):
+            phone_number_id = f'phone-number-id-{phone_number_id}'
+        
+        response = social_messaging.post_whatsapp_message_media(
+            originationPhoneNumberId=phone_number_id,
+            sourceS3File={
+                'bucketName': MEDIA_BUCKET,
+                'key': s3_key
+            }
+        )
+        
+        result = {
+            'mediaId': response.get('mediaId', ''),
+            's3Key': s3_key
+        }
+        
+        logger.info(json.dumps({
+            'event': 'media_uploaded',
+            'mediaId': result['mediaId'],
+            's3Key': s3_key,
+            'requestId': request_id
+        }))
+        
+        return {
+            'statusCode': 200,
+            'headers': CORS_HEADERS,
+            'body': json.dumps(result)
+        }
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'post_media_error',
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return _error_response(500, f'Failed to upload media: {str(e)}')
+
+
+def _put_event_destinations(waba_id: str, body: Dict, request_id: str) -> Dict[str, Any]:
+    """
+    Configure event destinations for WABA.
+    API: PutWhatsAppBusinessAccountEventDestinations
+    
+    Sets up SNS topics to receive WhatsApp events (message status, quality updates, etc.)
+    """
+    try:
+        if not waba_id:
+            return _error_response(400, 'wabaId is required')
+        
+        event_destinations = body.get('eventDestinations', [])
+        if not event_destinations:
+            return _error_response(400, 'eventDestinations is required')
+        
+        # Ensure waba_id has correct format
+        if not waba_id.startswith('waba-'):
+            waba_id = f'waba-{waba_id}'
+        
+        # Format event destinations for API
+        formatted_destinations = []
+        for dest in event_destinations:
+            formatted_destinations.append({
+                'eventDestinationArn': dest.get('eventDestinationArn', ''),
+                'roleArn': dest.get('roleArn', '')
+            })
+        
+        social_messaging.put_whatsapp_business_account_event_destinations(
+            id=waba_id,
+            eventDestinations=formatted_destinations
+        )
+        
+        logger.info(json.dumps({
+            'event': 'event_destinations_updated',
+            'wabaId': waba_id,
+            'destinationCount': len(formatted_destinations),
+            'requestId': request_id
+        }))
+        
+        return {
+            'statusCode': 200,
+            'headers': CORS_HEADERS,
+            'body': json.dumps({
+                'success': True,
+                'wabaId': waba_id,
+                'eventDestinations': formatted_destinations
+            })
+        }
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'put_event_destinations_error',
+            'wabaId': waba_id,
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return _error_response(500, f'Failed to update event destinations: {str(e)}')
+
+
+def _list_tags(resource_arn: str, request_id: str) -> Dict[str, Any]:
+    """
+    List tags for a resource.
+    API: ListTagsForResource
+    """
+    try:
+        if not resource_arn:
+            return _error_response(400, 'resourceArn is required')
+        
+        response = social_messaging.list_tags_for_resource(resourceArn=resource_arn)
+        
+        tags = response.get('tags', [])
+        
+        logger.info(json.dumps({
+            'event': 'tags_listed',
+            'resourceArn': resource_arn,
+            'tagCount': len(tags),
+            'requestId': request_id
+        }))
+        
+        return {
+            'statusCode': 200,
+            'headers': CORS_HEADERS,
+            'body': json.dumps({
+                'resourceArn': resource_arn,
+                'tags': tags
+            })
+        }
+        
+    except social_messaging.exceptions.ResourceNotFoundException:
+        return _error_response(404, f'Resource not found: {resource_arn}')
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'list_tags_error',
+            'resourceArn': resource_arn,
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return _error_response(500, f'Failed to list tags: {str(e)}')
+
+
+def _tag_resource(body: Dict, request_id: str) -> Dict[str, Any]:
+    """
+    Add tags to a resource.
+    API: TagResource
+    """
+    try:
+        resource_arn = body.get('resourceArn', '')
+        tags = body.get('tags', [])
+        
+        if not resource_arn:
+            return _error_response(400, 'resourceArn is required')
+        if not tags:
+            return _error_response(400, 'tags is required')
+        
+        # Format tags for API
+        formatted_tags = []
+        for tag in tags:
+            formatted_tags.append({
+                'key': tag.get('key', ''),
+                'value': tag.get('value', '')
+            })
+        
+        social_messaging.tag_resource(
+            resourceArn=resource_arn,
+            tags=formatted_tags
+        )
+        
+        logger.info(json.dumps({
+            'event': 'resource_tagged',
+            'resourceArn': resource_arn,
+            'tagCount': len(formatted_tags),
+            'requestId': request_id
+        }))
+        
+        return {
+            'statusCode': 200,
+            'headers': CORS_HEADERS,
+            'body': json.dumps({
+                'success': True,
+                'resourceArn': resource_arn,
+                'tags': formatted_tags
+            })
+        }
+        
+    except social_messaging.exceptions.ResourceNotFoundException:
+        return _error_response(404, f'Resource not found: {resource_arn}')
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'tag_resource_error',
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return _error_response(500, f'Failed to tag resource: {str(e)}')
+
+
+def _untag_resource(body: Dict, request_id: str) -> Dict[str, Any]:
+    """
+    Remove tags from a resource.
+    API: UntagResource
+    """
+    try:
+        resource_arn = body.get('resourceArn', '')
+        tag_keys = body.get('tagKeys', [])
+        
+        if not resource_arn:
+            return _error_response(400, 'resourceArn is required')
+        if not tag_keys:
+            return _error_response(400, 'tagKeys is required')
+        
+        social_messaging.untag_resource(
+            resourceArn=resource_arn,
+            tagKeys=tag_keys
+        )
+        
+        logger.info(json.dumps({
+            'event': 'resource_untagged',
+            'resourceArn': resource_arn,
+            'tagKeysRemoved': tag_keys,
+            'requestId': request_id
+        }))
+        
+        return {
+            'statusCode': 200,
+            'headers': CORS_HEADERS,
+            'body': json.dumps({
+                'success': True,
+                'resourceArn': resource_arn,
+                'tagKeysRemoved': tag_keys
+            })
+        }
+        
+    except social_messaging.exceptions.ResourceNotFoundException:
+        return _error_response(404, f'Resource not found: {resource_arn}')
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'untag_resource_error',
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return _error_response(500, f'Failed to untag resource: {str(e)}')

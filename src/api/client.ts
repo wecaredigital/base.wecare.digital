@@ -1751,3 +1751,100 @@ export async function testBedrockAIResponse(message: string): Promise<{ message:
   }
   return { message, response: 'AI service unavailable', detectedLanguage: 'en' };
 }
+
+
+// ============================================================================
+// WABA ADVANCED MANAGEMENT API (AWS EUM Social)
+// ============================================================================
+
+/**
+ * Download media from WhatsApp
+ * API: GetWhatsAppMessageMedia
+ */
+export async function getWhatsAppMedia(mediaId: string, phoneNumberId: string, metadataOnly?: boolean): Promise<{
+  mediaId: string;
+  mimeType: string;
+  fileSize: number;
+  s3Key?: string;
+  downloadUrl?: string;
+} | null> {
+  let url = `${API_BASE}/waba/media/${mediaId}?phoneNumberId=${phoneNumberId}`;
+  if (metadataOnly) url += '&metadataOnly=true';
+  
+  const data = await apiCall<any>(url);
+  if (data) {
+    return {
+      mediaId: data.mediaId || mediaId,
+      mimeType: data.mimeType || '',
+      fileSize: data.fileSize || 0,
+      s3Key: data.s3Key,
+      downloadUrl: data.downloadUrl,
+    };
+  }
+  return null;
+}
+
+/**
+ * Upload media to WhatsApp for sending
+ * API: PostWhatsAppMessageMedia
+ */
+export async function postWhatsAppMedia(phoneNumberId: string, s3Key: string): Promise<{
+  mediaId: string;
+  s3Key: string;
+} | null> {
+  return apiCall<any>(`${API_BASE}/waba/media`, {
+    method: 'POST',
+    body: JSON.stringify({ phoneNumberId, s3Key }),
+  });
+}
+
+/**
+ * Configure event destinations for WABA
+ * API: PutWhatsAppBusinessAccountEventDestinations
+ */
+export async function putWABAEventDestinations(wabaId: string, eventDestinations: {
+  eventDestinationArn: string;
+  roleArn: string;
+}[]): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/waba/${wabaId}/events`, {
+    method: 'PUT',
+    body: JSON.stringify({ wabaId, eventDestinations }),
+  });
+  return data?.success === true;
+}
+
+/**
+ * List tags for a WABA or phone number resource
+ * API: ListTagsForResource
+ */
+export async function listWABATags(resourceArn: string): Promise<{ key: string; value: string }[]> {
+  const data = await apiCall<any>(`${API_BASE}/waba/tags?resourceArn=${encodeURIComponent(resourceArn)}`);
+  if (data && data.tags) {
+    return data.tags;
+  }
+  return [];
+}
+
+/**
+ * Add tags to a WABA or phone number resource
+ * API: TagResource
+ */
+export async function tagWABAResource(resourceArn: string, tags: { key: string; value: string }[]): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/waba/tags`, {
+    method: 'POST',
+    body: JSON.stringify({ resourceArn, tags }),
+  });
+  return data?.success === true;
+}
+
+/**
+ * Remove tags from a WABA or phone number resource
+ * API: UntagResource
+ */
+export async function untagWABAResource(resourceArn: string, tagKeys: string[]): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/waba/tags`, {
+    method: 'DELETE',
+    body: JSON.stringify({ resourceArn, tagKeys }),
+  });
+  return data?.success === true;
+}
