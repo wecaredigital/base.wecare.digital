@@ -42,8 +42,8 @@ Amplify.configure({
   }
 });
 
-// Public pages
-const PUBLIC_PAGES = ['/', '/access'];
+// Public pages - only home page is truly public
+const PUBLIC_PAGES = ['/'];
 
 const isPublicPath = (pathname: string) => {
   const path = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;

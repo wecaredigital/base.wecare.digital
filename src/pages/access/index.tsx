@@ -1,62 +1,49 @@
 /**
- * Access Page - Authentication via AWS Cognito
+ * Access Page - Login entry point
  * URL: https://base.wecare.digital/access
- * Note: Amplify is configured in _app.tsx
+ * 
+ * This page shows the login form (via _app.tsx Authenticator).
+ * After successful login, redirects to /dashboard.
  */
 
-import React from 'react';
-import { Authenticator } from '@aws-amplify/ui-react';
-import '@aws-amplify/ui-react/styles.css';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 
-const AccessPage: React.FC = () => {
+interface PageProps {
+  signOut?: () => void;
+  user?: any;
+}
+
+const AccessPage: React.FC<PageProps> = ({ user }) => {
   const router = useRouter();
 
+  // If user is authenticated (passed from _app.tsx), redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      router.replace('/dashboard');
+    }
+  }, [user, router]);
+
+  // Show redirecting message (user is authenticated at this point)
   return (
     <>
       <Head>
         <title>Access | WECARE.DIGITAL</title>
       </Head>
-      <div className="access-page">
-        <Authenticator
-          socialProviders={[]}
-          hideSignUp={true}
-          components={{
-            Header() {
-              return (
-                <div style={{ textAlign: 'center', padding: '20px' }}>
-                  <h1 style={{ fontSize: '24px', fontWeight: 300, color: '#1a1a1a', fontFamily: "'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
-                    WECARE.DIGITAL
-                  </h1>
-                  <p style={{ color: '#666', fontSize: '14px' }}>Admin Platform</p>
-                </div>
-              );
-            }
-          }}
-        >
-          {({ signOut, user }) => {
-            // Redirect to dashboard after login from /access
-            if (typeof window !== 'undefined') {
-              router.push('/dashboard');
-            }
-            return (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <p>Redirecting to dashboard...</p>
-              </div>
-            );
-          }}
-        </Authenticator>
-
-        <style jsx>{`
-          .access-page {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f5f5f5;
-          }
-        `}</style>
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: '#f5f5f5'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 300, color: '#1a1a1a', marginBottom: '16px' }}>
+            WECARE.DIGITAL
+          </h1>
+          <p style={{ color: '#666' }}>Redirecting to dashboard...</p>
+        </div>
       </div>
     </>
   );
