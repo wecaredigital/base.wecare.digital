@@ -177,7 +177,7 @@ input, textarea, select {
 
 /* Sub-items - Notion Style */
 .nav-subitems {
-  padding-left: 28px;
+  padding-left: 12px;
   margin-top: 2px;
 }
 
@@ -194,6 +194,11 @@ input, textarea, select {
   font-weight: var(--font-normal);
   transition: background var(--transition-fast);
   cursor: pointer;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: inherit;
 }
 
 .nav-subitem:hover {
@@ -211,22 +216,6 @@ input, textarea, select {
   color: var(--accent);
 }
 
-.nav-subicon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.7;
-}
-
-.nav-subitem-active .nav-subicon {
-  opacity: 1;
-}
-
-/* Nested Sub-items (3rd level) */
-.nav-nested-group {
-  margin-bottom: 2px;
-}
-
 .nav-subitem-expandable {
   display: flex;
   align-items: center;
@@ -240,6 +229,10 @@ input, textarea, select {
   transition: background var(--transition-fast);
   cursor: pointer;
   width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: inherit;
 }
 
 .nav-subitem-expandable:hover {
@@ -252,61 +245,21 @@ input, textarea, select {
   color: var(--accent);
 }
 
-.nav-nested-arrow {
-  margin-left: auto;
-  opacity: 0.5;
-  transition: transform var(--transition-normal);
-}
+/* Nested levels indentation */
+.nav-level-1 { padding-left: 20px; }
+.nav-level-2 { padding-left: 32px; }
+.nav-level-3 { padding-left: 44px; }
 
-.nav-nested-arrow.expanded {
-  transform: rotate(90deg);
+.nav-nested-group {
+  margin-bottom: 1px;
 }
 
 .nav-nested-items {
-  padding-left: 20px;
   margin-top: 2px;
 }
 
-.nav-nested-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  margin-bottom: 1px;
-  text-decoration: none;
-  color: var(--text-muted);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-normal);
-  transition: background var(--transition-fast);
-  cursor: pointer;
-}
-
-.nav-nested-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-secondary);
-}
-
-.nav-nested-item-active {
-  background: var(--accent-light);
-  color: var(--accent);
-}
-
-.nav-nested-item-active:hover {
-  background: var(--accent-light);
-  color: var(--accent);
-}
-
-.nav-nested-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.6;
-}
-
-.nav-nested-item-active .nav-nested-icon {
-  opacity: 1;
-}
+.nav-nested-level-1 { padding-left: 8px; }
+.nav-nested-level-2 { padding-left: 16px; }
 
 /* Sidebar Footer */
 .sidebar-footer {

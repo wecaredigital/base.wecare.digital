@@ -94,7 +94,7 @@ export const navigationConfig: NavItem[] = [
         icon: 'sms',
         children: [
           { path: '/dm/sms/aws', label: 'AWS Pinpoint', icon: 'sms' },
-          { path: '/dm/sms/airtel', label: 'Airtel IQ', icon: 'sms' },
+          { path: '/dm/sms/airtel', label: 'IN SMS', icon: 'sms' },
         ]
       },
       { path: '/dm/ses', label: 'Email', icon: 'email' },
@@ -103,8 +103,8 @@ export const navigationConfig: NavItem[] = [
         label: 'Voice', 
         icon: 'voice',
         children: [
-          { path: '/dm/voice/aws', label: 'AWS Connect', icon: 'voice' },
-          { path: '/dm/voice/airtel', label: 'Airtel IQ', icon: 'voice' },
+          { path: '/dm/voice/aws', label: 'AWS API', icon: 'voice' },
+          { path: '/dm/voice/airtel', label: 'IN Voice', icon: 'voice' },
         ]
       },
       { path: '/dm/rcs', label: 'RCS', icon: 'rcs' },
@@ -131,7 +131,7 @@ export const navigationConfig: NavItem[] = [
         icon: 'sms',
         children: [
           { path: '/bulk/sms/aws', label: 'AWS Pinpoint', icon: 'sms' },
-          { path: '/bulk/sms/airtel', label: 'Airtel IQ', icon: 'sms' },
+          { path: '/bulk/sms/airtel', label: 'IN SMS', icon: 'sms' },
         ]
       },
       { path: '/bulk/ses', label: 'Email', icon: 'email' },
@@ -140,8 +140,8 @@ export const navigationConfig: NavItem[] = [
         label: 'Voice', 
         icon: 'voice',
         children: [
-          { path: '/bulk/voice/aws', label: 'AWS Connect', icon: 'voice' },
-          { path: '/bulk/voice/airtel', label: 'Airtel IQ', icon: 'voice' },
+          { path: '/bulk/voice/aws', label: 'AWS API', icon: 'voice' },
+          { path: '/bulk/voice/airtel', label: 'IN Voice', icon: 'voice' },
         ]
       },
       { path: '/bulk/rcs', label: 'RCS', icon: 'rcs' },

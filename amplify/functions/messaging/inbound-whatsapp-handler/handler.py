@@ -885,6 +885,7 @@ def _sanitize_reference_id(reference_id: str) -> str:
     - "WDSR_WDSR41BA3534" -> "WDSR41BA3534" (remove duplicate prefix)
     - "WDSR_41BA3534" -> "WDSR41BA3534" (remove underscore)
     - "WDSR41BA3534" -> "WDSR41BA3534" (keep as-is)
+    - "WDSR+41BA3534" -> "WDSR41BA3534" (remove plus sign)
     """
     import re
     
@@ -894,9 +895,9 @@ def _sanitize_reference_id(reference_id: str) -> str:
     # Remove all underscores and non-alphanumeric characters
     cleaned = re.sub(r'[^A-Za-z0-9]', '', reference_id).upper()
     
-    # Remove duplicate WDSR prefix (e.g., WDSRWDSR -> WDSR)
-    while cleaned.startswith('WDSRWDSR'):
-        cleaned = cleaned[4:]  # Remove first WDSR
+    # Remove ALL duplicate WDSR prefixes (handle WDSRWDSRWDSR... cases)
+    while 'WDSRWDSR' in cleaned:
+        cleaned = cleaned.replace('WDSRWDSR', 'WDSR')
     
     # Ensure single WDSR prefix
     if not cleaned.startswith('WDSR'):
@@ -1154,12 +1155,20 @@ def _lookup_payment_amount(reference_id: str, request_id: str) -> float:
     try:
         messages_table = dynamodb.Table(MESSAGES_TABLE)
         
+        # Sanitize reference_id for lookup
+        sanitized_ref = _sanitize_reference_id(reference_id)
+        
+        # Extract just the ID part (without WDSR prefix) for broader search
+        id_part = sanitized_ref.replace('WDSR', '') if sanitized_ref.startswith('WDSR') else sanitized_ref
+        
         # Look for the original payment request message by reference_id
-        # Payment requests are stored with messageType='order_request' or similar
+        # Search with multiple variations to handle format differences
         response = messages_table.scan(
-            FilterExpression='contains(content, :ref) OR paymentReferenceId = :ref',
+            FilterExpression='paymentReferenceId = :ref1 OR paymentReferenceId = :ref2 OR contains(content, :id_part)',
             ExpressionAttributeValues={
-                ':ref': reference_id
+                ':ref1': sanitized_ref,
+                ':ref2': reference_id,  # Also try original format
+                ':id_part': id_part
             },
             Limit=10
         )
@@ -1169,6 +1178,8 @@ def _lookup_payment_amount(reference_id: str, request_id: str) -> float:
         logger.info(json.dumps({
             'event': 'payment_amount_lookup_result',
             'referenceId': reference_id,
+            'sanitizedRef': sanitized_ref,
+            'idPart': id_part,
             'foundCount': len(items),
             'requestId': request_id
         }))
