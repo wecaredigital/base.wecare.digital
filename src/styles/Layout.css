@@ -305,6 +305,73 @@ input, textarea, select {
   opacity: 1;
 }
 
+/* Nested Sub-items (3rd level) */
+.nav-nested-group {
+  margin-bottom: 2px;
+}
+
+.nav-subitem-expandable {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.nav-nested-arrow {
+  margin-left: auto;
+  opacity: 0.5;
+  transition: transform 0.15s ease;
+}
+
+.nav-nested-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.nav-nested-items {
+  padding-left: 20px;
+  margin-top: 2px;
+}
+
+.nav-nested-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin-bottom: 1px;
+  text-decoration: none;
+  color: var(--notion-text-light);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 400;
+  transition: background 0.1s ease;
+  cursor: pointer;
+}
+
+.nav-nested-item:hover {
+  background: var(--notion-bg-hover);
+  color: var(--notion-text-secondary);
+}
+
+.nav-nested-item-active {
+  background: var(--notion-accent-light);
+  color: var(--notion-accent);
+}
+
+.nav-nested-item-active:hover {
+  background: var(--notion-accent-light);
+  color: var(--notion-accent);
+}
+
+.nav-nested-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.nav-nested-item-active .nav-nested-icon {
+  opacity: 1;
+}
+
 /* Sidebar Footer */
 .sidebar-footer {
   padding: 12px 14px;

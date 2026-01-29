@@ -7,6 +7,7 @@ export interface NavSubItem {
   path: string;
   label: string;
   icon?: string;
+  children?: NavSubItem[];  // Support for nested sub-items
 }
 
 export interface NavItem {
@@ -85,13 +86,25 @@ export const navigationConfig: NavItem[] = [
       { path: '/dm/whatsapp/waba-dashboard', label: 'WA Dashboard', icon: 'dashboard' },
       { path: '/dm/whatsapp/templates', label: 'WA Templates', icon: 'template' },
       { path: '/dm/whatsapp/ai-config', label: 'AI Config', icon: 'ai' },
-      { path: '/dm/sms', label: 'SMS', icon: 'sms' },
-      { path: '/dm/sms/aws', label: 'SMS (AWS)', icon: 'sms' },
-      { path: '/dm/sms/airtel', label: 'SMS (Airtel)', icon: 'sms' },
+      { 
+        path: '/dm/sms', 
+        label: 'SMS', 
+        icon: 'sms',
+        children: [
+          { path: '/dm/sms/aws', label: 'AWS Pinpoint', icon: 'sms' },
+          { path: '/dm/sms/airtel', label: 'Airtel IQ', icon: 'sms' },
+        ]
+      },
       { path: '/dm/ses', label: 'Email', icon: 'email' },
-      { path: '/dm/voice', label: 'Voice', icon: 'voice' },
-      { path: '/dm/voice/aws', label: 'Voice (AWS)', icon: 'voice' },
-      { path: '/dm/voice/airtel', label: 'Voice (Airtel)', icon: 'voice' },
+      { 
+        path: '/dm/voice', 
+        label: 'Voice', 
+        icon: 'voice',
+        children: [
+          { path: '/dm/voice/aws', label: 'AWS Connect', icon: 'voice' },
+          { path: '/dm/voice/airtel', label: 'Airtel IQ', icon: 'voice' },
+        ]
+      },
       { path: '/dm/rcs', label: 'RCS', icon: 'rcs' },
       { path: '/dm/logs', label: 'Logs', icon: 'logs' },
     ],
@@ -110,13 +123,25 @@ export const navigationConfig: NavItem[] = [
     icon: 'bulk',
     children: [
       { path: '/bulk/whatsapp', label: 'WhatsApp', icon: 'whatsapp' },
-      { path: '/bulk/sms', label: 'SMS', icon: 'sms' },
-      { path: '/bulk/sms/aws', label: 'SMS (AWS)', icon: 'sms' },
-      { path: '/bulk/sms/airtel', label: 'SMS (Airtel)', icon: 'sms' },
+      { 
+        path: '/bulk/sms', 
+        label: 'SMS', 
+        icon: 'sms',
+        children: [
+          { path: '/bulk/sms/aws', label: 'AWS Pinpoint', icon: 'sms' },
+          { path: '/bulk/sms/airtel', label: 'Airtel IQ', icon: 'sms' },
+        ]
+      },
       { path: '/bulk/ses', label: 'Email', icon: 'email' },
-      { path: '/bulk/voice', label: 'Voice', icon: 'voice' },
-      { path: '/bulk/voice/aws', label: 'Voice (AWS)', icon: 'voice' },
-      { path: '/bulk/voice/airtel', label: 'Voice (Airtel)', icon: 'voice' },
+      { 
+        path: '/bulk/voice', 
+        label: 'Voice', 
+        icon: 'voice',
+        children: [
+          { path: '/bulk/voice/aws', label: 'AWS Connect', icon: 'voice' },
+          { path: '/bulk/voice/airtel', label: 'Airtel IQ', icon: 'voice' },
+        ]
+      },
       { path: '/bulk/rcs', label: 'RCS', icon: 'rcs' },
       { path: '/bulk/logs', label: 'Logs', icon: 'logs' },
     ],
@@ -148,8 +173,12 @@ export function isNavItemActive(item: NavItem, pathname: string): boolean {
 }
 
 /**
- * Check if a sub-item is active
+ * Check if a sub-item is active (including nested children)
  */
 export function isSubItemActive(subItem: NavSubItem, pathname: string): boolean {
-  return pathname === subItem.path;
+  if (pathname === subItem.path) return true;
+  if (subItem.children) {
+    return subItem.children.some(child => pathname === child.path);
+  }
+  return pathname.startsWith(subItem.path + '/');
 }
