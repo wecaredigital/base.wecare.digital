@@ -1,6 +1,7 @@
 /**
  * Navigation Configuration - WECARE.DIGITAL
  * Centralized sidebar navigation with nested items
+ * Updated: 2026-01-29
  */
 
 export interface NavSubItem {
