@@ -9,6 +9,7 @@ import Layout from '../../../components/Layout';
 import RichTextEditor from '../../../components/RichTextEditor';
 import Toast, { useToast } from '../../../components/Toast';
 import * as api from '../../../api/client';
+import { WHATSAPP_PHONES } from '../../../config/constants';
 
 interface PageProps {
   signOut?: () => void;
@@ -42,15 +43,15 @@ interface Contact {
 }
 
 const WABA_CONFIG = {
-  'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54': {
-    name: 'WECARE.DIGITAL',
-    phone: '+91 93309 94400',
+  [WHATSAPP_PHONES.primary.id]: {
+    name: WHATSAPP_PHONES.primary.name,
+    phone: WHATSAPP_PHONES.primary.display,
     color: '#25D366',
     shortName: 'WC'
   },
-  'phone-number-id-1447bc72d1b040f4bf2341c9e04b2e06': {
-    name: 'Manish Agarwal',
-    phone: '+91 99033 00044',
+  [WHATSAPP_PHONES.secondary.id]: {
+    name: WHATSAPP_PHONES.secondary.name,
+    phone: WHATSAPP_PHONES.secondary.display,
     color: '#128C7E',
     shortName: 'MA'
   },
@@ -63,7 +64,7 @@ const WhatsAppUnifiedInbox: React.FC<PageProps> = ({ signOut, user }) => {
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [selectedWaba, setSelectedWaba] = useState<string>('phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54');
+  const [selectedWaba, setSelectedWaba] = useState<string>(WHATSAPP_PHONES.primary.id);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [mediaFile, setMediaFile] = useState<File | null>(null);

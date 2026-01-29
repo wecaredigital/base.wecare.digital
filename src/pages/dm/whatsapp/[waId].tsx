@@ -12,6 +12,7 @@ import TemplateSender from '../../../components/TemplateSender';
 import * as api from '../../../api/client';
 import { useChatShortcuts } from '../../../hooks/useKeyboardShortcuts';
 import { useNotificationSound } from '../../../hooks/useNotificationSound';
+import { WHATSAPP_PHONES } from '../../../config/constants';
 
 interface PageProps {
   signOut?: () => void;
@@ -45,8 +46,8 @@ interface Contact {
 }
 
 const WABA_INFO: Record<string, { name: string; phone: string }> = {
-  'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54': { name: 'WECARE.DIGITAL', phone: '+91 93309 94400' },
-  'phone-number-id-1447bc72d1b040f4bf2341c9e04b2e06': { name: 'Manish Agarwal', phone: '+91 99033 00044' },
+  [WHATSAPP_PHONES.primary.id]: { name: WHATSAPP_PHONES.primary.name, phone: WHATSAPP_PHONES.primary.display },
+  [WHATSAPP_PHONES.secondary.id]: { name: WHATSAPP_PHONES.secondary.name, phone: WHATSAPP_PHONES.secondary.display },
 };
 
 const WhatsAppConversation: React.FC<PageProps> = ({ signOut, user }) => {

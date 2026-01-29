@@ -6,7 +6,7 @@
  * API Endpoint: Uses NEXT_PUBLIC_API_BASE or defaults to production
  */
 
-import { API_BASE, RETRY_CONFIG } from '../config/constants';
+import { API_BASE, RETRY_CONFIG, DEFAULT_GSTIN } from '../config/constants';
 
 // Connection status tracking
 let lastConnectionError: string | null = null;
@@ -1342,7 +1342,7 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
     itemName: firstItem.name || 'Service Fee',
     quantity: firstItem.quantity || 1,
     gstRate: request.gstRate ?? 0,  // Use 0 as default if not specified
-    gstin: request.gstin || '19AADFW7431N1ZK',
+    gstin: request.gstin || DEFAULT_GSTIN,
     order: {
       status: 'pending',
       items: request.items.map((item, idx) => ({
@@ -1354,7 +1354,7 @@ export async function sendWhatsAppPaymentMessage(request: SendPaymentMessageRequ
       subtotal: { value: subtotal, offset: 100 },
       discount: { value: discount, offset: 100, description: 'Promo' },
       shipping: { value: delivery, offset: 100, description: 'Express' },
-      tax: { value: tax, offset: 100, description: `GSTIN: ${request.gstin || '19AADFW7431N1ZK'}` },
+      tax: { value: tax, offset: 100, description: `GSTIN: ${request.gstin || DEFAULT_GSTIN}` },
     },
   };
 

@@ -6,6 +6,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Layout from '../../../components/Layout';
+import { WHATSAPP_PHONES } from '../../../config/constants';
 
 interface PageProps {
   signOut?: () => void;
@@ -14,16 +15,16 @@ interface PageProps {
 
 const WABA_ACCOUNTS = [
   {
-    id: 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54',
-    name: 'WECARE.DIGITAL',
-    phone: '+91 93309 94400',
+    id: WHATSAPP_PHONES.primary.id,
+    name: WHATSAPP_PHONES.primary.name,
+    phone: WHATSAPP_PHONES.primary.display,
     status: 'active',
     quality: 'GREEN',
   },
   {
-    id: 'phone-number-id-1447bc72d1b040f4bf2341c9e04b2e06',
-    name: 'Manish Agarwal',
-    phone: '+91 99033 00044',
+    id: WHATSAPP_PHONES.secondary.id,
+    name: WHATSAPP_PHONES.secondary.name,
+    phone: WHATSAPP_PHONES.secondary.display,
     status: 'active',
     quality: 'GREEN',
   },
