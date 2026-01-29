@@ -1,0 +1,187 @@
+/**
+ * Design Tokens - WECARE.DIGITAL
+ * Single Source of Truth for all design variables
+ * Notion-style theme with larger, readable typography
+ */
+
+:root {
+  /* ========================================
+   * COLORS - Notion Neutral Palette
+   * ======================================== */
+  
+  /* Backgrounds */
+  --bg: #ffffff;
+  --bg-secondary: #f7f6f3;
+  --bg-hover: #efefef;
+  --bg-active: #e8e8e5;
+  --surface: #ffffff;
+  --surface-hover: #fafafa;
+  
+  /* Text */
+  --text: #37352f;
+  --text-secondary: #787774;
+  --text-muted: #9b9a97;
+  --text-light: #b4b4b4;
+  
+  /* Borders */
+  --border: #e9e9e7;
+  --border-dark: #d3d3d0;
+  --border-light: #f0f0ef;
+  
+  /* Accent - Primary Blue */
+  --accent: #2383e2;
+  --accent-light: #e8f4fd;
+  --accent-hover: #1a6bc4;
+  
+  /* Semantic Colors */
+  --success: #0f7b6c;
+  --success-light: #dbeddb;
+  --success-bg: #f0fdf4;
+  
+  --danger: #e03e3e;
+  --danger-light: #fbe4e4;
+  --danger-bg: #fef2f2;
+  
+  --warning: #d9730d;
+  --warning-light: #faebdd;
+  --warning-bg: #fffbeb;
+  
+  --info: #6940a5;
+  --info-light: #f3e8ff;
+  
+  /* WhatsApp Brand Colors */
+  --wa-green: #25d366;
+  --wa-green-light: rgba(37, 211, 102, 0.15);
+  --wa-green-dark: #128c7e;
+  --wa-teal: #075e54;
+  --wa-teal-light: #00a884;
+  
+  /* ========================================
+   * TYPOGRAPHY - Notion Large Style
+   * Base: 16px for readability
+   * ======================================== */
+  
+  /* Font Families */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-mono: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  
+  /* Font Sizes - Larger for readability */
+  --text-xs: 13px;    /* Was 10-11px, now minimum 13px */
+  --text-sm: 14px;    /* Was 12-13px */
+  --text-md: 15px;    /* Standard body text */
+  --text-base: 16px;  /* Base size */
+  --text-lg: 18px;    /* Larger body */
+  --text-xl: 20px;    /* Subheadings */
+  
+  /* Heading Sizes */
+  --h1: 32px;
+  --h2: 26px;
+  --h3: 22px;
+  --h4: 18px;
+  
+  /* Line Heights */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  
+  /* Font Weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  
+  /* ========================================
+   * SPACING
+   * ======================================== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  
+  /* ========================================
+   * BORDER RADIUS
+   * ======================================== */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+  
+  /* ========================================
+   * SHADOWS - Subtle, Notion-style
+   * ======================================== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.12);
+  
+  /* ========================================
+   * TRANSITIONS
+   * ======================================== */
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.15s ease;
+  --transition-slow: 0.2s ease;
+  
+  /* ========================================
+   * LEGACY ALIASES (for backward compatibility)
+   * ======================================== */
+  --notion-bg: var(--bg);
+  --notion-bg-secondary: var(--bg-secondary);
+  --notion-bg-hover: var(--bg-hover);
+  --notion-bg-active: var(--bg-active);
+  --notion-surface: var(--surface);
+  --notion-text: var(--text);
+  --notion-text-secondary: var(--text-secondary);
+  --notion-text-light: var(--text-muted);
+  --notion-border: var(--border);
+  --notion-border-dark: var(--border-dark);
+  --notion-accent: var(--accent);
+  --notion-accent-light: var(--accent-light);
+  --notion-green: var(--success);
+  --notion-green-light: var(--success-light);
+  --notion-red: var(--danger);
+  --notion-red-light: var(--danger-light);
+  --notion-orange: var(--warning);
+  --notion-orange-light: var(--warning-light);
+  --notion-purple: var(--info);
+  --notion-purple-light: var(--info-light);
+  --notion-yellow: #dfab01;
+  --notion-yellow-light: #fef9c3;
+}
+
+/* ========================================
+ * BASE STYLES
+ * ======================================== */
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  color: var(--text);
+  background: var(--bg-secondary);
+}
+
+/* ========================================
+ * SKELETON PULSE ANIMATION (No Gradient)
+ * ======================================== */
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.skeleton {
+  background: var(--bg-hover);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}

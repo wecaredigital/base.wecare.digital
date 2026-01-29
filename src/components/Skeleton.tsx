@@ -100,23 +100,22 @@ export const SkeletonStat: React.FC = () => (
 // CSS styles (add to your global CSS or use styled-jsx)
 export const SkeletonStyles = `
   .skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: skeleton-shimmer 1.5s infinite;
+    background: var(--bg-hover, #efefef);
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
   }
 
-  @keyframes skeleton-shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+  @keyframes skeleton-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
 
   .skeleton-text { display: flex; flex-direction: column; gap: 8px; }
   
   .skeleton-card {
-    background: #fff;
+    background: var(--bg, #fff);
     border-radius: 12px;
     padding: 16px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border, #e9e9e7);
   }
   
   .skeleton-card-header {
@@ -147,7 +146,7 @@ export const SkeletonStyles = `
   }
   
   .skeleton-table-header {
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border, #e9e9e7);
   }
   
   .skeleton-message {
