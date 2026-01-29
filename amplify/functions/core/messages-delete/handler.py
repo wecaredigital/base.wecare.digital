@@ -82,8 +82,10 @@ def handler(event, context):
                     item = response.get('Item')
                     if item:
                         s3_key = item.get('s3Key')
-                except:
-                    pass
+                except ClientError as inner_e:
+                    logger.warning(f"Failed to get message with messageId key: {str(inner_e)}")
+                except Exception as inner_e:
+                    logger.warning(f"Unexpected error getting message: {str(inner_e)}")
         
         # Delete media from S3 if exists
         media_deleted = False

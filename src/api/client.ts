@@ -6,7 +6,7 @@
  * API Endpoint: Uses NEXT_PUBLIC_API_BASE or defaults to production
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://k4vqzmi07b.execute-api.us-east-1.amazonaws.com/prod';
+import { API_BASE, RETRY_CONFIG } from '../config/constants';
 
 // Connection status tracking
 let lastConnectionError: string | null = null;
@@ -16,8 +16,13 @@ export function getConnectionStatus() {
   return { status: connectionStatus, lastError: lastConnectionError };
 }
 
-// Helper function for API calls with better error handling
-async function apiCall<T>(url: string, options?: RequestInit): Promise<T | null> {
+// Helper function to delay with exponential backoff
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Helper function for API calls with retry logic and better error handling
+async function apiCall<T>(url: string, options?: RequestInit, retryCount = 0): Promise<T | null> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -48,6 +53,28 @@ async function apiCall<T>(url: string, options?: RequestInit): Promise<T | null>
       lastConnectionError = 'Server error - check Lambda logs';
     } else if (response.status === 502 || response.status === 503) {
       lastConnectionError = 'API Gateway error - service unavailable';
+      // Retry on 502/503 errors
+      if (retryCount < RETRY_CONFIG.maxRetries) {
+        const delayMs = Math.min(
+          RETRY_CONFIG.baseDelayMs * Math.pow(2, retryCount),
+          RETRY_CONFIG.maxDelayMs
+        );
+        console.log(`Retrying API call (${retryCount + 1}/${RETRY_CONFIG.maxRetries}) after ${delayMs}ms...`);
+        await delay(delayMs);
+        return apiCall<T>(url, options, retryCount + 1);
+      }
+    } else if (response.status === 429) {
+      // Rate limited - retry with backoff
+      if (retryCount < RETRY_CONFIG.maxRetries) {
+        const delayMs = Math.min(
+          RETRY_CONFIG.baseDelayMs * Math.pow(2, retryCount + 1),
+          RETRY_CONFIG.maxDelayMs
+        );
+        console.log(`Rate limited, retrying after ${delayMs}ms...`);
+        await delay(delayMs);
+        return apiCall<T>(url, options, retryCount + 1);
+      }
+      lastConnectionError = 'Rate limited - too many requests';
     } else {
       lastConnectionError = `HTTP ${response.status}: ${response.statusText}`;
     }
@@ -56,6 +83,17 @@ async function apiCall<T>(url: string, options?: RequestInit): Promise<T | null>
     console.error(`API error: ${lastConnectionError}`, url);
     return null;
   } catch (e: any) {
+    // Retry on network errors
+    if (retryCount < RETRY_CONFIG.maxRetries && (e.name === 'AbortError' || e.name === 'TypeError')) {
+      const delayMs = Math.min(
+        RETRY_CONFIG.baseDelayMs * Math.pow(2, retryCount),
+        RETRY_CONFIG.maxDelayMs
+      );
+      console.log(`Network error, retrying (${retryCount + 1}/${RETRY_CONFIG.maxRetries}) after ${delayMs}ms...`);
+      await delay(delayMs);
+      return apiCall<T>(url, options, retryCount + 1);
+    }
+    
     connectionStatus = 'disconnected';
     if (e.name === 'AbortError') {
       lastConnectionError = 'Request timeout - API took too long';
@@ -2616,4 +2654,36 @@ export function submitAIFeedback(feedback: Omit<AIFeedback, 'timestamp'>): void 
 export function getAIFeedbackHistory(): AIFeedback[] {
   const stored = localStorage.getItem('aiFeedback');
   return stored ? JSON.parse(stored) : [];
+}
+
+// ============================================================================
+// SYSTEM CONFIG
+// ============================================================================
+
+export interface SystemConfig {
+  [key: string]: any;
+}
+
+/**
+ * Get system configuration by key
+ * Lambda: wecare-ai-config-management
+ */
+export async function getSystemConfig(configKey: string): Promise<SystemConfig | null> {
+  const data = await apiCall<any>(`${API_BASE}/ai/config?key=${configKey}`);
+  if (data && data.config) {
+    return data.config;
+  }
+  return null;
+}
+
+/**
+ * Update system configuration
+ * Lambda: wecare-ai-config-management
+ */
+export async function updateSystemConfig(configKey: string, config: SystemConfig): Promise<boolean> {
+  const data = await apiCall<any>(`${API_BASE}/ai/config`, {
+    method: 'PUT',
+    body: JSON.stringify({ key: configKey, config }),
+  });
+  return data !== null;
 }

@@ -8,6 +8,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from '../styles/RichTextEditor.module.css';
 import * as api from '../api/client';
 import { generateReferenceId } from '../lib/formatters';
+import { PAYMENT_CONFIG, DEFAULT_GSTIN } from '../config/constants';
 
 // Payment dialog state
 interface PaymentDialogState {
@@ -85,7 +86,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     promo: '0',
     express: '0',
     gstRate: '0',
-    gstin: '19AADFW7431N1ZK',
+    gstin: DEFAULT_GSTIN,
   });
   const [sendingPayment, setSendingPayment] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -301,8 +302,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   };
 
   // Send payment message - ALWAYS use interactive mode from inbox
-  // Interactive payments MUST go from WECARE.DIGITAL number
-  const PAYMENT_PHONE_NUMBER_ID = 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54';
+  // Interactive payments MUST go from WECARE.DIGITAL number (configured in constants)
   
   const sendPaymentMessage = async () => {
     if (!selectedContactId) return;
@@ -333,8 +333,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
       const result = await api.sendWhatsAppPaymentMessage({
         contactId: selectedContactId,
-        // HARDCODED: Interactive payments MUST go from WECARE.DIGITAL (has Razorpay)
-        phoneNumberId: PAYMENT_PHONE_NUMBER_ID,
+        // Interactive payments MUST go from WECARE.DIGITAL (has Razorpay)
+        phoneNumberId: PAYMENT_CONFIG.phoneNumberId,
         referenceId: paymentForm.referenceId,
         items: [{
           name: paymentForm.itemName,
@@ -345,7 +345,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         delivery: expressInPaise,
         tax: taxInPaise,
         gstRate: gstRate,
-        gstin: paymentForm.gstin || '19AADFW7431N1ZK',
+        gstin: paymentForm.gstin || DEFAULT_GSTIN,
         useInteractive: true, // ALWAYS use interactive mode from inbox
       });
 
@@ -354,7 +354,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       if (result) {
         setTemplateMessage(`✓ Payment request sent! Ref: ${paymentForm.referenceId}`);
         setShowPaymentDialog(false);
-        setPaymentForm({ itemName: '', amount: '', quantity: '1', referenceId: '', promo: '0', express: '0', gstRate: '0', gstin: '19AADFW7431N1ZK' });
+        setPaymentForm({ itemName: '', amount: '', quantity: '1', referenceId: '', promo: '0', express: '0', gstRate: '0', gstin: DEFAULT_GSTIN });
       } else {
         const connStatus = api.getConnectionStatus();
         setTemplateMessage(`× Failed: ${connStatus.lastError || 'Unknown error'}`);
@@ -606,7 +606,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   type="text"
                   value={paymentForm.gstin}
                   onChange={(e) => setPaymentForm({...paymentForm, gstin: e.target.value})}
-                  placeholder="19AADFW7431N1ZK"
+                  placeholder={DEFAULT_GSTIN}
                 />
               </div>
             </div>

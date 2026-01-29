@@ -30,28 +30,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../../components/Layout';
 import * as api from '../../../api/client';
 import { formatReferenceNumber, generateReferenceId } from '../../../lib/formatters';
-
-// Payment phone number configuration
-const PAYMENT_PHONE_NUMBER_ID = 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54';
-const PAYMENT_PHONE_DISPLAY = '+91 93309 94400';
-const PAYMENT_PHONE_NAME = 'WECARE.DIGITAL';
-
-// Convenience fee: 2% + 18% GST on that (calculated by backend)
-const CONVENIENCE_FEE_PERCENT = 2.0;
-const CONVENIENCE_FEE_GST_PERCENT = 18.0;
-
-// GST rate options (0 = default/no GST)
-const GST_RATES = [
-  { value: 0, label: 'No GST (0%)' },
-  { value: 3, label: 'GST 3%' },
-  { value: 5, label: 'GST 5%' },
-  { value: 12, label: 'GST 12%' },
-  { value: 18, label: 'GST 18%' },
-  { value: 28, label: 'GST 28%' },
-];
-
-// Default GSTIN
-const DEFAULT_GSTIN = '19AADFW7431N1ZK';
+import { PAYMENT_CONFIG, GST_RATES, CONVENIENCE_FEE, DEFAULT_GSTIN } from '../../../config/constants';
 
 interface PageProps {
   signOut?: () => void;
@@ -101,8 +80,8 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
   };
 
   const calculateConvenienceFee = () => {
-    const feeBase = itemAmount * (CONVENIENCE_FEE_PERCENT / 100);
-    const feeGst = feeBase * (CONVENIENCE_FEE_GST_PERCENT / 100);
+    const feeBase = itemAmount * (CONVENIENCE_FEE.percent / 100);
+    const feeGst = feeBase * (CONVENIENCE_FEE.gstPercent / 100);
     return feeBase + feeGst;
   };
 
@@ -126,7 +105,7 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
     try {
       const result = await api.sendWhatsAppPaymentMessage({
         contactId: selectedContact,
-        phoneNumberId: PAYMENT_PHONE_NUMBER_ID,
+        phoneNumberId: PAYMENT_CONFIG.phoneNumberId,
         referenceId: referenceId,
         items: [{ name: itemName, amount: Math.round(itemAmount * 100), quantity: itemQuantity, productId: 'ITEM_MAIN' }],
         discount: Math.round(discount * 100),
@@ -170,8 +149,8 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
           <div className="sender-icon">📱</div>
           <div className="sender-info">
             <div className="sender-label">Sending From</div>
-            <div className="sender-number">{PAYMENT_PHONE_DISPLAY}</div>
-            <div className="sender-name">{PAYMENT_PHONE_NAME}</div>
+            <div className="sender-number">{PAYMENT_CONFIG.phoneDisplay}</div>
+            <div className="sender-name">{PAYMENT_CONFIG.phoneName}</div>
           </div>
           <div className="sender-badge"><span className="badge-dot"></span>Razorpay</div>
         </div>
