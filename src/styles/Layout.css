@@ -41,7 +41,7 @@ input, textarea, select {
 /* Sidebar - Notion Style */
 .sidebar {
   width: 240px;
-  background: var(--bg-secondary);
+  background: #ffffff;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -57,13 +57,14 @@ input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: #ffffff;
 }
 
 .app-title {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
   letter-spacing: -0.2px;
-  color: var(--text);
+  color: #000000;
 }
 
 .search-trigger {
@@ -89,6 +90,7 @@ input, textarea, select {
   flex: 1;
   padding: 8px;
   overflow-y: auto;
+  background: #ffffff;
 }
 
 /* Navigation Items - Notion Style */
@@ -99,24 +101,24 @@ input, textarea, select {
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 6px 10px;
+  padding: 8px 10px;
   text-decoration: none;
-  color: var(--text-secondary);
+  color: #000000;
   border-radius: var(--radius-md);
   transition: background var(--transition-fast);
   font-weight: var(--font-medium);
-  font-size: var(--text-sm);
+  font-size: 14px;
   cursor: pointer;
 }
 
 .nav-item:hover {
   background: var(--bg-hover);
-  color: var(--text);
+  color: #000000;
 }
 
 .nav-item-active {
   background: var(--bg-active);
-  color: var(--text);
+  color: #000000;
 }
 
 .nav-item-active:hover {
@@ -127,47 +129,49 @@ input, textarea, select {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 6px 10px;
+  padding: 8px 10px;
   text-decoration: none;
-  color: var(--text-secondary);
+  color: #000000;
   border-radius: var(--radius-md);
   transition: background var(--transition-fast);
   background: none;
   border: none;
   cursor: pointer;
   font-family: inherit;
-  font-size: var(--text-sm);
+  font-size: 14px;
   font-weight: var(--font-medium);
   text-align: left;
 }
 
 .nav-item-expandable:hover {
   background: var(--bg-hover);
-  color: var(--text);
+  color: #000000;
 }
 
 .nav-item-expandable.nav-item-active {
   background: var(--bg-active);
-  color: var(--text);
+  color: #000000;
 }
 
 .nav-icon {
   margin-right: 8px;
-  font-size: var(--text-base);
+  font-size: 16px;
   width: 20px;
   text-align: center;
   flex-shrink: 0;
+  color: #000000;
 }
 
 .nav-label {
-  font-size: var(--text-sm);
+  font-size: 14px;
   font-weight: var(--font-medium);
+  color: #000000;
 }
 
 .nav-arrow {
   margin-left: auto;
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: #666666;
   transition: transform var(--transition-normal);
 }
 
@@ -185,12 +189,12 @@ input, textarea, select {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 10px;
+  padding: 6px 10px;
   margin-bottom: 1px;
   text-decoration: none;
-  color: var(--text-secondary);
+  color: #000000;
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: 13px;
   font-weight: var(--font-normal);
   transition: background var(--transition-fast);
   cursor: pointer;
@@ -203,7 +207,7 @@ input, textarea, select {
 
 .nav-subitem:hover {
   background: var(--bg-hover);
-  color: var(--text);
+  color: #000000;
 }
 
 .nav-subitem-active {
@@ -220,11 +224,11 @@ input, textarea, select {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 10px;
+  padding: 6px 10px;
   margin-bottom: 1px;
-  color: var(--text-secondary);
+  color: #000000;
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: 13px;
   font-weight: var(--font-normal);
   transition: background var(--transition-fast);
   cursor: pointer;
@@ -237,7 +241,7 @@ input, textarea, select {
 
 .nav-subitem-expandable:hover {
   background: var(--bg-hover);
-  color: var(--text);
+  color: #000000;
 }
 
 .nav-subitem-expandable.nav-subitem-active {
@@ -265,7 +269,7 @@ input, textarea, select {
 .sidebar-footer {
   padding: 12px 14px;
   border-top: 1px solid var(--border);
-  background: var(--bg-secondary);
+  background: #ffffff;
 }
 
 .user-info {

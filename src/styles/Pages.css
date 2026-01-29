@@ -1619,3 +1619,60 @@
     max-width: 80%;
   }
 }
+
+
+/* Page Header with Icon - Matching Sidebar */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.page-header-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000000;
+}
+
+.page-header-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.page-header-content {
+  flex: 1;
+}
+
+.page-header h1,
+.page-header .page-title {
+  font-size: 24px;
+  font-weight: var(--font-bold);
+  color: #000000;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.page-header p,
+.page-header .page-subtitle {
+  font-size: 14px;
+  color: #666666;
+  margin: 4px 0 0 0;
+}
+
+.back-link {
+  color: #666666;
+  text-decoration: none;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.back-link:hover {
+  color: #000000;
+}
