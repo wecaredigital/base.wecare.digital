@@ -29,6 +29,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../../components/Layout';
 import * as api from '../../../api/client';
+import { formatReferenceNumber, generateReferenceId } from '../../../lib/formatters';
 
 // Payment phone number configuration
 const PAYMENT_PHONE_NUMBER_ID = 'phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54';
@@ -83,8 +84,7 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
 
   useEffect(() => {
     loadContacts();
-    const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
-    setReferenceId(`WDSR_${uuid}`);
+    setReferenceId(generateReferenceId());
   }, []);
 
   const loadContacts = async () => {
@@ -110,9 +110,8 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
   const calculateSubtotal = () => itemAmount + calculateConvenienceFee();
   const calculateTotal = () => calculateSubtotal() - discount + shipping + calculateTax();
 
-  const generateReferenceId = () => {
-    const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
-    setReferenceId(`WDSR_${uuid}`);
+  const handleGenerateReferenceId = () => {
+    setReferenceId(generateReferenceId());
   };
 
   const sendPaymentRequest = async () => {
@@ -140,7 +139,7 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
 
       if (result) {
         setMessage({ type: 'success', text: `Payment request sent! ID: ${result.messageId}` });
-        generateReferenceId();
+        setReferenceId(generateReferenceId());
         setItemName('');
         setItemAmount(0);
         setItemQuantity(1);
@@ -197,8 +196,8 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
             <div className="form-section">
               <h3>🔖 Reference ID</h3>
               <div className="ref-row">
-                <input type="text" value={referenceId} readOnly placeholder="WDSR_XXXXXXXX" />
-                <button type="button" onClick={generateReferenceId} className="gen-btn">New</button>
+                <input type="text" value={formatReferenceNumber(referenceId)} readOnly placeholder="WDSR+XXXXXXXX" />
+                <button type="button" onClick={handleGenerateReferenceId} className="gen-btn">New</button>
               </div>
             </div>
 
@@ -240,7 +239,7 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
                 <div className="breakdown-row"><span>Tax</span><span>₹{calculateTax().toFixed(2)}</span></div>
               </div>
               <div className="preview-total"><span>TOTAL</span><span>₹{calculateTotal().toFixed(2)}</span></div>
-              <div className="preview-config"><small>To: {selectedContactInfo?.name || '—'}</small><small>Ref: {referenceId}</small></div>
+              <div className="preview-config"><small>To: {selectedContactInfo?.name || '—'}</small><small>Ref: {formatReferenceNumber(referenceId)}</small></div>
             </div>
             <button className="send-btn" onClick={sendPaymentRequest} disabled={sending || !selectedContact || !itemName || itemAmount <= 0}>
               {sending ? 'Sending...' : '💳 Send Payment'}
@@ -254,7 +253,7 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
         .pay-header { margin-bottom: 20px; }
         .pay-header h1 { font-size: 22px; margin: 0 0 4px 0; }
         .pay-header p { color: #666; margin: 0; font-size: 14px; }
-        .sender-notice { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%); padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; border: 1px solid #bbf7d0; }
+        .sender-notice { display: flex; align-items: center; gap: 16px; background: var(--notion-green-bg, #f0fdf4); padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--notion-border, #e9e9e7); }
         .sender-icon { font-size: 24px; }
         .sender-info { flex: 1; }
         .sender-label { font-size: 10px; color: #166534; text-transform: uppercase; }

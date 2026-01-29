@@ -53,13 +53,13 @@
 }
 
 .toolbar-btn.ai-btn {
-  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  background: #0f172a;
   color: #fff;
   border: none;
 }
 
 .toolbar-btn.ai-btn:hover {
-  opacity: 0.9;
+  background: #1e293b;
 }
 
 .toolbar-btn.ai-btn:disabled {
@@ -68,7 +68,7 @@
 }
 
 .toolbar-btn.ai-btn.error {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: #ef4444;
   animation: shake 0.3s ease-in-out;
 }
 
@@ -238,7 +238,7 @@
   bottom: 100%;
   left: 0;
   right: 0;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
@@ -663,7 +663,7 @@
 }
 
 .payment-dialog .variable-dialog-header {
-  background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
+  background: #f0fdf4;
   border-bottom: 1px solid #bbf7d0;
 }
 

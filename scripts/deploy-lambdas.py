@@ -8,9 +8,16 @@ import boto3
 import zipfile
 import io
 import os
+import sys
 
 REGION = 'us-east-1'
-ACCOUNT_ID = '809904170947'
+
+def get_account_id():
+    """Get AWS account ID dynamically."""
+    sts = boto3.client('sts', region_name=REGION)
+    return sts.get_caller_identity()['Account']
+
+ACCOUNT_ID = get_account_id()
 ROLE_ARN = f'arn:aws:iam::{ACCOUNT_ID}:role/wecare-digital-lambda-role'
 
 # Lambda functions to deploy
@@ -43,7 +50,11 @@ LAMBDAS = [
 ]
 
 def create_zip(source_file):
-    """Create a zip file from a Python source file."""
+    """Create a zip file from a Python source file with shared dependencies."""
+    # Check if source file exists
+    if not os.path.exists(source_file):
+        raise FileNotFoundError(f"Source file not found: {source_file}")
+    
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
         # Read the source file
@@ -51,6 +62,16 @@ def create_zip(source_file):
             content = f.read()
         # Add to zip as handler.py
         zf.writestr('handler.py', content)
+        
+        # Include shared utils if they exist
+        shared_utils_dir = 'amplify/functions/shared/utils'
+        if os.path.exists(shared_utils_dir):
+            for filename in os.listdir(shared_utils_dir):
+                if filename.endswith('.py'):
+                    filepath = os.path.join(shared_utils_dir, filename)
+                    with open(filepath, 'r') as f:
+                        zf.writestr(f'utils/{filename}', f.read())
+    
     zip_buffer.seek(0)
     return zip_buffer.read()
 
@@ -63,6 +84,11 @@ def main():
     for config in LAMBDAS:
         name = config['name']
         print(f"\n🚀 Deploying {name}...")
+        
+        # Check if source file exists
+        if not os.path.exists(config['source']):
+            print(f"   ❌ Source file not found: {config['source']}")
+            continue
         
         # Check if function exists
         try:
@@ -97,7 +123,10 @@ def main():
                         'Environment': 'prod',
                     }
                 )
-                print(f"   ✅ Function created")
+                print(f"   ⏳ Waiting for function to be active...")
+                waiter = lambda_client.get_waiter('function_active')
+                waiter.wait(FunctionName=name)
+                print(f"   ✅ Function created and active")
             except Exception as e:
                 print(f"   ❌ Error creating function: {e}")
                 continue
