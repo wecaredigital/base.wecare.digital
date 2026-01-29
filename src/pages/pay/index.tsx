@@ -4,6 +4,7 @@
 
 import React from 'react';
 import Layout from '../../components/Layout';
+import PageHeader from '../../components/PageHeader';
 import Link from 'next/link';
 
 interface PageProps {
@@ -15,10 +16,11 @@ const PayHubPage: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="pay-hub">
-        <div className="pay-header">
-          <h1>💳 Payment Options</h1>
-          <p>Choose a payment method to send payment requests</p>
-        </div>
+        <PageHeader 
+          title="Payment Options" 
+          subtitle="Choose a payment method to send payment requests"
+          icon="payment"
+        />
 
         <div className="pay-options">
           <Link href="/pay/wa" className="pay-option whatsapp">
@@ -55,9 +57,6 @@ const PayHubPage: React.FC<PageProps> = ({ signOut, user }) => {
 
       <style jsx>{`
         .pay-hub { padding: 20px; max-width: 800px; margin: 0 auto; }
-        .pay-header { margin-bottom: 32px; text-align: center; }
-        .pay-header h1 { font-size: 28px; margin: 0 0 8px 0; }
-        .pay-header p { color: #666; margin: 0; font-size: 16px; }
         
         .pay-options { display: flex; flex-direction: column; gap: 16px; }
         

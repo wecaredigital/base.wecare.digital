@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../../components/Layout';
+import PageHeader from '../../components/PageHeader';
 import ContactImportExport from '../../components/ContactImportExport';
 import * as api from '../../api/client';
 
@@ -186,13 +187,17 @@ const Contacts: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
-        <div className="page-header">
-          <h1 className="page-title">☎ Contacts</h1>
-          <div className="header-actions">
-            <button className="btn-secondary" onClick={loadContacts} disabled={loading}>↻ {loading ? 'Loading...' : 'Refresh'}</button>
-            <button className="btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>+ Add Contact</button>
-          </div>
-        </div>
+        <PageHeader 
+          title="Contacts" 
+          subtitle="Manage your contact database"
+          icon="contacts"
+          actions={
+            <>
+              <button className="btn-secondary" onClick={loadContacts} disabled={loading}>↻ {loading ? 'Loading...' : 'Refresh'}</button>
+              <button className="btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>+ Add Contact</button>
+            </>
+          }
+        />
 
         {error && <div className="error-banner">{error} <button onClick={() => setError(null)}>✕</button></div>}
 

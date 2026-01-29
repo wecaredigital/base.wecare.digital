@@ -6,6 +6,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Layout from '../../components/Layout';
+import PageHeader from '../../components/PageHeader';
 
 interface PageProps {
   signOut?: () => void;
@@ -59,9 +60,11 @@ const BulkHub: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
-        <div className="page-header">
-          <h1 className="page-title">Bulk Messaging</h1>
-        </div>
+        <PageHeader 
+          title="Bulk Messaging" 
+          subtitle="Send messages to multiple recipients"
+          icon="bulk"
+        />
 
         <div className="channels-grid">
           {CHANNELS.map((channel) => (
