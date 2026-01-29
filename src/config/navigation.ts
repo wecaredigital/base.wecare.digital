@@ -83,11 +83,18 @@ export const navigationConfig: NavItem[] = [
     label: 'Messages',
     icon: 'message',
     children: [
-      { path: '/dm/whatsapp', label: 'WhatsApp Inbox', icon: 'whatsapp' },
-      { path: '/dm/whatsapp/waba-dashboard', label: 'WA Dashboard', icon: 'dashboard' },
-      { path: '/dm/whatsapp/templates', label: 'WA Templates', icon: 'template' },
-      { path: '/dm/whatsapp/welcome', label: 'Welcome Message', icon: 'welcome' },
-      { path: '/dm/whatsapp/ai-config', label: 'AI Config', icon: 'ai' },
+      { 
+        path: '/dm/whatsapp', 
+        label: 'WhatsApp', 
+        icon: 'whatsapp',
+        children: [
+          { path: '/dm/whatsapp', label: 'Inbox', icon: 'whatsapp' },
+          { path: '/dm/whatsapp/waba-dashboard', label: 'Dashboard', icon: 'dashboard' },
+          { path: '/dm/whatsapp/templates', label: 'Templates', icon: 'template' },
+          { path: '/dm/whatsapp/welcome', label: 'Welcome Message', icon: 'welcome' },
+          { path: '/dm/whatsapp/ai-config', label: 'AI Config', icon: 'ai' },
+        ]
+      },
       { 
         path: '/dm/sms', 
         label: 'SMS', 
@@ -115,9 +122,6 @@ export const navigationConfig: NavItem[] = [
     path: '/contacts',
     label: 'Contacts',
     icon: 'contacts',
-    children: [
-      { path: '/contacts', label: 'All Contacts', icon: 'contacts' },
-    ],
   },
   {
     path: '/bulk',
@@ -155,6 +159,11 @@ export const navigationConfig: NavItem[] = [
       { path: '/bulk/rcs', label: 'RCS', icon: 'rcs' },
       { path: '/bulk/logs', label: 'Logs', icon: 'logs' },
     ],
+  },
+  {
+    path: '/access',
+    label: 'Access',
+    icon: 'access',
   },
 ];
 
