@@ -363,7 +363,9 @@ def _handle_order_status_send(message_id: str, contact_id: str, recipient_phone:
     - Payment Failed: Payment failed. Please try again ❌
     """
     try:
-        reference_id = order_status_details.get('reference_id', '')
+        raw_reference_id = order_status_details.get('reference_id', '')
+        # Sanitize reference_id to remove duplicate WDSR prefixes
+        reference_id = _sanitize_reference_id(raw_reference_id)
         order_status = order_status_details.get('order_status', 'completed')
         amount = order_status_details.get('amount', 0)  # Amount in rupees
         
@@ -371,6 +373,8 @@ def _handle_order_status_send(message_id: str, contact_id: str, recipient_phone:
         logger.info(json.dumps({
             'event': 'order_status_details_received',
             'orderStatusDetails': order_status_details,
+            'rawReferenceId': raw_reference_id,
+            'sanitizedReferenceId': reference_id,
             'amount': amount,
             'amountType': type(amount).__name__,
             'requestId': request_id
@@ -1264,6 +1268,7 @@ def _sanitize_reference_id(reference_id: str) -> str:
     Examples:
     - "WDSR_ABC12345" -> "WDSRABC12345" (remove underscore)
     - "WDSRABC12345" -> "WDSRABC12345" (keep as-is)
+    - "WDSRWDSR41BA3534" -> "WDSR41BA3534" (remove duplicate prefix)
     - "" -> "WDSRXXXXXXXX" (auto-generated)
     """
     import re
@@ -1283,6 +1288,10 @@ def _sanitize_reference_id(reference_id: str) -> str:
     if not sanitized:
         unique_id = str(uuid.uuid4()).replace('-', '')[:8].upper()
         return f"WDSR{unique_id}"
+    
+    # Remove ALL duplicate WDSR prefixes (handle WDSRWDSRWDSR... cases)
+    while 'WDSRWDSR' in sanitized:
+        sanitized = sanitized.replace('WDSRWDSR', 'WDSR')
     
     # Keep as-is if already has WDSR prefix (without underscore)
     if sanitized.startswith('WDSR'):
