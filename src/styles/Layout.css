@@ -230,7 +230,26 @@ input, textarea, select {
 .nav-subitem-expandable {
   display: flex;
   align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  margin-bottom: 1px;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-normal);
+  transition: background var(--transition-fast);
   cursor: pointer;
+  width: 100%;
+}
+
+.nav-subitem-expandable:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.nav-subitem-expandable.nav-subitem-active {
+  background: var(--accent-light);
+  color: var(--accent);
 }
 
 .nav-nested-arrow {
