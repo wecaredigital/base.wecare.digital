@@ -874,6 +874,16 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
         
         whatsapp_message_id = response.get('messageId', '')
         
+        # Extract payment info for storage (for amount lookup on confirmation)
+        payment_ref_id = None
+        payment_amount = None
+        if is_interactive_payment and order_details:
+            payment_ref_id = _sanitize_reference_id(order_details.get('reference_id', ''))
+            # Calculate total amount in rupees from order_details
+            total_amount = order_details.get('order', {}).get('total_amount', {})
+            if total_amount:
+                payment_amount = total_amount.get('value', 0) / total_amount.get('offset', 100)
+        
         # Requirement 5.11: Store message record
         _store_message_record(
             message_id=message_id,
@@ -884,7 +894,9 @@ def _handle_live_send(message_id: str, contact_id: str, recipient_phone: str,
             whatsapp_message_id=whatsapp_message_id,
             media_id=whatsapp_media_id,
             s3_key=s3_key,
-            phone_number_id=phone_number_id
+            phone_number_id=phone_number_id,
+            payment_reference_id=payment_ref_id,
+            payment_amount=payment_amount
         )
         
         logger.info(json.dumps({
@@ -1676,7 +1688,8 @@ def _check_rate_limit(phone_number_id: str) -> bool:
 def _store_message_record(message_id: str, contact_id: str, content: str, status: str,
                           is_template: bool = False, whatsapp_message_id: str = None,
                           media_id: str = None, s3_key: str = None,
-                          error_details: Dict = None, phone_number_id: str = None) -> None:
+                          error_details: Dict = None, phone_number_id: str = None,
+                          payment_reference_id: str = None, payment_amount: float = None) -> None:
     """Store message record in DynamoDB with WABA tracking."""
     now = int(time.time())
     expires_at = now + MESSAGE_TTL_SECONDS
@@ -1699,6 +1712,10 @@ def _store_message_record(message_id: str, contact_id: str, content: str, status
         'awsPhoneNumberId': phone_number_id,
         'createdAt': Decimal(str(now)),
         'expiresAt': Decimal(str(expires_at)),
+        # Payment tracking fields (for amount lookup on confirmation)
+        'paymentReferenceId': payment_reference_id,
+        'paymentAmount': Decimal(str(payment_amount * 100)) if payment_amount else None,  # Store in paise
+        'paymentOffset': Decimal('100') if payment_amount else None,
     }
     
     try:

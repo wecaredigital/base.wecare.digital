@@ -874,6 +874,37 @@ def _process_status(status: Dict, request_id: str) -> None:
         }))
 
 
+def _sanitize_reference_id(reference_id: str) -> str:
+    """
+    Sanitize reference_id - remove duplicate WDSR prefix and underscores.
+    
+    WhatsApp/Razorpay may return reference_id with extra prefixes or underscores.
+    This ensures clean WDSR<ID> format for display.
+    
+    Examples:
+    - "WDSR_WDSR41BA3534" -> "WDSR41BA3534" (remove duplicate prefix)
+    - "WDSR_41BA3534" -> "WDSR41BA3534" (remove underscore)
+    - "WDSR41BA3534" -> "WDSR41BA3534" (keep as-is)
+    """
+    import re
+    
+    if not reference_id:
+        return reference_id
+    
+    # Remove all underscores and non-alphanumeric characters
+    cleaned = re.sub(r'[^A-Za-z0-9]', '', reference_id).upper()
+    
+    # Remove duplicate WDSR prefix (e.g., WDSRWDSR -> WDSR)
+    while cleaned.startswith('WDSRWDSR'):
+        cleaned = cleaned[4:]  # Remove first WDSR
+    
+    # Ensure single WDSR prefix
+    if not cleaned.startswith('WDSR'):
+        cleaned = f'WDSR{cleaned}'
+    
+    return cleaned
+
+
 def _process_payment_status(status: Dict, request_id: str) -> None:
     """
     Process payment status webhook from WhatsApp.
@@ -905,7 +936,9 @@ def _process_payment_status(status: Dict, request_id: str) -> None:
     }))
     
     payment_data = status.get('payment', {})
-    reference_id = payment_data.get('reference_id', '')
+    raw_reference_id = payment_data.get('reference_id', '')
+    # Sanitize reference_id - remove duplicate WDSR prefix and underscores
+    reference_id = _sanitize_reference_id(raw_reference_id)
     payment_status = status.get('status', '')
     recipient_id = status.get('recipient_id', '')
     timestamp = int(status.get('timestamp', time.time()))
