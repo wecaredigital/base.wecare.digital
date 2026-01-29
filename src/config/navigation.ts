@@ -85,6 +85,7 @@ export const navigationConfig: NavItem[] = [
       { path: '/dm/whatsapp', label: 'WhatsApp Inbox', icon: 'whatsapp' },
       { path: '/dm/whatsapp/waba-dashboard', label: 'WA Dashboard', icon: 'dashboard' },
       { path: '/dm/whatsapp/templates', label: 'WA Templates', icon: 'template' },
+      { path: '/dm/whatsapp/welcome', label: 'Welcome Message', icon: 'welcome' },
       { path: '/dm/whatsapp/ai-config', label: 'AI Config', icon: 'ai' },
       { 
         path: '/dm/sms', 

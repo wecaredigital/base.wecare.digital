@@ -7,6 +7,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from '../styles/RichTextEditor.module.css';
 import * as api from '../api/client';
+import { generateReferenceId } from '../lib/formatters';
 
 // Payment dialog state
 interface PaymentDialogState {
@@ -528,7 +529,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   type="text"
                   value={paymentForm.referenceId}
                   onChange={(e) => setPaymentForm({...paymentForm, referenceId: e.target.value})}
-                  placeholder="WDSR_XXXXXXXX"
+                  placeholder="WDSRXXXXXXXX"
                   readOnly
                 />
               </div>
@@ -700,9 +701,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className={`${styles['toolbar-btn']} ${showPaymentDialog ? styles['active'] : ''}`}
             onClick={() => { 
               if (!showPaymentDialog) {
-                // Auto-generate reference ID when opening
-                const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
-                setPaymentForm(prev => ({...prev, referenceId: `WDSR_${uuid}`}));
+                // Auto-generate reference ID when opening (using formatter)
+                setPaymentForm(prev => ({...prev, referenceId: generateReferenceId()}));
               }
               setShowPaymentDialog(!showPaymentDialog); 
               setShowTemplates(false); 

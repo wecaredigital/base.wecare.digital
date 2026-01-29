@@ -258,6 +258,18 @@ export const OverviewIcon: React.FC<IconProps> = ({ size = 18, strokeWidth = 1.5
   </svg>
 );
 
+// Welcome / Wave
+export const WelcomeIcon: React.FC<IconProps> = ({ size = 18, strokeWidth = 1.5, className, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M18 8.5V8a4 4 0 0 0-8 0v.5" />
+    <path d="M10 8.5V8a2 2 0 1 1 4 0v.5" />
+    <path d="M14 8.5V8" />
+    <path d="M6 14v-3a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3" />
+    <path d="M6 14a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2" />
+    <line x1="6" y1="14" x2="18" y2="14" />
+  </svg>
+);
+
 // Export all icons as a map for dynamic usage
 export const IconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
@@ -288,4 +300,5 @@ export const IconMap: Record<string, React.FC<IconProps>> = {
   menu: MenuIcon,
   rcs: RcsIcon,
   overview: OverviewIcon,
+  welcome: WelcomeIcon,
 };

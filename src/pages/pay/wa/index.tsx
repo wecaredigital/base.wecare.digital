@@ -196,7 +196,7 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
             <div className="form-section">
               <h3>🔖 Reference ID</h3>
               <div className="ref-row">
-                <input type="text" value={formatReferenceNumber(referenceId)} readOnly placeholder="WDSR+XXXXXXXX" />
+                <input type="text" value={formatReferenceNumber(referenceId)} readOnly placeholder="WDSRXXXXXXXX" />
                 <button type="button" onClick={handleGenerateReferenceId} className="gen-btn">New</button>
               </div>
             </div>

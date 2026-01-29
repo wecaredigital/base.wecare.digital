@@ -1247,19 +1247,22 @@ def _sanitize_reference_id(reference_id: str) -> str:
     UPI requires: only A-Z, a-z, 0-9, _, - (max 35 chars)
     Must be unique for each transaction.
     
+    Format: WDSR<ID> (no underscore for cleaner display)
+    
     Examples:
-    - "WDSR_ABC12345" -> "WDSR_ABC12345" (keep as-is)
-    - "" -> "WDSR_XXXXXXXX" (auto-generated)
+    - "WDSR_ABC12345" -> "WDSRABC12345" (remove underscore)
+    - "WDSRABC12345" -> "WDSRABC12345" (keep as-is)
+    - "" -> "WDSRXXXXXXXX" (auto-generated)
     """
     import re
     
     if not reference_id or not reference_id.strip():
         # Generate unique reference if empty
         unique_id = str(uuid.uuid4()).replace('-', '')[:8].upper()
-        return f"WDSR_{unique_id}"
+        return f"WDSR{unique_id}"
     
-    # Remove all non-alphanumeric characters except _ and -
-    sanitized = re.sub(r'[^A-Za-z0-9_-]', '', reference_id.replace(' ', '_'))
+    # Remove all non-alphanumeric characters (including underscores and plus signs)
+    sanitized = re.sub(r'[^A-Za-z0-9]', '', reference_id)
     
     # Convert to uppercase for consistency
     sanitized = sanitized.upper()
@@ -1267,14 +1270,14 @@ def _sanitize_reference_id(reference_id: str) -> str:
     # If empty after sanitization, generate new
     if not sanitized:
         unique_id = str(uuid.uuid4()).replace('-', '')[:8].upper()
-        return f"WDSR_{unique_id}"
+        return f"WDSR{unique_id}"
     
-    # Keep as-is if already has WDSR_ prefix
-    if sanitized.startswith('WDSR_'):
+    # Keep as-is if already has WDSR prefix (without underscore)
+    if sanitized.startswith('WDSR'):
         result = sanitized
     else:
-        # Add WDSR_ prefix
-        result = f"WDSR_{sanitized}"
+        # Add WDSR prefix (no underscore)
+        result = f"WDSR{sanitized}"
     
     # Truncate to max 35 chars (UPI limit)
     if len(result) > 35:

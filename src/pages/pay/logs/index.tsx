@@ -37,21 +37,21 @@ const PaymentLogsPage: React.FC<PageProps> = ({ signOut, user }) => {
   const loadPaymentLogs = async () => {
     setLoading(true);
     try {
-      // Fetch messages that are payment-related (contain WDSR_ or WDPL_ reference)
+      // Fetch messages that are payment-related (contain WDSR or WDPL reference)
       const messages = await api.listMessages();
       
       // Filter for payment messages (outbound with payment reference)
       const paymentMessages = messages
         .filter(m => m.direction === 'OUTBOUND' && m.content?.includes('payment'))
         .map(m => {
-          // Extract reference ID from message content or metadata
-          const refMatch = m.content?.match(/WDSR_[A-Z0-9]+|WDPL_[A-Z0-9]+/);
-          const refId = refMatch ? refMatch[0] : m.messageId?.substring(0, 12).toUpperCase();
+          // Extract reference ID from message content or metadata (with or without underscore for backwards compat)
+          const refMatch = m.content?.match(/WDSR_?[A-Z0-9]+|WDPL_?[A-Z0-9]+/);
+          const refId = refMatch ? refMatch[0].replace('_', '') : m.messageId?.substring(0, 12).toUpperCase();
           
           return {
             id: m.messageId,
-            referenceId: refId || `REF_${m.messageId?.substring(0, 8)}`,
-            type: refId?.startsWith('WDPL_') ? 'link' : 'wa' as 'wa' | 'link',
+            referenceId: refId || `REF${m.messageId?.substring(0, 8)}`,
+            type: refId?.startsWith('WDPL') ? 'link' : 'wa' as 'wa' | 'link',
             amount: 0, // Would need to parse from content
             status: m.status as PaymentLog['status'],
             recipient: m.contactId,

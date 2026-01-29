@@ -23,12 +23,13 @@ const PayLinkPage: React.FC<PageProps> = ({ signOut, user }) => {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    generateReferenceId();
+    handleGenerateReferenceId();
   }, []);
 
-  const generateReferenceId = () => {
+  const handleGenerateReferenceId = () => {
+    // WDPL = WeCare Digital Payment Link (no underscore)
     const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
-    setReferenceId(`WDPL_${uuid}`);
+    setReferenceId(`WDPL${uuid}`);
   };
 
   const generatePaymentLink = () => {
@@ -67,7 +68,7 @@ const PayLinkPage: React.FC<PageProps> = ({ signOut, user }) => {
               <h3>🔖 Reference ID</h3>
               <div className="ref-row">
                 <input type="text" value={referenceId} readOnly />
-                <button type="button" onClick={generateReferenceId} className="gen-btn">New</button>
+                <button type="button" onClick={handleGenerateReferenceId} className="gen-btn">New</button>
               </div>
             </div>
 
