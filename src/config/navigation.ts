@@ -124,7 +124,15 @@ export const navigationConfig: NavItem[] = [
     label: 'Bulk',
     icon: 'bulk',
     children: [
-      { path: '/bulk/whatsapp', label: 'WhatsApp', icon: 'whatsapp' },
+      { 
+        path: '/bulk/whatsapp', 
+        label: 'WhatsApp', 
+        icon: 'whatsapp',
+        children: [
+          { path: '/bulk/whatsapp/phone-number-id-baa217c3f11b4ffd956f6f3afb44ce54', label: '+91 93309 94400', icon: 'whatsapp' },
+          { path: '/bulk/whatsapp/phone-number-id-1447bc72d1b040f4bf2341c9e04b2e06', label: '+91 99033 00044', icon: 'whatsapp' },
+        ]
+      },
       { 
         path: '/bulk/sms', 
         label: 'SMS', 
