@@ -5,6 +5,7 @@
 
 import React from 'react';
 import Layout from '../../components/Layout';
+import PageHeader from '../../components/PageHeader';
 
 interface PageProps {
   signOut?: () => void;
@@ -15,11 +16,14 @@ const InvoicePage: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
-        <h1 className="page-title">Invoice</h1>
+        <PageHeader 
+          title="Invoice" 
+          subtitle="Create and manage invoices"
+          icon="invoice"
+        />
         <div className="section">
           <div className="empty-state">
             <p>🧾 Invoice management coming soon</p>
-            <p className="help-text">Create and manage invoices</p>
           </div>
         </div>
       </div>

@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../../../components/Layout';
+import PageHeader from '../../../components/PageHeader';
 import Toast, { useToast } from '../../../components/Toast';
 import * as api from '../../../api/client';
 
@@ -113,17 +114,18 @@ const WABADashboard: React.FC<PageProps> = ({ signOut, user }) => {
     <Layout user={user} onSignOut={signOut}>
       <Toast toasts={toast.toasts} onRemove={toast.removeToast} />
       <div className="page waba-dashboard">
-        <div className="page-header">
-          <div className="header-left">
-            <button className="back-btn" onClick={() => router.push('/dm/whatsapp')}>
-              ← Back
+        <PageHeader 
+          title="WABA Dashboard" 
+          subtitle="WhatsApp Business Account details, phone quality, and system events"
+          icon="whatsapp"
+          backLink="/dm/whatsapp"
+          backLabel="← Back"
+          actions={
+            <button className="refresh-btn" onClick={loadData} disabled={loading}>
+              {loading ? '...' : '↻ Refresh'}
             </button>
-            <h1>📊 WABA Dashboard</h1>
-          </div>
-          <button className="refresh-btn" onClick={loadData} disabled={loading}>
-            {loading ? '...' : '↻ Refresh'}
-          </button>
-        </div>
+          }
+        />
 
         {loading && wabas.length === 0 ? (
           <div className="loading-state">Loading WABA data...</div>

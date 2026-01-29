@@ -17,6 +17,7 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '../../../components/Layout';
+import PageHeader from '../../../components/PageHeader';
 import {
   getBedrockAIConfig,
   updateBedrockAIConfig,
@@ -136,7 +137,12 @@ export default function AIConfigPage({ signOut, user }: PageProps) {
     <Layout user={user} onSignOut={signOut}>
       <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
-        <div style={{ marginBottom: '1.5rem' }}>
+        <PageHeader 
+          title="WhatsApp AI Auto-Reply" 
+          subtitle="Control AI auto-reply settings for WhatsApp messages (customer-facing)"
+          icon="ai"
+        />
+        <div style={{ marginBottom: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
             <span style={{ padding: '0.25rem 0.5rem', background: '#dcfce7', color: '#166534', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 600 }}>
               EXTERNAL
@@ -145,12 +151,6 @@ export default function AIConfigPage({ signOut, user }: PageProps) {
               Customer-Facing
             </span>
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-            🤖 WhatsApp AI Auto-Reply
-          </h1>
-          <p style={{ color: '#666', fontSize: '0.9rem' }}>
-            Control AI auto-reply settings for WhatsApp messages (customer-facing)
-          </p>
           <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '0.25rem' }}>
             Agent: JDXIOU2UR9 | KB: CTH8DH3RXY | For internal admin AI, go to Dashboard → AI
           </p>

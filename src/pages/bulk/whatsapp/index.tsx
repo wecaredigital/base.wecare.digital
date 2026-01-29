@@ -6,6 +6,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Layout from '../../../components/Layout';
+import PageHeader from '../../../components/PageHeader';
 import { WHATSAPP_PHONES } from '../../../config/constants';
 
 interface PageProps {
@@ -34,11 +35,13 @@ const BulkWhatsAppIndex: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
-        <div className="page-header">
-          <Link href="/bulk" className="back-link">← Bulk Hub</Link>
-          <h1 className="page-title">Bulk WhatsApp</h1>
-          <p className="page-subtitle">Select WABA for bulk messaging</p>
-        </div>
+        <PageHeader 
+          title="Bulk WhatsApp" 
+          subtitle="Select WABA for bulk messaging"
+          icon="whatsapp"
+          backLink="/bulk"
+          backLabel="← Bulk Hub"
+        />
 
         <div className="waba-grid">
           {WABA_ACCOUNTS.map((waba) => (

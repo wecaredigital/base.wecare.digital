@@ -28,6 +28,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Layout from '../../../components/Layout';
+import PageHeader from '../../../components/PageHeader';
 import * as api from '../../../api/client';
 import { formatReferenceNumber, generateReferenceId } from '../../../lib/formatters';
 import { PAYMENT_CONFIG, GST_RATES, CONVENIENCE_FEE, DEFAULT_GSTIN } from '../../../config/constants';
@@ -140,10 +141,11 @@ const PayWAPage: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="pay-page">
-        <div className="pay-header">
-          <h1>💬 WhatsApp Pay</h1>
-          <p>Send payment requests via WhatsApp UPI (India only)</p>
-        </div>
+        <PageHeader 
+          title="WhatsApp Pay" 
+          subtitle="Send payment requests via WhatsApp UPI (India only)"
+          icon="whatsapp"
+        />
 
         <div className="sender-notice">
           <div className="sender-icon">📱</div>

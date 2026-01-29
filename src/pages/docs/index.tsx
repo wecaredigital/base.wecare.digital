@@ -5,6 +5,7 @@
 
 import React from 'react';
 import Layout from '../../components/Layout';
+import PageHeader from '../../components/PageHeader';
 
 interface PageProps {
   signOut?: () => void;
@@ -15,11 +16,14 @@ const DocsPage: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
-        <h1 className="page-title">Docs</h1>
+        <PageHeader 
+          title="Docs" 
+          subtitle="API documentation and guides"
+          icon="document"
+        />
         <div className="section">
           <div className="empty-state">
             <p>📚 Documentation coming soon</p>
-            <p className="help-text">API documentation and guides</p>
           </div>
         </div>
       </div>

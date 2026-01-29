@@ -6,6 +6,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Layout from '../../components/Layout';
+import PageHeader from '../../components/PageHeader';
 
 interface PageProps {
   signOut?: () => void;
@@ -64,9 +65,11 @@ const DMHub: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
-        <div className="page-header">
-          <h1 className="page-title">Direct Messaging</h1>
-        </div>
+        <PageHeader 
+          title="Direct Messaging" 
+          subtitle="Send messages across all channels"
+          icon="message"
+        />
 
         <div className="channels-grid">
           {CHANNELS.map((channel) => (
@@ -90,70 +93,17 @@ const DMHub: React.FC<PageProps> = ({ signOut, user }) => {
         </div>
 
         <style jsx>{`
-          .channels-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 16px;
-          }
-          .channel-card {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 20px 24px;
-            background: #fff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.2s;
-          }
-          .channel-card:hover {
-            border-color: #1a1a1a;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-          }
-          .channel-icon {
-            font-size: 32px;
-            flex-shrink: 0;
-          }
-          .channel-info {
-            flex: 1;
-          }
-          .channel-name {
-            font-size: 16px;
-            font-weight: 500;
-            margin: 0 0 4px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-          .channel-desc {
-            font-size: 13px;
-            color: #666;
-            margin: 0 0 8px 0;
-          }
-          .channel-accounts {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-          }
-          .account-badge {
-            font-size: 11px;
-            background: #f5f5f5;
-            padding: 2px 8px;
-            border-radius: 4px;
-            color: #666;
-          }
-          .channel-arrow {
-            font-size: 20px;
-            color: #ccc;
-          }
-          .badge-coming {
-            font-size: 10px;
-            background: #fef3c7;
-            color: #92400e;
-            padding: 2px 6px;
-            border-radius: 4px;
-          }
+          .channels-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+          .channel-card { display: flex; align-items: center; gap: 16px; padding: 20px 24px; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; text-decoration: none; color: inherit; transition: all 0.2s; }
+          .channel-card:hover { border-color: #1a1a1a; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+          .channel-icon { font-size: 32px; flex-shrink: 0; }
+          .channel-info { flex: 1; }
+          .channel-name { font-size: 16px; font-weight: 500; margin: 0 0 4px 0; display: flex; align-items: center; gap: 8px; }
+          .channel-desc { font-size: 13px; color: #666; margin: 0 0 8px 0; }
+          .channel-accounts { display: flex; flex-wrap: wrap; gap: 4px; }
+          .account-badge { font-size: 11px; background: #f5f5f5; padding: 2px 8px; border-radius: 4px; color: #666; }
+          .channel-arrow { font-size: 20px; color: #ccc; }
+          .badge-coming { font-size: 10px; background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; }
         `}</style>
       </div>
     </Layout>

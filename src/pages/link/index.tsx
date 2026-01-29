@@ -5,6 +5,7 @@
 
 import React from 'react';
 import Layout from '../../components/Layout';
+import PageHeader from '../../components/PageHeader';
 
 interface PageProps {
   signOut?: () => void;
@@ -15,11 +16,14 @@ const LinkPage: React.FC<PageProps> = ({ signOut, user }) => {
   return (
     <Layout user={user} onSignOut={signOut}>
       <div className="page">
-        <h1 className="page-title">Link</h1>
+        <PageHeader 
+          title="Link" 
+          subtitle="Create and manage shareable links"
+          icon="link"
+        />
         <div className="section">
           <div className="empty-state">
             <p>🔗 Link management coming soon</p>
-            <p className="help-text">Create and manage shareable links</p>
           </div>
         </div>
       </div>

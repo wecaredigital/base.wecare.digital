@@ -16,6 +16,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../../../components/Layout';
+import PageHeader from '../../../components/PageHeader';
 import Toast, { useToast } from '../../../components/Toast';
 import * as api from '../../../api/client';
 
@@ -457,31 +458,32 @@ const TemplateManagement: React.FC<PageProps> = ({ signOut, user }) => {
     <Layout user={user} onSignOut={signOut}>
       <Toast toasts={toast.toasts} onRemove={toast.removeToast} />
       <div className="page template-management">
-        <div className="page-header">
-          <div className="header-left">
-            <button className="back-btn" onClick={() => router.push('/dm/whatsapp')}>
-              ← Back
-            </button>
-            <h1>📝 Template Management</h1>
-          </div>
-          <div className="header-actions">
-            <select
-              className="waba-select"
-              value={selectedWaba}
-              onChange={(e) => setSelectedWaba(e.target.value)}
-            >
-              {WABA_OPTIONS.map((w) => (
-                <option key={w.id} value={w.id}>{w.name}</option>
-              ))}
-            </select>
-            <button className="btn-carousel" onClick={() => setShowCarouselModal(true)}>
-              🎠 Carousel
-            </button>
-            <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-              + Create Template
-            </button>
-          </div>
-        </div>
+        <PageHeader 
+          title="Template Management" 
+          subtitle="Create, edit, and manage WhatsApp message templates"
+          icon="whatsapp"
+          backLink="/dm/whatsapp"
+          backLabel="← Back"
+          actions={
+            <div className="header-actions">
+              <select
+                className="waba-select"
+                value={selectedWaba}
+                onChange={(e) => setSelectedWaba(e.target.value)}
+              >
+                {WABA_OPTIONS.map((w) => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+              <button className="btn-carousel" onClick={() => setShowCarouselModal(true)}>
+                🎠 Carousel
+              </button>
+              <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+                + Create Template
+              </button>
+            </div>
+          }
+        />
 
         {/* Tabs */}
         <div className="tabs">
