@@ -925,18 +925,27 @@ def _process_payment_status(status: Dict, request_id: str) -> None:
     amount_offset = amount.get('offset', 100)
     currency = payment_data.get('currency', 'INR')
     
-    # Log amount extraction
+    # Log amount extraction with full details
     logger.info(json.dumps({
         'event': 'payment_amount_extracted',
         'amountObject': amount,
         'amountValue': amount_value,
         'amountOffset': amount_offset,
+        'paymentDataKeys': list(payment_data.keys()) if payment_data else [],
         'requestId': request_id
     }))
     
     # Calculate actual amount (value / offset)
     actual_amount = amount_value / amount_offset if amount_offset else amount_value
-    actual_amount = amount_value / amount_offset if amount_offset else amount_value
+    
+    # If amount is 0, try to look up from original payment request in DynamoDB
+    if actual_amount == 0 and reference_id:
+        logger.info(json.dumps({
+            'event': 'payment_amount_zero_lookup',
+            'referenceId': reference_id,
+            'requestId': request_id
+        }))
+        actual_amount = _lookup_payment_amount(reference_id, request_id)
     
     transaction = payment_data.get('transaction', {})
     transaction_id = transaction.get('id', '')
@@ -1101,6 +1110,85 @@ def _get_contact_by_phone(phone: str) -> Optional[Dict]:
         return None
 
 
+def _lookup_payment_amount(reference_id: str, request_id: str) -> float:
+    """
+    Look up payment amount from original payment request in Messages table.
+    This is a fallback when WhatsApp webhook doesn't include the amount.
+    
+    The original payment request message stores the amount in the content field
+    or in a dedicated paymentAmount field.
+    """
+    try:
+        messages_table = dynamodb.Table(MESSAGES_TABLE)
+        
+        # Look for the original payment request message by reference_id
+        # Payment requests are stored with messageType='order_request' or similar
+        response = messages_table.scan(
+            FilterExpression='contains(content, :ref) OR paymentReferenceId = :ref',
+            ExpressionAttributeValues={
+                ':ref': reference_id
+            },
+            Limit=10
+        )
+        
+        items = response.get('Items', [])
+        
+        logger.info(json.dumps({
+            'event': 'payment_amount_lookup_result',
+            'referenceId': reference_id,
+            'foundCount': len(items),
+            'requestId': request_id
+        }))
+        
+        # Look for amount in the found records
+        for item in items:
+            # Check for paymentAmount field (stored in paise)
+            payment_amount = item.get('paymentAmount')
+            if payment_amount:
+                offset = item.get('paymentOffset', 100)
+                amount = float(payment_amount) / float(offset)
+                logger.info(json.dumps({
+                    'event': 'payment_amount_found_in_record',
+                    'referenceId': reference_id,
+                    'amount': amount,
+                    'requestId': request_id
+                }))
+                return amount
+            
+            # Try to extract from content (e.g., "Payment request: ₹500.00")
+            content = item.get('content', '')
+            if '₹' in content:
+                import re
+                match = re.search(r'₹([\d,]+\.?\d*)', content)
+                if match:
+                    amount_str = match.group(1).replace(',', '')
+                    amount = float(amount_str)
+                    logger.info(json.dumps({
+                        'event': 'payment_amount_extracted_from_content',
+                        'referenceId': reference_id,
+                        'amount': amount,
+                        'content': content[:100],
+                        'requestId': request_id
+                    }))
+                    return amount
+        
+        logger.warning(json.dumps({
+            'event': 'payment_amount_not_found',
+            'referenceId': reference_id,
+            'requestId': request_id
+        }))
+        return 0.0
+        
+    except Exception as e:
+        logger.error(json.dumps({
+            'event': 'payment_amount_lookup_error',
+            'referenceId': reference_id,
+            'error': str(e),
+            'requestId': request_id
+        }))
+        return 0.0
+
+
 def _send_order_status_message(recipient_id: str, reference_id: str, 
                                 order_status: str, amount: float, description: str,
                                 request_id: str) -> None:
@@ -1168,6 +1256,7 @@ def _send_order_status_message(recipient_id: str, reference_id: str,
             'contactPhone': contact_phone,
             'referenceId': reference_id,
             'orderStatus': order_status,
+            'amount': amount,
             'requestId': request_id
         }))
         

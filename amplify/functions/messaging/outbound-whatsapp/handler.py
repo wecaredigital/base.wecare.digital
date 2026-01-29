@@ -367,9 +367,29 @@ def _handle_order_status_send(message_id: str, contact_id: str, recipient_phone:
         order_status = order_status_details.get('order_status', 'completed')
         amount = order_status_details.get('amount', 0)  # Amount in rupees
         
+        # Log the received order_status_details for debugging
+        logger.info(json.dumps({
+            'event': 'order_status_details_received',
+            'orderStatusDetails': order_status_details,
+            'amount': amount,
+            'amountType': type(amount).__name__,
+            'requestId': request_id
+        }))
+        
+        # Ensure amount is a float
+        try:
+            amount = float(amount) if amount else 0.0
+        except (ValueError, TypeError):
+            amount = 0.0
+        
         # Generate appropriate message based on status
         if order_status == 'completed' or order_status == 'captured':
-            body_text = f"Payment of ₹{amount:.2f} received successfully! Thank you ✅"
+            # Use description from inbound handler if amount is 0 (fallback)
+            if amount > 0:
+                body_text = f"Payment of ₹{amount:.2f} received successfully! Thank you ✅"
+            else:
+                # Use the description passed from inbound handler which may have the amount
+                body_text = order_status_details.get('description', 'Payment received successfully! Thank you ✅')
             description = "Payment received. Thank you!"
             order_status = 'completed'
         elif order_status == 'failed':
