@@ -372,7 +372,7 @@ const BulkWhatsAppCampaign: React.FC<PageProps> = ({ signOut, user }) => {
         .bulk-content { flex: 1; padding: 24px; overflow-y: auto; }
         
         /* Progress Banner */
-        .progress-banner { background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: #fff; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+        .progress-banner { background: #25D366; color: #fff; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
         .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .progress-title { font-size: 16px; font-weight: 500; }
         .progress-actions { display: flex; gap: 8px; }

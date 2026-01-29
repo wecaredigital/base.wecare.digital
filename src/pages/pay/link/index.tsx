@@ -189,7 +189,7 @@ const PayLinkPage: React.FC<PageProps> = ({ signOut, user }) => {
         .page-header h1 { font-size: 22px; margin: 0 0 4px 0; }
         .page-header p { color: #666; margin: 0; font-size: 14px; }
         
-        .coming-soon-banner { display: flex; align-items: center; gap: 16px; background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%); padding: 16px 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #fcd34d; }
+        .coming-soon-banner { display: flex; align-items: center; gap: 16px; background: #fef3c7; padding: 16px 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #fcd34d; }
         .banner-icon { font-size: 32px; }
         .banner-content h3 { margin: 0 0 4px 0; font-size: 16px; color: #92400e; }
         .banner-content p { margin: 0; font-size: 13px; color: #a16207; }

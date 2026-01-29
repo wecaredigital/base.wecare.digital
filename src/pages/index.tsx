@@ -266,7 +266,7 @@ const HomePage: React.FC = () => {
           .stat-label{font-size:16px;color:#6b7280}
           .story-desc{font-size:16px;font-weight:600;color:#1a1a1a;margin:0 0 8px}
           .story-extra{font-size:14px;color:#9ca3af;margin:0}
-          .cta{padding:80px 24px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}
+          .cta{padding:80px 24px;background:#1a1a2e}
           .cta-content{text-align:center;max-width:700px;margin:0 auto}
           .cta-content h2{font-size:36px;font-weight:700;color:#fff;margin:0 0 16px}
           .cta-content p{font-size:18px;color:#9ca3af;margin:0}

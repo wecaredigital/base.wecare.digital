@@ -27,7 +27,7 @@ export const BarChart: React.FC<BarChartProps> = ({ data, title, maxValue, heigh
               className="bar-chart-bar"
               style={{ 
                 height: `${(item.value / max) * 100}%`,
-                background: item.color || 'linear-gradient(180deg, #25d366 0%, #128c7e 100%)',
+                background: item.color || '#25d366',
               }}
             />
             <div className="bar-chart-label">{item.label}</div>
