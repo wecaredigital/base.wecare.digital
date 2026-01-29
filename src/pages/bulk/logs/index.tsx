@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Layout from '../../../components/Layout';
+import * as api from '../../../api/client';
 
 interface PageProps {
   signOut?: () => void;
@@ -35,11 +36,23 @@ const BulkLogsPage: React.FC<PageProps> = ({ signOut, user }) => {
   const loadBulkLogs = async () => {
     setLoading(true);
     try {
-      // TODO: Implement bulk campaign API
-      // For now, show empty state
-      setLogs([]);
+      const jobs = await api.listBulkJobs();
+      // Map API response to BulkLog format
+      const mappedLogs: BulkLog[] = jobs.map(job => ({
+        id: job.jobId || job.id,
+        channel: (job.channel?.toLowerCase() || 'whatsapp') as BulkLog['channel'],
+        campaignName: `Campaign ${job.jobId?.slice(-6) || 'Unknown'}`,
+        totalRecipients: job.totalRecipients || 0,
+        sent: job.sentCount || 0,
+        delivered: job.sentCount || 0,
+        failed: job.failedCount || 0,
+        status: (job.status?.toLowerCase() || 'pending') as BulkLog['status'],
+        createdAt: job.createdAt || new Date().toISOString(),
+      }));
+      setLogs(mappedLogs);
     } catch (err) {
       console.error('Failed to load bulk logs:', err);
+      setLogs([]);
     } finally {
       setLoading(false);
     }
