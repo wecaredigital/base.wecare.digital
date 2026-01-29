@@ -4,33 +4,33 @@
  */
 
 /**
- * Format reference number to WDSR+<ID> format
- * Removes underscores and ensures consistent display
- * @param value - Raw reference number (may contain underscores)
- * @returns Formatted reference number in WDSR+<ID> format
+ * Format reference number to WDSR<ID> format
+ * Removes underscores and plus signs, ensures consistent display
+ * @param value - Raw reference number (may contain underscores or plus signs)
+ * @returns Formatted reference number in WDSR<ID> format (no + sign)
  */
 export function formatReferenceNumber(value: string): string {
   if (!value) return '';
   
-  // Remove underscores and clean up
-  let cleaned = value.replace(/_/g, '').trim();
+  // Remove underscores, plus signs, and clean up
+  let cleaned = value.replace(/[_+]/g, '').trim();
   
-  // If already has WDSR+ prefix, don't duplicate
-  if (cleaned.toUpperCase().startsWith('WDSR+')) {
+  // If already has WDSR prefix, don't duplicate
+  if (cleaned.toUpperCase().startsWith('WDSR')) {
     return cleaned.toUpperCase();
   }
   
-  // Add WDSR+ prefix
-  return `WDSR+${cleaned.toUpperCase()}`;
+  // Add WDSR prefix (no + sign)
+  return `WDSR${cleaned.toUpperCase()}`;
 }
 
 /**
- * Generate a new reference ID in WDSR+<UUID> format
- * @returns New reference ID
+ * Generate a new reference ID in WDSR<UUID> format
+ * @returns New reference ID (no + sign)
  */
 export function generateReferenceId(): string {
   const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase();
-  return `WDSR+${uuid}`;
+  return `WDSR${uuid}`;
 }
 
 /**
